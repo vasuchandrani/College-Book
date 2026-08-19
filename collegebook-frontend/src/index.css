@@ -114,6 +114,9 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* Native shell: respect device safe areas (notch / home indicator) */
@@ -124,4 +127,43 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
   }
+}
+
+/* Global sleek, modern custom scrollbar for all dialog boxes and scrollable containers */
+[role="dialog"] *::-webkit-scrollbar,
+[data-radix-dialog-content] *::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[role="dialog"] *::-webkit-scrollbar-track,
+[data-radix-dialog-content] *::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[role="dialog"] *::-webkit-scrollbar-thumb,
+[data-radix-dialog-content] *::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.35);
+  border-radius: 9999px;
+}
+
+[role="dialog"] *::-webkit-scrollbar-thumb:hover,
+[data-radix-dialog-content] *::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
+
+[role="dialog"] *,
+[data-radix-dialog-content] *,
+.custom-scrollbar,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
 }

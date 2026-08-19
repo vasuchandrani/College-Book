@@ -1,6 +1,6 @@
-import { Newspaper, Compass, Users, UserCircle, BadgeCheck, BookOpen, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Newspaper, Compass, Users, UserCircle, BadgeCheck, BookOpen, LogOut, PanelLeftClose, PanelLeft, FolderGit2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +18,7 @@ const mainNav = [
   { title: "Campus Feed", url: "/feed", icon: Newspaper },
   { title: "Explore", url: "/explore", icon: Compass },
   { title: "Collab Hub", url: "/collab", icon: Users },
+  { title: "My Collaboration", url: "/my-collaboration", icon: FolderGit2 },
   { title: "Profile", url: "/profile", icon: UserCircle },
   { title: "myCon Badges", url: "/mycon", icon: BadgeCheck },
 ];
@@ -26,9 +27,18 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("cb_token");
+    localStorage.removeItem("cb_refresh_token");
+    localStorage.removeItem("cb_user");
+    localStorage.removeItem("cb_profile");
+    navigate("/");
+  };
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="hidden md:flex">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
@@ -74,7 +84,10 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton className="text-muted-foreground hover:text-foreground">
+            <SidebarMenuButton
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-destructive"
+            >
               <LogOut className="mr-2 h-4 w-4" />
               {!collapsed && <span>Log out</span>}
             </SidebarMenuButton>

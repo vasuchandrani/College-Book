@@ -1,137 +1,555 @@
-import { useEffect, useRef, useState } from "react";
-import { Heart, Bookmark, Share2, MoreHorizontal, Image as ImageIcon, Send, Search, X } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import {
+  Heart,
+  Bookmark,
+  Share2,
+  Image as ImageIcon,
+  Send,
+  Loader2,
+  X,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Hash,
+  Globe,
+  School,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
+import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
+import FormattedContent from "@/components/FormattedContent";
+import ThemedLoader from "@/components/ThemedLoader";
+import { toast } from "sonner";
 import {
   getFeedPosts,
   getFeedAds,
-  getFeedTags,
-  createPost,
+  createPost as apiCreatePost,
   likePost as apiLikePost,
   savePost as apiSavePost,
+  uploadImageFile,
+  uploadVideoFile,
+  getProfile,
+  formatApiError,
+  sharePostLink,
+  type FeedPost,
 } from "@/lib/api";
-import type { FeedPost as Post } from "@/data/mock";
+
+interface PendingImage {
+  file: File;
+  previewUrl: string;
+}
+
+interface PendingVideo {
+  file: File;
+  previewUrl: string;
+}
+
+const PAGE_SIZE = 15;
 
 const FeedPage = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [ads, setAds] = useState<AdData[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const [newPost, setNewPost] = useState("");
-  const [newImages, setNewImages] = useState<string[]>([]);
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatusText, setUploadStatusText] = useState("");
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [isGlobal, setIsGlobal] = useState(true);
 
-  const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO","college":"IIT Delhi","collegeShort":"IIT-D","course":"B.Tech"}');
-  const collegeShort = user.collegeShort || "IIT-D";
+  const mediaInputRef = useRef<HTMLInputElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  const [user, setUser] = useState(() => {
+    const raw = localStorage.getItem("cb_user");
+    return raw
+      ? JSON.parse(raw)
+      : {
+          name: "You",
+          initials: "YO",
+          college: "Dharmsinh Desai University",
+          collegeShort: "DDU",
+          course: "B.Tech",
+        };
+  });
+
+  const collegeDisplay =
+    user.collegeShort ||
+    (user.college === "Dharmsinh Desai University" ? "DDU" : user.college) ||
+    "DDU";
+
+  // Initial fetch / tag filter change
   useEffect(() => {
-    getFeedPosts().then(setPosts);
-    getFeedAds().then(setAds);
-    getFeedTags().then(setTags);
-  }, []);
+    let alive = true;
+    setLoadingInitial(true);
+    setPage(0);
+    setHasMore(true);
 
-  const toggleLike = (id: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p)));
+    getFeedPosts(0, PAGE_SIZE, selectedTag || undefined)
+      .then((res) => {
+        if (alive) {
+          setPosts(res.posts || []);
+          setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setPosts([]);
+          setHasMore(false);
+        }
+      })
+      .finally(() => {
+        if (alive) setLoadingInitial(false);
+      });
+
+    getFeedAds()
+      .then((data) => alive && setAds(data || []))
+      .catch(() => {});
+
+    getProfile()
+      .then((p) => {
+        if (alive && p) {
+          const loadedCollege = p.collegeName || p.college || "Dharmsinh Desai University";
+          const loadedCollegeShort =
+            p.collegeShort ||
+            p.collegeShortName ||
+            (loadedCollege === "Dharmsinh Desai University"
+              ? "DDU"
+              : loadedCollege
+                  .split(" ")
+                  .map((w: string) => w[0])
+                  .join(""));
+          const updated = {
+            ...user,
+            id: p.userId || user.id,
+            name: p.name || p.fullName || user.name,
+            college: loadedCollege,
+            collegeShort: loadedCollegeShort,
+            course: p.courseName || user.course,
+            currentYear: p.currentYear || user.currentYear,
+            defaultBio: p.defaultBio || user.defaultBio,
+          };
+          setUser(updated);
+          localStorage.setItem("cb_user", JSON.stringify(updated));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTag]);
+
+  // Load next page of posts
+  const loadMorePosts = useCallback(() => {
+    if (loadingMore || !hasMore || loadingInitial) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+
+    getFeedPosts(nextPage, PAGE_SIZE, selectedTag || undefined)
+      .then((res) => {
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => String(p.id)));
+          const fresh = (res.posts || []).filter((p) => !existingIds.has(String(p.id)));
+          return [...prev, ...fresh];
+        });
+        setPage(nextPage);
+        setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+      })
+      .catch(() => {
+        setHasMore(false);
+      })
+      .finally(() => {
+        setLoadingMore(false);
+      });
+  }, [page, hasMore, loadingMore, loadingInitial, selectedTag]);
+
+  // IntersectionObserver for infinite scrolling sentinel
+  useEffect(() => {
+    if (loadingInitial || !hasMore || posts.length === 0) {
+      if (observerRef.current) observerRef.current.disconnect();
+      return;
+    }
+
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1, rootMargin: "200px" }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, [loadMorePosts, hasMore, loadingMore, loadingInitial, posts.length]);
+
+  // Compute dynamic hashtags with usage counts, sorted descending
+  const dynamicTagsWithCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach((p) => {
+      (p.tags || []).forEach((t) => {
+        const clean = t.replace(/^#/, "").trim();
+        if (clean) {
+          counts[clean] = (counts[clean] || 0) + 1;
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag, count]) => ({ tag, count }));
+  }, [posts]);
+
+  const toggleLike = (id: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              liked: !p.liked,
+              likes: p.liked ? p.likes - 1 : p.likes + 1,
+            }
+          : p
+      )
+    );
     apiLikePost(id);
   };
 
-  const toggleSave = (id: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p)));
+  const toggleSave = (id: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p))
+    );
     apiSavePost(id);
   };
 
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
-      const urls = Array.from(files).map(f => URL.createObjectURL(f));
-      setNewImages(prev => [...prev, ...urls]);
+    if (!files || files.length === 0) return;
+
+    const newImages: PendingImage[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("video/")) {
+        if (file.size > 500 * 1024 * 1024) {
+          toast.error("Video exceeds maximum allowed size (500 MB)");
+          continue;
+        }
+        setPendingVideo({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      } else {
+        newImages.push({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      }
     }
-    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (newImages.length > 0) {
+      setPendingImages((prev) => [...prev, ...newImages]);
+    }
+    if (mediaInputRef.current) mediaInputRef.current.value = "";
+  };
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const raw = (tagToAdd || tagInput).trim().replace(/^#/, "");
+    if (!raw) return;
+    if (postTags.includes(raw)) {
+      toast.info("Tag already added");
+      setTagInput("");
+      return;
+    }
+    if (postTags.length >= 5) {
+      toast.error("You can add only 5 hashtags in one post");
+      return;
+    }
+    setPostTags((prev) => [...prev, raw]);
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setPostTags((prev) => prev.filter((t) => t !== tagToRemove));
   };
 
   const handlePost = async () => {
-    if (!newPost.trim() && newImages.length === 0) return;
-    const post = await createPost({
-      author: user.name || "You",
-      initials: user.initials || "YO",
-      course: user.course || "B.Tech",
-      content: newPost,
-      images: newImages,
-    });
-    setPosts([post, ...posts]);
-    setNewPost("");
-    setNewImages([]);
+    const hasContent = Boolean(newPost.trim());
+    const hasMedia = pendingImages.length > 0 || Boolean(pendingVideo);
+
+    if (!hasContent && !hasMedia) {
+      toast.error("Please enter some text or attach an image/video to publish.");
+      return;
+    }
+    setIsUploading(true);
+
+    try {
+      const mediaKeys: Array<{
+        objectKey?: string;
+        mediaType: string;
+        storageProvider: string;
+        videoId?: string;
+      }> = [];
+
+      if (pendingImages.length > 0) {
+        setUploadStatusText("Uploading images...");
+        for (let i = 0; i < pendingImages.length; i++) {
+          const res = await uploadImageFile(pendingImages[i].file);
+          mediaKeys.push({
+            objectKey: res.objectKey,
+            url: res.publicUrl || res.url,
+            mediaType: "IMAGE",
+            storageProvider: res.storageProvider || "CLOUDINARY",
+          });
+        }
+      }
+
+      if (pendingVideo) {
+        setUploadStatusText("Uploading video (this may take a moment)...");
+        const res = await uploadVideoFile(pendingVideo.file);
+        mediaKeys.push({
+          videoId: res.videoId,
+          mediaType: "VIDEO",
+          storageProvider: res.storageProvider || "CLOUDFLARE_STREAM",
+        });
+      }
+
+      setUploadStatusText("Publishing post...");
+      const cleanedContent = newPost.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      const created = await apiCreatePost({
+        author: user.name,
+        initials: user.initials,
+        course: user.course,
+        content: cleanedContent,
+        mediaKeys,
+        tags: postTags,
+        isGlobal,
+      });
+
+      setPosts([created, ...posts]);
+      setNewPost("");
+      setPostTags([]);
+      setShowTagInput(false);
+      setPendingImages([]);
+      setPendingVideo(null);
+      toast.success("Post published!");
+    } catch (err: any) {
+      toast.error(formatApiError(err, "Failed to publish post. Please try again."));
+    } finally {
+      setIsUploading(false);
+      setUploadStatusText("");
+    }
   };
 
-  const filtered = posts.filter(p => {
-    const matchesSearch = !search || p.content.toLowerCase().includes(search.toLowerCase()) || p.author.toLowerCase().includes(search.toLowerCase());
-    const matchesTag = !selectedTag || p.tags.includes(selectedTag);
-    return matchesSearch && matchesTag;
-  });
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase().replace(/^#/, "");
+    return posts.filter((p) => {
+      const matchesSearch =
+        !query ||
+        p.content.toLowerCase().includes(query) ||
+        p.author.toLowerCase().includes(query) ||
+        (p.tags && p.tags.some((t) => t.toLowerCase().replace(/^#/, "").includes(query)));
+      const matchesTag =
+        !selectedTag ||
+        (p.tags &&
+          p.tags.some(
+            (t) => t.toLowerCase().replace(/^#/, "") === selectedTag.toLowerCase().replace(/^#/, "")
+          ));
+      return matchesSearch && matchesTag;
+    });
+  }, [posts, search, selectedTag]);
 
-  const getAdForSlot = (index: number) => ads[Math.floor(index / 5) % Math.max(ads.length, 1)];
-
+  const getAdForSlot = (index: number) =>
+    ads[Math.floor(index / 5) % Math.max(ads.length, 1)];
 
   const renderFeed = () => {
+    if (loadingInitial) {
+      return (
+        <div className="py-16 flex items-center justify-center">
+          <ThemedLoader size="md" />
+        </div>
+      );
+    }
+
+    if (filtered.length === 0) {
+      return (
+        <Card className="p-8 text-center shadow-card">
+          <p className="text-muted-foreground text-sm">
+            {selectedTag
+              ? `No posts found for #${selectedTag}.`
+              : search
+              ? "No matching posts found."
+              : "No posts yet. Be the first to share something!"}
+          </p>
+          {selectedTag && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedTag(null)}
+              className="mt-3 text-xs"
+            >
+              Clear tag filter
+            </Button>
+          )}
+        </Card>
+      );
+    }
+
     const items: React.ReactNode[] = [];
     filtered.forEach((post, i) => {
       items.push(
-        <motion.div key={post.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
+        <motion.div
+          key={post.id}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: Math.min(i * 0.03, 0.3) }}
+        >
           <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{post.initials}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {post.initials}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Link to={`/student/${encodeURIComponent(post.author)}`} className="font-semibold text-sm hover:text-primary hover:underline transition-colors">
+                    <Link
+                      to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                      className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight"
+                    >
                       {post.author}
                     </Link>
-                    <span className="text-muted-foreground text-xs ml-2">{post.course}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                      {post.authorHandle && (
+                        <span className="font-mono text-primary/90 font-medium">
+                          @{post.authorHandle}
+                        </span>
+                      )}
+                      {post.authorHandle && <span>•</span>}
+                      <span>{post.course}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{post.time}</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
-                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                    {post.time}
+                  </span>
                 </div>
-                <p className="text-sm mt-2 leading-relaxed">{post.content}</p>
 
-                {post.images.length > 0 && (
+                {/* Multiline, 2-line gap normalized, clickable content */}
+                <FormattedContent content={post.content} className="mt-2" />
+
+                {/* Images */}
+                {post.images && post.images.length > 0 && (
                   <div className="mt-3">
                     <ImageCarousel images={post.images} />
                   </div>
                 )}
 
+                {/* Video */}
                 {post.videoUrl && (
-                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">🎬 Video attached — click to watch</p>
-                )}
-
-                {post.tags.length > 0 && (
-                  <div className="flex gap-1.5 mt-3">
-                    {post.tags.map(tag => (
-                      <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">#{tag}</span>
-                    ))}
+                  <div className="mt-3">
+                    <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
                   </div>
                 )}
+
+                {/* Hashtags below content, above buttons */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex gap-1.5 mt-3 flex-wrap">
+                    {post.tags.map((t) => {
+                      const cleanTag = t.replace(/^#/, "");
+                      const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
+                      return (
+                        <button
+                          key={cleanTag}
+                          type="button"
+                          onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          #{cleanTag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
-                  <Button variant="ghost" size="sm" onClick={() => toggleLike(post.id)} className={`gap-1.5 text-xs ${post.liked ? "text-red-500" : "text-muted-foreground"}`}>
-                    <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} /> {post.likes}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleLike(post.id)}
+                    className={`gap-1.5 text-xs ${
+                      post.liked ? "text-red-500" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${
+                        post.liked ? "fill-red-500" : ""
+                      }`}
+                    />{" "}
+                    {post.likes}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => toggleSave(post.id)} className={`gap-1.5 text-xs ${post.saved ? "text-accent" : "text-muted-foreground"}`}>
-                    <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} /> Save
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSave(post.id)}
+                    className={`gap-1.5 text-xs ${
+                      post.saved ? "text-accent" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Bookmark
+                      className={`h-4 w-4 ${
+                        post.saved ? "fill-current" : ""
+                      }`}
+                    />{" "}
+                    Save
                   </Button>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await sharePostLink(post.id);
+                      toast.success("Post link copied to clipboard!");
+                    }}
+                  >
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
                 </div>
@@ -141,57 +559,176 @@ const FeedPage = () => {
         </motion.div>
       );
 
-      if ((i + 1) % 5 === 0 && i < filtered.length - 1) {
+      if ((i + 1) % 5 === 0 && ads.length > 0) {
         const ad = getAdForSlot(i);
-        items.push(
-          <motion.div key={ad.id + "-" + i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-            <AdCard ad={ad} />
-          </motion.div>
-        );
+        if (ad) {
+          items.push(<AdCard key={`ad-${i}`} ad={ad} />);
+        }
       }
     });
+
     return items;
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-bold mb-1">Campus Feed</h1>
-        <p className="text-muted-foreground text-sm">What's happening at {collegeShort}</p>
+    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-16">
+      <div className="mb-6">
+        <h1 className="font-heading text-2xl font-bold">Campus Feed</h1>
+        <p className="text-muted-foreground text-sm">
+          What's happening at {collegeDisplay}
+        </p>
       </div>
 
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search posts, people..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
-      <div className="flex flex-wrap gap-2 mb-6">
-        {tags.map(tag => (
-          <Badge
-            key={tag}
-            variant={selectedTag === tag ? "default" : "secondary"}
-            className={`cursor-pointer transition-colors ${selectedTag === tag ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-            onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-          >
-            #{tag}
-          </Badge>
-        ))}
+        <Input
+          placeholder="Search posts, people, #hashtags..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
+      {/* Dynamic Trending Hashtags Filter (Fixed-position Expand/Collapse button) */}
+      {dynamicTagsWithCounts.length > 0 && (
+        <div className="mb-6 bg-card/60 border border-border/70 rounded-xl p-2.5 shadow-xs backdrop-blur-sm relative">
+          <div className={`flex items-center gap-1.5 flex-wrap ${dynamicTagsWithCounts.length > 6 ? "pr-24" : ""}`}>
+            {(tagsExpanded ? dynamicTagsWithCounts : dynamicTagsWithCounts.slice(0, 6)).map(({ tag }) => {
+              const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === tag.toLowerCase();
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag(isSelected ? null : tag)}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 border ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/70 hover:bg-muted text-foreground border-border/50 hover:border-border"
+                  }`}
+                >
+                  <span>#{tag}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {dynamicTagsWithCounts.length > 6 && (
+            <button
+              type="button"
+              onClick={() => setTagsExpanded(!tagsExpanded)}
+              className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
+              title={tagsExpanded ? "Collapse hashtags" : "Expand all hashtags"}
+            >
+              <span>{tagsExpanded ? "Collapse" : "Expand"}</span>
+              {tagsExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+
+          {selectedTag && (
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground px-1">
+              <span>
+                Filtering by <strong className="text-foreground">#{selectedTag}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className="text-primary hover:underline text-xs font-medium"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Post Creation Card */}
       <Card className="p-4 mb-6 shadow-card">
         <div className="flex gap-3">
           <Avatar className="h-9 w-9 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{user.initials || "YO"}</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              {user.initials || "YO"}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <Textarea placeholder="Share an idea, achievement, or opportunity..." value={newPost} onChange={(e) => setNewPost(e.target.value)} className="min-h-[80px] border-none shadow-none resize-none p-0 focus-visible:ring-0 text-sm" />
+            <Textarea
+              placeholder="Share an idea, achievement, or opportunity..."
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value.replace(/\n{3,}/g, "\n\n"))}
+              className="min-h-[80px] border-none shadow-none resize-none p-2 bg-muted/20 rounded-md focus-visible:ring-0 text-sm"
+              disabled={isUploading}
+            />
 
-            {newImages.length > 0 && (
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {newImages.map((img, idx) => (
-                  <div key={idx} className="relative group">
-                    <img src={img} alt="" className="h-16 w-16 object-cover rounded-md" />
+            {/* Post Tags Chips */}
+            {postTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-border/40">
+                {postTags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="text-xs px-2.5 py-0.5 gap-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors"
+                  >
+                    #{tag}
                     <button
-                      onClick={() => setNewImages(newImages.filter((_, j) => j !== idx))}
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="text-primary/70 hover:text-destructive transition-colors ml-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Inline Hashtag Input */}
+            {showTagInput && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
+                <div className="relative flex-1">
+                  <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    ref={tagInputRef}
+                    placeholder="Type a hashtag and press Enter (e.g. collegebook)..."
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    className="h-8 pl-8 text-xs bg-muted/30 border-muted"
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 text-xs px-3"
+                  onClick={() => handleAddTag()}
+                  disabled={!tagInput.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            )}
+
+            {/* Image Previews */}
+            {pendingImages.length > 0 && (
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {pendingImages.map((img, idx) => (
+                  <div key={idx} className="relative group">
+                    <img
+                      src={img.previewUrl}
+                      alt=""
+                      className="h-16 w-16 object-cover rounded-md border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingImages(
+                          pendingImages.filter((_, j) => j !== idx)
+                        )
+                      }
                       className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3 w-3" />
@@ -201,22 +738,143 @@ const FeedPage = () => {
               </div>
             )}
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-              <div>
-                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
-                <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5" onClick={() => fileInputRef.current?.click()}>
-                  <ImageIcon className="h-4 w-4" /> Photo
-                </Button>
+            {/* Video Preview */}
+            {pendingVideo && (
+              <div className="relative group mt-2 inline-block">
+                <video
+                  src={pendingVideo.previewUrl}
+                  className="h-24 w-40 object-cover rounded-md border"
+                  controls
+                />
+                <button
+                  type="button"
+                  onClick={() => setPendingVideo(null)}
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  Video attached ({Math.round(pendingVideo.file.size / 1024 / 1024)} MB)
+                </span>
               </div>
-              <Button size="sm" onClick={handlePost} disabled={!newPost.trim() && newImages.length === 0} className="bg-gradient-hero text-primary-foreground gap-1.5">
-                <Send className="h-3.5 w-3.5" /> Post
+            )}
+
+            {isUploading && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-primary font-medium">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>{uploadStatusText}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
+                  multiple
+                  className="hidden"
+                  onChange={handleMediaSelect}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground gap-1.5"
+                  onClick={() => mediaInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <ImageIcon className="h-4 w-4" /> Media
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={`gap-1.5 ${
+                    showTagInput || postTags.length > 0
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setShowTagInput(!showTagInput);
+                    if (!showTagInput) {
+                      setTimeout(() => tagInputRef.current?.focus(), 100);
+                    }
+                  }}
+                  disabled={isUploading}
+                >
+                  <Hash className="h-4 w-4" /> Hashtag
+                </Button>
+
+                <div className="flex bg-muted p-0.5 rounded-full border border-border/40">
+                  <button
+                    type="button"
+                    onClick={() => setIsGlobal(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                      isGlobal
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Globe className="h-3 w-3" />
+                    Global
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsGlobal(false)}
+                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                      !isGlobal
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <School className="h-3 w-3" />
+                    Campus
+                  </button>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handlePost}
+                disabled={
+                  (!newPost.trim() && pendingImages.length === 0 && !pendingVideo) ||
+                  isUploading
+                }
+                className="bg-gradient-hero text-primary-foreground gap-1.5"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                Post
               </Button>
             </div>
           </div>
         </div>
       </Card>
 
+      {/* Posts List */}
       <div className="space-y-4">{renderFeed()}</div>
+
+      {/* Infinite Scroll Sentinel & Bottom Loader */}
+      {hasMore && posts.length > 0 && (
+        <div ref={loadMoreRef} className="py-6 flex items-center justify-center">
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span>Loading more posts...</span>
+            </div>
+          )}
+        </div>
+      )}
+      {!hasMore && posts.length > 0 && !loadingInitial && (
+        <div className="py-6 flex items-center justify-center">
+          <p className="text-xs text-muted-foreground/70 font-medium">
+            You're all caught up!
+          </p>
+        </div>
+      )}
     </div>
   );
 };

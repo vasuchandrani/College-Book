@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: collegebook-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASS
+        sync: false
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_PASS
+        sync: false
+      - key: STORAGE_ACTIVE_PROVIDER
+        value: S3
+      - key: AWS_S3_REGION
+        value: eu-north-1
+      - key: AWS_S3_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET_NAME
+        sync: false
+      - key: APP_OTP_BYPASS
+        value: "false"
+      - key: APP_CORS_ORIGINS
+        value: "https://collegebook.vercel.app,https://*.vercel.app,http://localhost:8080,http://localhost:8081,http://localhost:5173"

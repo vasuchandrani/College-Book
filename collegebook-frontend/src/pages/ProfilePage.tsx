@@ -1,296 +1,1105 @@
-/**
- * BACKEND INTEGRATION
- * ------------------------------------------------------------------
- * This page renders mock data today. When the Spring Boot API is live,
- * replace the local state seeds with these calls from the single HTTP layer:
- *
- *   import { getProfile, updateProfile, getMyPosts, getSavedPosts, getStarredProjects, unstarProject, getMyTeams, getMyJoinRequests, updateJoinRequest } from "@/lib/api";
- *
- *   useEffect(() => {
- *     let alive = true;
- *     setLoading(true);
- *     getProfile()
- *       .then((data) => alive && setData(data))
- *       .catch((e) => alive && setError(e.message))
- *       .finally(() => alive && setLoading(false));
- *     return () => { alive = false; };
- *   }, []);
- *
- * Never call fetch/axios here — `src/lib/api.ts` is the only HTTP file.
- */
-import { useState } from "react";
-import { BookOpen, Calendar, MapPin, Award, Bookmark, Users, BadgeCheck, Star, Camera, Trash2, Check, X, Clock, MessageCircle, CheckCircle2, UsersRound, Pencil, Github, Rocket, StarOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  BookOpen,
+  Calendar,
+  Users,
+  Star,
+  Camera,
+  Trash2,
+  Pencil,
+  Github,
+  Globe,
+  Mail,
+  Link as LinkIcon,
+  FileText,
+  Loader2,
+  Plus,
+  Settings,
+  KeyRound,
+  ShieldCheck,
+  CheckCircle2,
+  LogOut,
+  RefreshCw,
+  Shield,
+  Award,
+  Bookmark,
+  UsersRound,
+  ExternalLink,
+  Eye,
+  Code2,
+  Rocket,
+  X as XIcon,
+  Check,
+  Inbox,
+  AlertCircle,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import FormattedContent from "@/components/FormattedContent";
+import ThemedLoader from "@/components/ThemedLoader";
+import ImageCarousel from "@/components/ImageCarousel";
+import VideoPlayer from "@/components/VideoPlayer";
+import {
+  getProfile,
+  updateProfile,
+  getMyPosts,
+  getSavedPosts,
+  deletePost as apiDeletePost,
+  savePost as apiSavePost,
+  getMyTeams,
+  getMyOpenSourceProjects,
+  updateTeam,
+  starProject,
+  getStarredProjects,
+  unstarProject,
+  getMyJoinRequests,
+  getMyIncomingRequests,
+  getTeamJoinRequests,
+  respondJoinRequest,
+  markProjectComplete,
+  updateJoinRequest,
+  deleteTeam,
+  addTeamMember,
+  removeTeamMember,
+  deleteJoinRequest,
+  requestPresignedUpload,
+  uploadFileToStorage,
+  uploadImageFile,
+  getCampusStudents,
+  sendPasswordChangeOtp,
+  changePasswordWithOtp,
+  sendMemoryBookOtp,
+  verifyMemoryBookEmail,
+  removeMemoryBookEmail,
+  type PublicStudentProfile,
+} from "@/lib/api";
 
-const myConBadges = [
-  { tag: "cp", label: "Competitive Programming", verified: true },
-  { tag: "webdev", label: "Web Development", verified: true },
-  { tag: "ml", label: "Machine Learning", verified: false },
+const commonTechSuggestions = [
+  "React",
+  "Node.js",
+  "TypeScript",
+  "Python",
+  "Docker",
+  "Tailwind CSS",
+  "PostgreSQL",
+  "Next.js",
+  "Go",
+  "Rust",
+  "Kubernetes",
+  "Figma",
 ];
 
-const initialActivityPosts = [
-  { id: 1, content: "Just finished building a real-time collaborative whiteboard using WebSockets and Canvas API. Looking for frontend devs! 🚀", likes: 24, date: "2 days ago", tags: ["webdev", "hackathon"] },
-  { id: 2, content: "Wrote a guide on React performance optimization patterns — lazy loading, memoization, and code splitting.", likes: 56, date: "1 week ago", tags: ["webdev"] },
-  { id: 3, content: "Completed the 100 Days of Code challenge! Here's what I learned about consistency and growth.", likes: 112, date: "2 weeks ago", tags: ["achievement"] },
+const roleOptions = [
+  "Frontend Dev",
+  "Backend Dev",
+  "Full Stack Dev",
+  "ML Engineer",
+  "Data Engineer",
+  "DevOps",
+  "UI/UX Designer",
+  "Mobile Dev",
+  "Security Analyst",
+  "Cloud Architect",
+  "QA Engineer",
+  "Technical Writer",
+  "Other",
 ];
 
-const savedPosts = [
-  { id: 1, author: "Sneha Reddy", initials: "SR", college: "BITS Pilani", content: "Our team just won the Smart India Hackathon 2025!", likes: 156, date: "3 days ago", tags: ["ai", "hackathon"] },
-  { id: 2, author: "Arjun Das", initials: "AD", college: "NIT Trichy", content: "Wrote a comprehensive guide on system design for placements.", likes: 203, date: "5 days ago", tags: ["placements", "systemdesign"] },
-  { id: 3, author: "Fatima Khan", initials: "FK", college: "IIT Bombay", content: "My research on privacy-preserving ML got accepted at NeurIPS!", likes: 341, date: "1 week ago", tags: ["ml", "research"] },
-];
-
-interface JoinRequest {
-  id: number;
-  studentName: string;
-  studentInitials: string;
-  role: string;
-  message: string;
-  time: string;
-  status: "pending" | "accepted" | "rejected";
+interface CustomLink {
+  id: string;
+  label: string;
+  url: string;
 }
-
-interface CreatedProject {
-  id: number;
-  title: string;
-  type: "project" | "hackathon";
-  description: string;
-  githubLink?: string;
-  skills: string[];
-  requiredExpertise: string[];
-  members: { name: string; initials: string; role: string }[];
-  maxMembers: number;
-  joinRequests: JoinRequest[];
-  completed: boolean;
-}
-
-const initialCreatedProjects: CreatedProject[] = [
-  {
-    id: 1, title: "Neural Nexus", type: "hackathon", description: "", skills: ["Python", "ML", "React"], requiredExpertise: ["Data Engineer", "DevOps"], maxMembers: 5, completed: false,
-    members: [{ name: "You", initials: "VC", role: "Lead" }],
-    joinRequests: [
-      { id: 1, studentName: "Rahul Verma", studentInitials: "RV", role: "ML Engineer", message: "I have experience in ML and would love to contribute!", time: "2h ago", status: "pending" },
-      { id: 2, studentName: "Priya Singh", studentInitials: "PS", role: "Frontend Dev", message: "Frontend dev with React expertise, looking to join.", time: "5h ago", status: "pending" },
-    ],
-  },
-  {
-    id: 2, title: "Open Campus API", type: "project", description: "Building a unified REST API for college data — timetables, faculty, events.", githubLink: "https://github.com/example/open-campus-api", skills: ["Node.js", "PostgreSQL", "Docker"], requiredExpertise: ["Frontend Dev", "DevOps"], maxMembers: 4, completed: false,
-    members: [
-      { name: "You", initials: "VC", role: "Lead" },
-      { name: "Karthik I.", initials: "KI", role: "Backend Dev" },
-    ],
-    joinRequests: [],
-  },
-];
-
-interface MyJoinRequest {
-  id: number;
-  projectTitle: string;
-  type: "project" | "hackathon";
-  leadName: string;
-  role: string;
-  reason: string;
-  status: "pending" | "accepted" | "rejected";
-  time: string;
-}
-
-const initialMyJoinRequests: MyJoinRequest[] = [
-  { id: 1, projectTitle: "StudySync", type: "project", leadName: "Meera J.", role: "Frontend Dev", reason: "I have strong React skills and love collaborative tools.", status: "accepted", time: "1 day ago" },
-  { id: 2, projectTitle: "BlockBuilders", type: "hackathon", leadName: "Rohan M.", role: "Solidity Dev", reason: "Built 3 smart contracts on Ethereum, eager to compete.", status: "pending", time: "3 hours ago" },
-  { id: 3, projectTitle: "EcoTrack", type: "project", leadName: "Sneha R.", role: "Data Analyst", reason: "Passionate about sustainability and data viz.", status: "rejected", time: "2 days ago" },
-];
-
-const initialStarredProjects = [
-  { id: 1, title: "StudySync", author: "Meera J.", stars: 56, skills: ["React", "WebRTC"] },
-  { id: 2, title: "PeerReview", author: "Arjun D.", stars: 78, skills: ["Next.js", "Go"] },
-  { id: 3, title: "EcoTrack", author: "Sneha R.", stars: 45, skills: ["React Native", "Python"] },
-];
-
-const collegePeers = [
-  { name: "Ananya Sharma", initials: "AS", myCon: ["cp", "webdev"] },
-  { name: "Rohan Mehta", initials: "RM", myCon: ["ml"] },
-  { name: "Priya Patel", initials: "PP", myCon: ["design"] },
-  { name: "Karthik Iyer", initials: "KI", myCon: ["cp", "webdev", "cloud"] },
-  { name: "Meera Joshi", initials: "MJ", myCon: ["webdev", "mobile"] },
-  { name: "Vikram Desai", initials: "VD", myCon: ["ml", "data"] },
-  { name: "Sneha Gupta", initials: "SG", myCon: ["mobile"] },
-  { name: "Arjun Nair", initials: "AN", myCon: ["webdev", "cloud"] },
-];
-
-const roleOptions = ["Frontend Dev", "Backend Dev", "Full Stack Dev", "ML Engineer", "Data Engineer", "DevOps", "UI/UX Designer", "Mobile Dev", "Security Analyst", "Cloud Architect", "QA Engineer", "Technical Writer", "Other"];
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [activityPosts, setActivityPosts] = useState(initialActivityPosts);
-  const [createdProjects, setCreatedProjects] = useState(initialCreatedProjects);
-  const [myRequests, setMyRequests] = useState(initialMyJoinRequests);
-  const [starredProjects, setStarredProjects] = useState(initialStarredProjects);
-  const [savedPostsList, setSavedPostsList] = useState(savedPosts);
-  const [confirmAction, setConfirmAction] = useState<{ projectId: number; requestId: number; action: "accepted" | "rejected" } | null>(null);
-  const [completeConfirm, setCompleteConfirm] = useState<number | null>(null);
+  const [editAboutOpen, setEditAboutOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | number | null>(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+
+  // Settings State: Password Change
+  const [passwordStep, setPasswordStep] = useState<"request" | "verify">("request");
+  const [sendingPasswordOtp, setSendingPasswordOtp] = useState(false);
+  const [passwordOtp, setPasswordOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordOtpCooldown, setPasswordOtpCooldown] = useState(0);
+
+  // Settings State: Memory Book Email
+  const [memoryEmailInput, setMemoryEmailInput] = useState("");
+  const [memoryStep, setMemoryStep] = useState<"idle" | "otp">("idle");
+  const [memoryOtpInput, setMemoryOtpInput] = useState("");
+  const [sendingMemoryOtp, setSendingMemoryOtp] = useState(false);
+  const [verifyingMemoryEmail, setVerifyingMemoryEmail] = useState(false);
+  const [memoryOtpCooldown, setMemoryOtpCooldown] = useState(0);
+
+  useEffect(() => {
+    if (passwordOtpCooldown <= 0 && memoryOtpCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setPasswordOtpCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      setMemoryOtpCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [passwordOtpCooldown, memoryOtpCooldown]);
+  const [removingMemoryEmail, setRemovingMemoryEmail] = useState(false);
+
+  const [activityPosts, setActivityPosts] = useState<any[]>([]);
+  const [createdProjects, setCreatedProjects] = useState<any[]>([]);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [starredProjects, setStarredProjects] = useState<any[]>([]);
+  const [savedPostsList, setSavedPostsList] = useState<any[]>([]);
+  const [campusStudents, setCampusStudents] = useState<PublicStudentProfile[]>([]);
+  const [confirmAction, setConfirmAction] = useState<{
+    projectId: string | number;
+    requestId: string | number;
+    action: "accepted" | "rejected";
+  } | null>(null);
+  const [completeConfirm, setCompleteConfirm] = useState<string | number | null>(null);
+  const [completingProject, setCompletingProject] = useState(false);
+  const [viewRequestsProject, setViewRequestsProject] = useState<any | null>(null);
+  const [respondingReqId, setRespondingReqId] = useState<string | number | null>(null);
 
   // Edit team dialog
   const [editTeamOpen, setEditTeamOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<CreatedProject | null>(null);
-  const [editTeamForm, setEditTeamForm] = useState({ title: "", description: "", githubLink: "", requiredExpertise: "", maxMembers: "4" });
+  const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [savingTeam, setSavingTeam] = useState(false);
+  const [editCategory, setEditCategory] = useState<"open_source" | "hackathon" | "project">("open_source");
+  const [editTeamForm, setEditTeamForm] = useState({
+    title: "",
+    hackathon: "",
+    description: "",
+    githubLink: "",
+    maxMembers: "4",
+  });
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editTagInput, setEditTagInput] = useState("");
 
   // Edit request dialog
   const [editReqOpen, setEditReqOpen] = useState(false);
-  const [editingReq, setEditingReq] = useState<MyJoinRequest | null>(null);
+  const [editingReq, setEditingReq] = useState<any | null>(null);
   const [editReqForm, setEditReqForm] = useState({ role: "", reason: "" });
+  const [savingReqEdit, setSavingReqEdit] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("cb_user") || '{}');
+  // Delete team/project confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<string | number | null>(null);
+  const [deletingTeam, setDeletingTeam] = useState(false);
 
-  const defaultBio = `${user.course || "B.Tech"} Computer Science • ${user.year || "3rd Year"}`;
+  // Delete/withdraw join request confirmation
+  const [deleteReqConfirm, setDeleteReqConfirm] = useState<string | number | null>(null);
+  const [deletingReq, setDeletingReq] = useState(false);
+
+  // Member management in edit dialog
+  const [editMembers, setEditMembers] = useState<any[]>([]);
+  const [newMemberHandle, setNewMemberHandle] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+
+  const user = JSON.parse(localStorage.getItem("cb_user") || "{}");
+  const userYearStr = user.currentYear
+    ? `${user.currentYear}${user.currentYear === 1 ? "st" : user.currentYear === 2 ? "nd" : user.currentYear === 3 ? "rd" : "th"} Year`
+    : user.year || "";
+  const defaultBio =
+    user.defaultBio ||
+    (user.course
+      ? `${user.course}${userYearStr ? ` • ${userYearStr}` : ""}`
+      : "Student");
 
   const [profile, setProfile] = useState({
-    name: user.name || "Vatsal Chandrani",
+    name: user.name || "Student",
+    handle: user.handle || "",
     bio: defaultBio,
     customBio: "",
-    college: user.college || "IIT Delhi",
-    year: "2023 – 2027",
+    college: user.college || "Dharmsinh Desai University",
+    email: user.email || "",
+    year: userYearStr || "2023 – 2027",
     avatarUrl: "",
+    githubUrl: "",
+    websiteUrl: "",
+    authorNote: "",
+    contactInfo: "",
+    memoryBookEmail: "",
+    customLinks: [] as CustomLink[],
   });
-  const [editForm, setEditForm] = useState(profile);
 
-  const handleSaveProfile = () => {
-    setProfile({ ...editForm, college: profile.college });
-    setEditOpen(false);
-    toast.success("Profile updated!");
+  const [editForm, setEditForm] = useState({
+    name: profile.name,
+    customBio: profile.customBio,
+    college: profile.college,
+    avatarUrl: profile.avatarUrl,
+  });
+
+  const [editAboutForm, setEditAboutForm] = useState({
+    authorNote: "",
+    websiteUrl: "",
+    githubUrl: "",
+    contactInfo: "",
+    customLinks: [] as CustomLink[],
+  });
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingAbout, setSavingAbout] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+
+    Promise.all([
+      getProfile()
+        .then((p) => {
+          if (alive && p) {
+            const loadedCollege =
+              p.collegeName || p.college || user.college || "Dharmsinh Desai University";
+            const loadedCollegeShort =
+              p.collegeShort ||
+              p.collegeShortName ||
+              user.collegeShort ||
+              (loadedCollege === "Dharmsinh Desai University"
+                ? "DDU"
+                : loadedCollege.split(" ").map((w: string) => w[0]).join(""));
+
+            let savedLinks: CustomLink[] = [];
+            try {
+              const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || user.name));
+              if (raw) savedLinks = JSON.parse(raw);
+            } catch (e) { }
+
+            let savedContact = "";
+            try {
+              savedContact = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || user.name)) || "";
+            } catch (e) { }
+
+            const loadedYear = p.currentYear
+              ? `${p.currentYear}${p.currentYear === 1 ? "st" : p.currentYear === 2 ? "nd" : p.currentYear === 3 ? "rd" : "th"} Year`
+              : userYearStr || "4th Year";
+            const loadedBio =
+              p.defaultBio ||
+              (p.courseName
+                ? `${p.courseName} • ${loadedYear}`
+                : defaultBio);
+
+            const loaded = {
+              name: p.name || p.fullName || user.name || "Student",
+              handle: p.handle || user.handle || "",
+              bio: loadedBio,
+              customBio: p.bioExtra || "",
+              college: loadedCollege,
+              email: user.email || "",
+              year: loadedYear,
+              avatarUrl: p.avatarUrl || "",
+              githubUrl: p.githubUrl || "",
+              websiteUrl: p.websiteUrl || "",
+              authorNote: p.bioExtra || "",
+              contactInfo: savedContact,
+              memoryBookEmail: p.memoryBookEmail || "",
+              customLinks: savedLinks,
+            };
+            setProfile(loaded);
+            setMemoryEmailInput(loaded.memoryBookEmail || "");
+            setEditForm({
+              name: loaded.name,
+              customBio: loaded.customBio,
+              college: loaded.college,
+              avatarUrl: loaded.avatarUrl,
+            });
+            setEditAboutForm({
+              authorNote: loaded.authorNote,
+              websiteUrl: loaded.websiteUrl,
+              githubUrl: loaded.githubUrl,
+              contactInfo: loaded.contactInfo,
+              customLinks: loaded.customLinks,
+            });
+
+            const updatedUser = {
+              ...user,
+              name: loaded.name,
+              handle: loaded.handle,
+              college: loadedCollege,
+              collegeShort: loadedCollegeShort,
+              course: p.courseName || user.course || "Student",
+              currentYear: p.currentYear || user.currentYear,
+              defaultBio: p.defaultBio || user.defaultBio,
+            };
+            localStorage.setItem("cb_user", JSON.stringify(updatedUser));
+          }
+        })
+        .catch(() => { }),
+
+      getMyPosts().then((posts) => alive && setActivityPosts(posts || [])).catch(() => { }),
+      getSavedPosts().then((posts) => alive && setSavedPostsList(posts || [])).catch(() => { }),
+      getStarredProjects().then((starred) => alive && setStarredProjects(starred || [])).catch(() => { }),
+      getMyTeams().then((teams) => alive && setCreatedProjects(teams || [])).catch(() => { }),
+      getMyJoinRequests().then((reqs) => alive && setMyRequests(reqs || [])).catch(() => { }),
+      getMyIncomingRequests().then((inReqs) => alive && setIncomingRequests(inReqs || [])).catch(() => { }),
+      getCampusStudents().then((students) => alive && setCampusStudents(students || [])).catch(() => { }),
+    ]).finally(() => {
+      if (alive) setLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const handleSaveProfile = async () => {
+    try {
+      setSavingProfile(true);
+      let finalAvatarUrl = editForm.avatarUrl;
+
+      if (avatarFile) {
+        const uploadRes = await uploadImageFile(avatarFile, "AVATAR");
+        finalAvatarUrl = uploadRes.publicUrl || uploadRes.url || uploadRes.objectKey;
+      }
+
+      await updateProfile({
+        fullName: editForm.name,
+        defaultBio: editForm.customBio.slice(0, 250),
+        avatarUrl: finalAvatarUrl,
+      });
+
+      const updated = {
+        ...profile,
+        name: editForm.name,
+        customBio: editForm.customBio.slice(0, 250),
+        avatarUrl: finalAvatarUrl,
+      };
+      setProfile(updated);
+      setAvatarFile(null);
+      setEditOpen(false);
+      toast.success("Profile updated successfully!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update profile");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSaveAbout = async () => {
+    try {
+      setSavingAbout(true);
+      const cleanedAuthorNote = editAboutForm.authorNote.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      const cleanedContactInfo = editAboutForm.contactInfo.replace(/\r\n/g, "\n").replace(/\n{2,}/g, "\n").trim();
+
+      await updateProfile({
+        bioExtra: cleanedAuthorNote,
+        websiteUrl: editAboutForm.websiteUrl,
+        githubUrl: editAboutForm.githubUrl,
+      });
+
+      const linkKey = "cb_custom_links_" + (profile.name || user.name);
+      localStorage.setItem(linkKey, JSON.stringify(editAboutForm.customLinks));
+
+      const contactKey = "cb_contact_info_" + (profile.name || user.name);
+      localStorage.setItem(contactKey, cleanedContactInfo);
+
+      setProfile((prev) => ({
+        ...prev,
+        authorNote: cleanedAuthorNote,
+        websiteUrl: editAboutForm.websiteUrl,
+        githubUrl: editAboutForm.githubUrl,
+        contactInfo: cleanedContactInfo,
+        customLinks: editAboutForm.customLinks,
+      }));
+
+      setEditAboutOpen(false);
+      toast.success("About & links updated successfully!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update About details");
+    } finally {
+      setSavingAbout(false);
+    }
+  };
+
+  const handleSendPasswordOtp = async () => {
+    try {
+      setSendingPasswordOtp(true);
+      await sendPasswordChangeOtp();
+      setPasswordOtpCooldown(300);
+      toast.success("Verification code sent to your campus email!");
+      setPasswordStep("verify");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send password verification code.");
+    } finally {
+      setSendingPasswordOtp(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordOtp || passwordOtp.trim().length !== 6) {
+      toast.error("Please enter the 6-digit verification code.");
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await changePasswordWithOtp(passwordOtp.trim(), newPassword);
+      toast.success("Password changed successfully!");
+      setPasswordOtpCooldown(0);
+      setPasswordStep("request");
+      setPasswordOtp("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to change password. Please verify the code.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleSendMemoryBookOtp = async () => {
+    if (!memoryEmailInput || !memoryEmailInput.includes("@")) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    try {
+      setSendingMemoryOtp(true);
+      await sendMemoryBookOtp(memoryEmailInput.trim());
+      setMemoryOtpCooldown(300);
+      toast.success(`Verification code sent to ${memoryEmailInput.trim()}!`);
+      setMemoryStep("otp");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send memory book email verification code.");
+    } finally {
+      setSendingMemoryOtp(false);
+    }
+  };
+
+  const handleVerifyMemoryBookEmail = async () => {
+    if (!memoryOtpInput || memoryOtpInput.trim().length !== 6) {
+      toast.error("Please enter the 6-digit verification code.");
+      return;
+    }
+    try {
+      setVerifyingMemoryEmail(true);
+      const updated = await verifyMemoryBookEmail(memoryEmailInput.trim(), memoryOtpInput.trim());
+      setProfile((prev) => ({ ...prev, memoryBookEmail: updated.memoryBookEmail || memoryEmailInput.trim() }));
+      setMemoryOtpCooldown(0);
+      toast.success("Memory Book delivery email verified and saved!");
+      setMemoryStep("idle");
+      setMemoryOtpInput("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to verify email. Please check the code.");
+    } finally {
+      setVerifyingMemoryEmail(false);
+    }
+  };
+
+  const handleRemoveMemoryBookEmail = async () => {
+    try {
+      setRemovingMemoryEmail(true);
+      await removeMemoryBookEmail();
+      setProfile((prev) => ({ ...prev, memoryBookEmail: "" }));
+      setMemoryEmailInput("");
+      setMemoryStep("idle");
+      toast.success("Memory Book delivery email removed.");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove email.");
+    } finally {
+      setRemovingMemoryEmail(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("cb_token");
+    localStorage.removeItem("cb_refresh_token");
+    localStorage.removeItem("cb_user");
+    localStorage.removeItem("cb_profile");
+    toast.success("Signed out successfully");
+    navigate("/");
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const url = URL.createObjectURL(file);
       setEditForm({ ...editForm, avatarUrl: url });
     }
   };
 
-  const deletePost = (id: number) => {
-    setActivityPosts(activityPosts.filter(p => p.id !== id));
-    toast.success("Post deleted");
+  const deletePost = async (id: string | number) => {
+    try {
+      setIsDeletingPost(true);
+      await apiDeletePost(id);
+      setActivityPosts((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Post deleted successfully");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete post");
+    } finally {
+      setIsDeletingPost(false);
+      setPostToDelete(null);
+    }
   };
 
-  const executeJoinAction = () => {
-    if (!confirmAction) return;
-    const { projectId, requestId, action } = confirmAction;
-    setCreatedProjects(createdProjects.map(p => {
-      if (p.id !== projectId) return p;
-      const updated = { ...p, joinRequests: p.joinRequests.map(r => r.id === requestId ? { ...r, status: action } : r) };
-      if (action === "accepted") {
-        const req = p.joinRequests.find(r => r.id === requestId);
-        if (req) updated.members = [...p.members, { name: req.studentName, initials: req.studentInitials, role: req.role }];
+  const unsavePost = async (id: string | number) => {
+    try {
+      await apiSavePost(id);
+      setSavedPostsList((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Removed from saved posts");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to unsave post");
+    }
+  };
+
+  const handleToggleStarProject = async (projectId: string | number) => {
+    try {
+      const res = await starProject(projectId);
+      if (!res.starred) {
+        setStarredProjects((prev) => prev.filter((p) => p.id !== projectId));
+        toast.success("Removed from Starred");
+      } else {
+        toast.success("Project starred!");
       }
-      return updated;
-    }));
-    toast.success(action === "accepted" ? "Member accepted!" : "Request rejected");
-    setConfirmAction(null);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update star");
+    }
   };
 
-  const completeHiring = (projectId: number) => {
-    setCreatedProjects(createdProjects.map(p => p.id === projectId ? { ...p, completed: true } : p));
-    toast.success("Hiring completed! Team chat is now available.");
-    setCompleteConfirm(null);
+  const handleRespondRequest = async (
+    requestId: string | number,
+    accept: boolean,
+    projectId: string | number
+  ) => {
+    try {
+      setRespondingReqId(requestId);
+      await respondJoinRequest(requestId, accept);
+      setIncomingRequests((prev) =>
+        prev.map((r) =>
+          r.id === requestId
+            ? { ...r, status: accept ? "ACCEPTED" : "REJECTED" }
+            : r
+        )
+      );
+      if (accept) {
+        setCreatedProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? { ...p, currentMembersCount: (p.currentMembersCount || 1) + 1 }
+              : p
+          )
+        );
+      }
+      toast.success(accept ? "Applicant accepted! Team member added." : "Join request rejected.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to respond to join request");
+    } finally {
+      setRespondingReqId(null);
+    }
   };
 
-  const openEditTeam = (project: CreatedProject) => {
-    setEditingProject(project);
-    setEditTeamForm({
-      title: project.title,
-      description: project.description,
-      githubLink: project.githubLink || "",
-      requiredExpertise: project.requiredExpertise.join(", "),
-      maxMembers: String(project.maxMembers),
-    });
-    setEditTeamOpen(true);
+  const isUserCreatorOf = (project: any) => {
+    if (!user || !project) return false;
+    return Boolean(
+      (user.id && project.ownerId && project.ownerId === user.id) ||
+      (project.ownerName && (project.ownerName === user.name || project.ownerName === user.fullName)) ||
+      project.isLead === true ||
+      project.lead === user.name
+    );
   };
 
-  const handleSaveTeam = () => {
-    if (!editingProject) return;
-    setCreatedProjects(createdProjects.map(p => {
-      if (p.id !== editingProject.id) return p;
-      return {
-        ...p,
-        title: editTeamForm.title,
-        description: editTeamForm.description,
-        githubLink: editTeamForm.githubLink || undefined,
-        requiredExpertise: editTeamForm.requiredExpertise.split(",").map(s => s.trim()).filter(Boolean),
-        maxMembers: parseInt(editTeamForm.maxMembers) || 4,
-      };
-    }));
-    setEditTeamOpen(false);
-    toast.success("Team updated!");
+  const handleOpenViewRequests = (project: any) => {
+    if (!isUserCreatorOf(project)) {
+      toast.error("Only the team creator/lead can view join requests.");
+      return;
+    }
+    setViewRequestsProject(project);
   };
 
-  const openEditReq = (req: MyJoinRequest) => {
+  const executeCompleteHiring = async () => {
+    if (!completeConfirm) return;
+    const project = createdProjects.find((p) => p.id === completeConfirm);
+    if (project && !isUserCreatorOf(project)) {
+      toast.error("Only the team creator/lead can complete hiring.");
+      setCompleteConfirm(null);
+      return;
+    }
+    try {
+      setCompletingProject(true);
+      await markProjectComplete(completeConfirm);
+      setCreatedProjects((prev) =>
+        prev.map((p) => (p.id === completeConfirm ? { ...p, completed: true } : p))
+      );
+      toast.success("Hiring completed! Team is now locked and no longer accepts requests.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to complete hiring");
+    } finally {
+      setCompletingProject(false);
+      setCompleteConfirm(null);
+    }
+  };
+
+  const openEditReq = (req: any) => {
     setEditingReq(req);
-    setEditReqForm({ role: req.role, reason: req.reason });
+    setEditReqForm({
+      role: req.role || "",
+      reason: req.message || req.reason || "",
+    });
     setEditReqOpen(true);
   };
 
-  const handleSaveReq = () => {
+  const handleSaveReqEdit = async () => {
     if (!editingReq) return;
-    setMyRequests(myRequests.map(r => r.id === editingReq.id ? { ...r, role: editReqForm.role, reason: editReqForm.reason } : r));
-    setEditReqOpen(false);
-    toast.success("Request updated!");
+    if (!editReqForm.role.trim()) {
+      toast.error("Please select or enter a role");
+      return;
+    }
+    try {
+      setSavingReqEdit(true);
+      await updateJoinRequest(editingReq.id, editReqForm.role.trim(), editReqForm.reason.trim());
+      setMyRequests((prev) =>
+        prev.map((r) =>
+          r.id === editingReq.id
+            ? {
+                ...r,
+                role: editReqForm.role.trim(),
+                message: editReqForm.reason.trim(),
+                reason: editReqForm.reason.trim(),
+              }
+            : r
+        )
+      );
+      toast.success("Join request updated successfully!");
+      setEditReqOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update join request");
+    } finally {
+      setSavingReqEdit(false);
+    }
   };
 
-  const unstarProject = (id: number) => {
-    setStarredProjects(starredProjects.filter(p => p.id !== id));
-    toast.success("Removed from starred");
+  const handleDeleteTeam = async () => {
+    if (!deleteConfirm) return;
+    try {
+      setDeletingTeam(true);
+      await deleteTeam(deleteConfirm);
+      setCreatedProjects((prev) => prev.filter((p) => p.id !== deleteConfirm));
+      setStarredProjects((prev) => prev.filter((p) => p.id !== deleteConfirm));
+      toast.success("Team/project deleted permanently.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete team/project");
+    } finally {
+      setDeletingTeam(false);
+      setDeleteConfirm(null);
+    }
   };
 
-  const unsavePost = (id: number) => {
-    setSavedPostsList(savedPostsList.filter(p => p.id !== id));
-    toast.success("Removed from saved");
+  const handleDeleteJoinRequest = async () => {
+    if (!deleteReqConfirm) return;
+    try {
+      setDeletingReq(true);
+      await deleteJoinRequest(deleteReqConfirm);
+      setMyRequests((prev) => prev.filter((r) => r.id !== deleteReqConfirm));
+      toast.success("Join request withdrawn.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to withdraw join request");
+    } finally {
+      setDeletingReq(false);
+      setDeleteReqConfirm(null);
+    }
   };
 
-  const initials = profile.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const handleAddMember = async () => {
+    if (!newMemberHandle.trim()) {
+      toast.error("Enter a CollegeBook handle/username");
+      return;
+    }
+    if (!editingProject) return;
+    const handle = newMemberHandle.trim().replace(/^@/, "");
+    if (editMembers.some((m: any) => (m.handle || "").toLowerCase() === handle.toLowerCase())) {
+      toast.error("Member already added");
+      return;
+    }
+    try {
+      setAddingMember(true);
+      const updated: any = await addTeamMember(editingProject.id, handle);
+      if (updated && Array.isArray(updated.members)) {
+        setEditMembers(updated.members);
+      } else {
+        setEditMembers((prev) => [
+          ...prev,
+          { userId: `member-${Date.now()}`, name: handle, handle, role: "MEMBER" },
+        ]);
+      }
+      setCreatedProjects((prev) =>
+        prev.map((p) =>
+          p.id === editingProject.id
+            ? {
+                ...p,
+                members: updated?.members || editMembers,
+                currentMembersCount: updated?.currentMembersCount || (p.currentMembersCount || 1) + 1,
+              }
+            : p
+        )
+      );
+      setNewMemberHandle("");
+      toast.success(`Member @${handle} added successfully!`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to add member");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!editingProject) return;
+    const member = editMembers.find((m: any) => m.userId === memberId);
+    if (member?.role === "OWNER") {
+      toast.error("Cannot remove the team owner");
+      return;
+    }
+    try {
+      setRemovingMemberId(memberId);
+      const updated: any = await removeTeamMember(editingProject.id, memberId);
+      const newMemberList = updated?.members || editMembers.filter((m: any) => m.userId !== memberId);
+      setEditMembers(newMemberList);
+      setCreatedProjects((prev) =>
+        prev.map((p) =>
+          p.id === editingProject.id
+            ? {
+                ...p,
+                members: newMemberList,
+                currentMembersCount: updated?.currentMembersCount || Math.max(1, (p.currentMembersCount || 2) - 1),
+              }
+            : p
+        )
+      );
+      toast.success("Member removed successfully!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove member");
+    } finally {
+      setRemovingMemberId(null);
+    }
+  };
+
+  const openEditTeam = (project: any) => {
+    if (!isUserCreatorOf(project)) {
+      toast.error("Only the team creator/lead can edit this project or team.");
+      return;
+    }
+    if (project.completed) {
+      toast.error("Hiring is completed for this team. Completed projects/teams cannot be edited.");
+      return;
+    }
+    setEditingProject(project);
+    const typeStr = String(project.type || "").toUpperCase();
+    const cat =
+      typeStr === "OPEN_SOURCE" || typeStr === "OPEN-SOURCE" || typeStr === "OPEN_SOURCE_PROJECT"
+        ? "open_source"
+        : typeStr === "HACKATHON" || typeStr === "HACKATHON_TEAM"
+        ? "hackathon"
+        : "project";
+    setEditCategory(cat);
+
+    let cleanDescription = project.description || "";
+    let hackathonName = project.hackathon || "";
+
+    if (cat === "hackathon") {
+      const match = cleanDescription.match(/^Hackathon:\s*([^\n]+)(?:\n\n)?([\s\S]*)$/i);
+      if (match) {
+        hackathonName = match[1].trim();
+        cleanDescription = match[2].trim();
+      }
+    }
+
+    setEditTeamForm({
+      title: project.title || "",
+      hackathon: hackathonName,
+      description: cleanDescription,
+      githubLink: project.githubLink || "",
+      maxMembers: String(project.maxMembers || 4),
+    });
+
+    const tags = Array.from(
+      new Set([
+        ...(Array.isArray(project.requiredExpertise) ? project.requiredExpertise : []),
+        ...(Array.isArray(project.skills) ? project.skills : []),
+      ])
+    );
+    setEditTags(tags);
+    setEditTagInput("");
+
+    // Load existing members
+    const members = Array.isArray(project.members) ? project.members : [];
+    setEditMembers(members);
+    setNewMemberHandle("");
+
+    setEditTeamOpen(true);
+  };
+
+  const addEditTag = (tagText: string) => {
+    const trimmed = tagText.trim();
+    if (!trimmed) return;
+    if (editTags.some((t) => t.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error(`"${trimmed}" already added`);
+      return;
+    }
+    if (editTags.length >= 10) {
+      toast.error("Maximum 10 tags allowed");
+      return;
+    }
+    setEditTags((prev) => [...prev, trimmed]);
+    setEditTagInput("");
+  };
+
+  const removeEditTag = (tagToRemove: string) => {
+    setEditTags((prev) => prev.filter((t) => t !== tagToRemove));
+  };
+
+  const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addEditTag(editTagInput);
+    }
+  };
+
+  const handleSaveTeam = async () => {
+    if (!editingProject) return;
+    if (!editTeamForm.title.trim()) {
+      toast.error(
+        editCategory === "open_source"
+          ? "Please enter a repository / project name"
+          : editCategory === "hackathon"
+          ? "Please enter a team name"
+          : "Please enter a project title"
+      );
+      return;
+    }
+    if (editCategory === "open_source" && !editTeamForm.githubLink.trim()) {
+      toast.error("GitHub repository URL is required for open-source projects");
+      return;
+    }
+
+    try {
+      setSavingTeam(true);
+      const mappedType =
+        editCategory === "open_source"
+          ? "OPEN_SOURCE"
+          : editCategory === "hackathon"
+          ? "HACKATHON"
+          : "PROJECT";
+
+      const finalDescription =
+        editCategory === "hackathon"
+          ? editTeamForm.description.trim()
+            ? editTeamForm.hackathon.trim()
+              ? `Hackathon: ${editTeamForm.hackathon.trim()}\n\n${editTeamForm.description.trim()}`
+              : editTeamForm.description.trim()
+            : editTeamForm.hackathon.trim() || "Hackathon Team"
+          : editTeamForm.description.trim();
+
+      const payload = {
+        title: editTeamForm.title.trim(),
+        type: mappedType,
+        description: finalDescription,
+        githubLink: editCategory === "hackathon" ? "" : editTeamForm.githubLink.trim(),
+        skills: editTags,
+        requiredExpertise: editTags,
+        maxMembers: editCategory === "open_source" ? 0 : parseInt(editTeamForm.maxMembers) || 4,
+      };
+
+      await updateTeam(editingProject.id, payload as any);
+
+      setCreatedProjects((prev) =>
+        prev.map((p) =>
+          p.id === editingProject.id
+            ? {
+                ...p,
+                title: payload.title,
+                type: payload.type,
+                description: payload.description,
+                githubLink: payload.githubLink,
+                skills: payload.skills,
+                requiredExpertise: payload.requiredExpertise,
+                maxMembers: payload.maxMembers,
+              }
+            : p
+        )
+      );
+
+      setEditTeamOpen(false);
+      toast.success(
+        editCategory === "open_source"
+          ? "Open-source project updated successfully!"
+          : editCategory === "hackathon"
+          ? "Hackathon team updated successfully!"
+          : "Team project updated successfully!"
+      );
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update project");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const handleToggleStar = async (teamId: string | number) => {
+    try {
+      const res = await starProject(teamId);
+      setCreatedProjects((prev) =>
+        prev.map((t) =>
+          t.id === teamId
+            ? {
+                ...t,
+                starred: res.starred,
+                starsCount: res.starred ? (t.starsCount || 0) + 1 : Math.max(0, (t.starsCount || 0) - 1),
+              }
+            : t
+        )
+      );
+      toast.success(res.starred ? "Project starred!" : "Project unstarred");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update star");
+    }
+  };
+
+  const myOpenSourceProjects = createdProjects.filter(
+    (p) => p.type === "OPEN_SOURCE" || p.type === "open_source"
+  );
+  const myTeamProjects = createdProjects.filter(
+    (p) => p.type !== "OPEN_SOURCE" && p.type !== "open_source"
+  );
+
+  const initials = profile.name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 flex items-center justify-center">
+        <ThemedLoader size="lg" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="p-6 shadow-card mb-6">
-          <div className="flex flex-col sm:flex-row items-start gap-5">
-            <Avatar className="h-20 w-20 shrink-0">
-              {profile.avatarUrl ? <AvatarImage src={profile.avatarUrl} alt={profile.name} /> : <AvatarFallback className="bg-gradient-hero text-primary-foreground text-2xl font-bold">{initials}</AvatarFallback>}
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Profile Header */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <Card className="p-6 md:p-8 shadow-card">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div className="relative">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-primary/20">
+                {profile.avatarUrl ? (
+                  <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                ) : (
+                  <AvatarFallback className="bg-gradient-hero text-primary-foreground text-2xl font-bold font-heading">
+                    {initials}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-xl font-bold">{profile.name}</h1>
-                  <p className="text-muted-foreground text-sm mt-0.5">{profile.bio}</p>
-                  {profile.customBio && <p className="text-muted-foreground text-sm mt-0.5">{profile.customBio}</p>}
+                  <h1 className="font-heading text-xl md:text-2xl font-bold">{profile.name}</h1>
+                  {(profile.handle || user.handle) && (
+                    <p className="text-xs font-mono font-semibold text-primary mt-0.5">
+                      @{profile.handle || user.handle}
+                    </p>
+                  )}
+                  <p className="text-sm font-medium text-foreground/80 mt-0.5">{profile.bio}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { setEditForm(profile); setEditOpen(true); }}>Edit Profile</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl border border-border/70 hover:bg-muted shadow-xs transition-all"
+                      title="Settings & Options"
+                    >
+                      <Settings className="h-4 w-4 text-foreground/80" />
+                      <span className="sr-only">Profile options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 p-1.5 rounded-xl border shadow-lg">
+                    <DropdownMenuItem
+                      className="gap-2.5 cursor-pointer py-2 px-3 rounded-lg text-xs font-medium focus:bg-primary/10 focus:text-primary"
+                      onClick={() => {
+                        setEditForm(profile);
+                        setEditOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 text-primary" />
+                      Edit Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2.5 cursor-pointer py-2 px-3 rounded-lg text-xs font-medium focus:bg-primary/10 focus:text-primary"
+                      onClick={() => setSettingsOpen(true)}
+                    >
+                      <Settings className="h-4 w-4 text-primary" />
+                      Settings
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {profile.college}</span>
-                <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {profile.year}</span>
-                <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" /> {activityPosts.length} posts</span>
-                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {createdProjects.length} collaborations</span>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-4">
-                {myConBadges.filter(b => b.verified).map(badge => (
-                  <Badge key={badge.tag} variant="secondary" className="gap-1.5">
-                    <BadgeCheck className="h-3.5 w-3.5 text-accent" /> {badge.tag}
-                  </Badge>
-                ))}
+
+              {profile.customBio && profile.customBio !== profile.bio && (
+                <FormattedContent
+                  content={profile.customBio}
+                  className="text-sm text-muted-foreground mt-2 leading-relaxed"
+                />
+              )}
+
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-3">
+                <span className="flex items-center gap-1">
+                  <BookOpen className="h-3.5 w-3.5 text-primary" /> {profile.college}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" /> {profile.year}
+                </span>
               </div>
             </div>
           </div>
@@ -299,153 +1108,808 @@ const ProfilePage = () => {
 
       {/* Edit Profile Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
+        <DialogContent className="sm:max-w-[480px] p-6">
+          <DialogHeader className="pb-2 border-b border-border/50">
+            <DialogTitle className="text-lg font-bold">Edit Profile</DialogTitle>
+            <DialogDescription className="text-xs">
+              Update your public profile name and custom bio.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Avatar className="h-16 w-16">
-                  {editForm.avatarUrl ? <AvatarImage src={editForm.avatarUrl} alt="Preview" /> : <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xl font-bold">{initials}</AvatarFallback>}
+                <Avatar className="h-16 w-16 border-2 border-primary/20">
+                  {editForm.avatarUrl ? (
+                    <AvatarImage src={editForm.avatarUrl} alt="Preview" />
+                  ) : (
+                    <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xl font-bold">
+                      {initials}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
-                <label className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
-                  <Camera className="h-3 w-3 text-primary-foreground" />
+                <label className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm">
+                  <Camera className="h-3.5 w-3.5 text-primary-foreground" />
                   <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </label>
               </div>
-              <div className="text-sm text-muted-foreground">Click the camera icon to upload</div>
+              <div className="text-xs text-muted-foreground">Click the camera badge to update your avatar photo</div>
             </div>
-            <div className="space-y-2"><Label>Full Name</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
-            <div className="space-y-2">
-              <Label>College</Label>
-              <Input value={editForm.college} disabled className="opacity-60 cursor-not-allowed" />
-              <p className="text-[11px] text-muted-foreground">College cannot be changed</p>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Full Name</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="h-9 text-sm"
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Default Bio</Label>
-              <Input value={defaultBio} disabled className="opacity-60 cursor-not-allowed" />
-              <p className="text-[11px] text-muted-foreground">Auto-generated from your course info</p>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">College / University</Label>
+              <Input value={editForm.college} disabled className="h-9 opacity-70 bg-muted/50 cursor-not-allowed text-xs" />
+              <p className="text-[11px] text-muted-foreground">Linked to your verified registration</p>
             </div>
-            <div className="space-y-2">
-              <Label>Custom Bio</Label>
-              <Textarea placeholder="Tell others more about yourself..." value={editForm.customBio} onChange={(e) => setEditForm({ ...editForm, customBio: e.target.value })} className="min-h-[60px]" />
+
+            {/* Default Bio (Non-editable) */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Default Bio</Label>
+              <Input value={profile.bio} disabled className="h-9 opacity-70 bg-muted/50 cursor-not-allowed text-xs" />
+              <p className="text-[11px] text-muted-foreground">Auto-generated from your enrolled course and program</p>
             </div>
-            <div className="space-y-2"><Label>Academic Year</Label><Input value={editForm.year} onChange={(e) => setEditForm({ ...editForm, year: e.target.value })} /></div>
+
+            {/* Custom Bio with 250 Character Limit */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Custom Bio</Label>
+                <span
+                  className={`text-[11px] font-semibold ${(editForm.customBio || "").length >= 250
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                    }`}
+                >
+                  {(editForm.customBio || "").length}/250
+                </span>
+              </div>
+              <div className="p-0.5">
+                <Textarea
+                  placeholder="Short tagline or bio below your name (links are clickable)..."
+                  maxLength={250}
+                  value={editForm.customBio}
+                  onChange={(e) => setEditForm({ ...editForm, customBio: e.target.value.slice(0, 250) })}
+                  className="min-h-[80px] w-full text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Appears directly below your name on your profile header</p>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveProfile} className="bg-gradient-hero text-primary-foreground">Save Changes</Button>
+
+          <DialogFooter className="mt-1 pt-3 border-t border-border/50 flex gap-2 sm:justify-end">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)} disabled={savingProfile}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+              className="bg-gradient-hero text-primary-foreground gap-1.5 shadow-xs"
+            >
+              {savingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Team Dialog */}
-      <Dialog open={editTeamOpen} onOpenChange={setEditTeamOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader><DialogTitle>Edit {editingProject?.type === "hackathon" ? "Team" : "Project"}</DialogTitle></DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>{editingProject?.type === "hackathon" ? "Team Name" : "Project Title"}</Label>
-                <Input value={editTeamForm.title} onChange={e => setEditTeamForm({ ...editTeamForm, title: e.target.value })} />
+      {/* Edit About & Links Dialog */}
+      <Dialog open={editAboutOpen} onOpenChange={setEditAboutOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden rounded-2xl border shadow-xl">
+          <DialogHeader className="px-6 py-4 border-b border-border/50 bg-muted/20 shrink-0">
+            <DialogTitle className="text-lg font-bold">Edit About & Author's Note</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Share your author's note, portfolio, and social profiles with your campus.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto max-h-[62vh] px-6 py-5 space-y-5 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.3)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/35 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/60 [&::-webkit-scrollbar-track]:bg-transparent">
+            {/* Author's Note */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <FileText className="h-3.5 w-3.5 text-primary" /> Author's Note
+                </Label>
+                <span className="text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                  Unlimited length • Multiline
+                </span>
               </div>
-              {editingProject?.type === "project" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea value={editTeamForm.description} onChange={e => setEditTeamForm({ ...editTeamForm, description: e.target.value })} />
+              <div className="p-0.5">
+                <Textarea
+                  placeholder="Write in-depth notes, background, technical focus, research, or interests (links are automatically clickable)..."
+                  value={editAboutForm.authorNote}
+                  onChange={(e) =>
+                    setEditAboutForm({ ...editAboutForm, authorNote: e.target.value.replace(/\n{3,}/g, "\n\n") })
+                  }
+                  className="min-h-[130px] w-full text-sm leading-relaxed p-3 rounded-xl border border-input bg-background/50 focus:bg-background focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary transition-all resize-y"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Displayed in the Author's Note section of your profile About tab.
+              </p>
+            </div>
+
+            {/* Profiles & Links Grid */}
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Profiles & Portfolios
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Portfolio */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-primary" /> Portfolio Website
+                  </Label>
+                  <div className="p-0.5">
+                    <Input
+                      placeholder="https://yourportfolio.com"
+                      value={editAboutForm.websiteUrl}
+                      onChange={(e) =>
+                        setEditAboutForm({ ...editAboutForm, websiteUrl: e.target.value })
+                      }
+                      className="h-9 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label>GitHub Link (optional)</Label>
-                    <Input value={editTeamForm.githubLink} onChange={e => setEditTeamForm({ ...editTeamForm, githubLink: e.target.value })} />
+                </div>
+
+                {/* GitHub */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <Github className="h-3.5 w-3.5 text-primary" /> GitHub Profile
+                  </Label>
+                  <div className="p-0.5">
+                    <Input
+                      placeholder="https://github.com/username"
+                      value={editAboutForm.githubUrl}
+                      onChange={(e) =>
+                        setEditAboutForm({ ...editAboutForm, githubUrl: e.target.value })
+                      }
+                      className="h-9 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                    />
                   </div>
-                </>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="space-y-1.5 pt-2 border-t border-border/50">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-primary" /> Contact Information
+              </Label>
+              <div className="p-0.5">
+                <Textarea
+                  placeholder="Add your contact details (e.g. Email, Discord, Phone)... (links are auto-clickable)"
+                  value={editAboutForm.contactInfo}
+                  onChange={(e) =>
+                    setEditAboutForm({ ...editAboutForm, contactInfo: e.target.value.replace(/\n{2,}/g, "\n") })
+                  }
+                  className="min-h-[75px] w-full text-sm leading-relaxed p-3 rounded-xl border border-input bg-background/50 focus:bg-background focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary transition-all resize-y"
+                />
+              </div>
+            </div>
+
+            {/* Additional Custom Links */}
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <LinkIcon className="h-3.5 w-3.5 text-primary" /> Additional Custom Links
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 rounded-lg"
+                  onClick={() =>
+                    setEditAboutForm({
+                      ...editAboutForm,
+                      customLinks: [
+                        ...editAboutForm.customLinks,
+                        { id: Date.now().toString(), label: "", url: "" },
+                      ],
+                    })
+                  }
+                >
+                  <Plus className="h-3 w-3" /> Add Link
+                </Button>
+              </div>
+
+              {editAboutForm.customLinks.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic bg-muted/30 p-3 rounded-lg border border-dashed border-border/60">
+                  No custom links yet. Click "+ Add Link" to add links like LeetCode, Substack, Medium, etc.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {editAboutForm.customLinks.map((link, idx) => (
+                    <div key={link.id || idx} className="flex items-center gap-2 p-0.5">
+                      <Input
+                        placeholder="Label (e.g. LeetCode)"
+                        value={link.label}
+                        onChange={(e) => {
+                          const updated = [...editAboutForm.customLinks];
+                          updated[idx].label = e.target.value;
+                          setEditAboutForm({ ...editAboutForm, customLinks: updated });
+                        }}
+                        className="w-1/3 h-8 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                      <Input
+                        placeholder="URL (https://...)"
+                        value={link.url}
+                        onChange={(e) => {
+                          const updated = [...editAboutForm.customLinks];
+                          updated[idx].url = e.target.value;
+                          setEditAboutForm({ ...editAboutForm, customLinks: updated });
+                        }}
+                        className="flex-1 h-8 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                        onClick={() => {
+                          setEditAboutForm({
+                            ...editAboutForm,
+                            customLinks: editAboutForm.customLinks.filter((_, j) => j !== idx),
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
-              <div className="space-y-2">
-                <Label>Max Members</Label>
-                <Input type="number" min={2} max={10} value={editTeamForm.maxMembers} onChange={e => setEditTeamForm({ ...editTeamForm, maxMembers: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Required Expertise (comma-separated)</Label>
-                <Input value={editTeamForm.requiredExpertise} onChange={e => setEditTeamForm({ ...editTeamForm, requiredExpertise: e.target.value })} />
-              </div>
-            </div>
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTeamOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTeam} className="bg-gradient-hero text-primary-foreground">Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Request Dialog */}
-      <Dialog open={editReqOpen} onOpenChange={setEditReqOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit Request — {editingReq?.projectTitle}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={editReqForm.role} onValueChange={v => setEditReqForm({ ...editReqForm, role: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Why do you want to join?</Label>
-              <Textarea value={editReqForm.reason} onChange={e => setEditReqForm({ ...editReqForm, reason: e.target.value })} className="min-h-[100px]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditReqOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveReq} className="bg-gradient-hero text-primary-foreground">Save</Button>
+
+          <DialogFooter className="px-6 py-3.5 border-t border-border/50 bg-muted/20 shrink-0 flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditAboutOpen(false)}
+              disabled={savingAbout}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveAbout}
+              disabled={savingAbout}
+              className="bg-gradient-hero text-primary-foreground gap-1.5 shadow-xs"
+            >
+              {savingAbout && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save About
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog for accept/reject */}
-      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+      {/* Account Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden rounded-2xl border shadow-xl">
+          <DialogHeader className="px-6 py-4 border-b border-border/50 bg-muted/20 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Settings className="h-4 w-4" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">Account Settings</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Manage security credentials, memory book backup, and campus account preferences.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto max-h-[62vh] px-6 py-5 space-y-6 [scrollbar-width:thin] [scrollbar-color:hsl(var(--muted-foreground)/0.3)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/35 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/60 [&::-webkit-scrollbar-track]:bg-transparent">
+
+            {/* Section 1: Change Password via Email Verification */}
+            <div className="space-y-3.5 p-4 rounded-xl border border-border/60 bg-muted/15">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Change Password</h3>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-medium bg-primary/5 text-primary border-primary/20">
+                  Email Verified Only
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                For security, changing your password requires verifying a 6-digit one-time code sent to your registered campus email (<b>{user.email || profile.email || "Registered Student"}</b>).
+              </p>
+
+              {passwordStep === "request" ? (
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendPasswordOtp}
+                    disabled={sendingPasswordOtp}
+                    className="gap-2 text-xs h-9 rounded-lg border-primary/30 text-primary hover:bg-primary/5 hover:text-primary"
+                  >
+                    {sendingPasswordOtp ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Mail className="h-3.5 w-3.5" />
+                    )}
+                    Send Verification Code to Email
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Code sent to email
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSendPasswordOtp}
+                      disabled={sendingPasswordOtp || passwordOtpCooldown > 0}
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium disabled:opacity-50 disabled:no-underline"
+                    >
+                      {sendingPasswordOtp ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      {passwordOtpCooldown > 0
+                        ? `Resend in ${Math.floor(passwordOtpCooldown / 60)}:${(passwordOtpCooldown % 60).toString().padStart(2, "0")}`
+                        : "Resend Code"}
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">6-Digit Verification Code</Label>
+                    <div className="p-0.5">
+                      <Input
+                        placeholder="e.g. 123456"
+                        maxLength={6}
+                        value={passwordOtp}
+                        onChange={(e) => setPasswordOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        className="h-9 text-sm font-mono tracking-widest text-center focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">New Password</Label>
+                      <div className="p-0.5">
+                        <Input
+                          type="password"
+                          placeholder="Min 6 characters"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="h-9 text-xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Confirm New Password</Label>
+                      <div className="p-0.5">
+                        <Input
+                          type="password"
+                          placeholder="Repeat password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="h-9 text-xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleChangePassword}
+                      disabled={changingPassword || passwordOtp.length !== 6 || !newPassword}
+                      className="bg-gradient-hero text-primary-foreground text-xs h-8 gap-1.5"
+                    >
+                      {changingPassword && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Update Password
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setPasswordStep("request");
+                        setPasswordOtp("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}
+                      className="text-xs h-8 text-muted-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Section 2: Memory Book Delivery Email Backup */}
+            <div className="space-y-3.5 p-4 rounded-xl border border-border/60 bg-muted/15">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-sm font-semibold text-foreground">Memory Book Delivery Email</h3>
+                </div>
+                {profile.memoryBookEmail && (
+                  <Badge variant="outline" className="text-[10px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Active Backup
+                  </Badge>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Specify the personal email address where you would like your digital <b>Campus Memory Book</b> (posts, projects, connections, and memories) delivered if your account is ever closed or deleted.
+              </p>
+
+              {profile.memoryBookEmail && memoryStep !== "otp" ? (
+                <div className="p-3 rounded-lg bg-background border border-border/70 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <span className="text-[11px] text-muted-foreground block">Configured Backup Email</span>
+                      <span className="text-xs font-semibold text-foreground font-mono">{profile.memoryBookEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMemoryEmailInput(profile.memoryBookEmail || "");
+                          setMemoryStep("otp");
+                        }}
+                        className="text-xs h-7 gap-1"
+                      >
+                        <Pencil className="h-3 w-3" /> Change
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveMemoryBookEmail}
+                        disabled={removingMemoryEmail}
+                        className="text-xs h-7 text-destructive hover:bg-destructive/10 gap-1"
+                      >
+                        {removingMemoryEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : memoryStep === "idle" ? (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 p-0.5">
+                      <Input
+                        type="email"
+                        placeholder="personal.email@gmail.com"
+                        value={memoryEmailInput}
+                        onChange={(e) => setMemoryEmailInput(e.target.value)}
+                        className="h-9 text-xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSendMemoryBookOtp}
+                      disabled={sendingMemoryOtp || !memoryEmailInput.includes("@")}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 gap-1.5 shrink-0"
+                    >
+                      {sendingMemoryOtp && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Send Verification OTP
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">A 6-digit confirmation code will be dispatched to verify ownership of this email.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground">
+                      Verifying: <b className="text-foreground font-mono">{memoryEmailInput}</b>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSendMemoryBookOtp}
+                      disabled={sendingMemoryOtp || memoryOtpCooldown > 0}
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium disabled:opacity-50 disabled:no-underline"
+                    >
+                      {sendingMemoryOtp ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      {memoryOtpCooldown > 0
+                        ? `Resend in ${Math.floor(memoryOtpCooldown / 60)}:${(memoryOtpCooldown % 60).toString().padStart(2, "0")}`
+                        : "Resend Code"}
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">6-Digit Verification Code</Label>
+                    <div className="p-0.5">
+                      <Input
+                        placeholder="e.g. 123456"
+                        maxLength={6}
+                        value={memoryOtpInput}
+                        onChange={(e) => setMemoryOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        className="h-9 text-sm font-mono tracking-widest text-center focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleVerifyMemoryBookEmail}
+                      disabled={verifyingMemoryEmail || memoryOtpInput.length !== 6}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 gap-1.5"
+                    >
+                      {verifyingMemoryEmail && <Loader2 className="h-3 w-3 animate-spin" />}
+                      Confirm & Save Email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMemoryStep("idle");
+                        setMemoryOtpInput("");
+                      }}
+                      className="text-xs h-8 text-muted-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Section 3: Campus Account Info & Session */}
+            <div className="space-y-3 p-4 rounded-xl border border-border/60 bg-muted/15">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Campus Account & Security</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-2.5 rounded-lg bg-background border border-border/50">
+                  <span className="text-muted-foreground block text-[11px]">Campus Account Email</span>
+                  <span className="font-medium text-foreground break-all">{user.email || profile.email || "Registered Student"}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-background border border-border/50">
+                  <span className="text-muted-foreground block text-[11px]">Institution</span>
+                  <span className="font-medium text-foreground truncate block">{profile.college}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 4: Log Out Option */}
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-semibold text-foreground">Sign Out</h4>
+                <p className="text-[11px] text-muted-foreground">Sign out of your active CollegeBook session on this device.</p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+                className="gap-1.5 text-xs h-8 shrink-0"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Log Out
+              </Button>
+            </div>
+
+          </div>
+
+          <DialogFooter className="px-6 py-3.5 border-t border-border/50 bg-muted/20 shrink-0 flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSettingsOpen(false)}
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Post Confirmation Dialog */}
+      <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>You can't revert this operation.</AlertDialogDescription>
+            <AlertDialogTitle>Delete Post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action is permanent and cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeJoinAction} className={confirmAction?.action === "accepted" ? "bg-green-600 hover:bg-green-700" : "bg-destructive hover:bg-destructive/90"}>
-              Yes, {confirmAction?.action === "accepted" ? "Accept" : "Reject"}
+            <AlertDialogCancel disabled={isDeletingPost}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => postToDelete && deletePost(postToDelete)}
+              disabled={isDeletingPost}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
+            >
+              {isDeletingPost && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Yes, Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirmation Dialog for complete hiring */}
-      <AlertDialog open={!!completeConfirm} onOpenChange={(open) => !open && setCompleteConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Complete Hiring?</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to complete hiring? This will remove the team from Collab Hub and enable team chat. You can't revert this.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => completeConfirm && completeHiring(completeConfirm)} className="bg-green-600 hover:bg-green-700">
-              Yes, Complete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Tabs defaultValue="posts" className="space-y-6">
+      {/* Profile Navigation Tabs */}
+      <Tabs defaultValue="about" className="space-y-6">
         <TabsList className="bg-muted flex-wrap">
+          <TabsTrigger value="about">About</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="collabs">Collaborations</TabsTrigger>
-          <TabsTrigger value="badges">myCon</TabsTrigger>
+          <TabsTrigger value="mycon">myCon</TabsTrigger>
           <TabsTrigger value="starred">Starred</TabsTrigger>
           <TabsTrigger value="saved">Saved</TabsTrigger>
           <TabsTrigger value="peers">Campus</TabsTrigger>
         </TabsList>
 
-        {/* Posts (was Activity) */}
+        {/* 1. About Tab */}
+        <TabsContent value="about" className="space-y-5">
+          {/* Author's Note Section */}
+          <Card className="p-6 shadow-card space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <FileText className="h-4 w-4 text-primary" />
+                <span>Author's Note</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-8"
+                onClick={() => {
+                  setEditAboutForm({
+                    authorNote: profile.authorNote || "",
+                    websiteUrl: profile.websiteUrl || "",
+                    githubUrl: profile.githubUrl || "",
+                    contactInfo: profile.contactInfo || "",
+                    customLinks: [...(profile.customLinks || [])],
+                  });
+                  setEditAboutOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit About
+              </Button>
+            </div>
+            {profile.authorNote ? (
+              <FormattedContent
+                content={profile.authorNote}
+                maxEnters={2}
+                className="text-sm text-foreground/90 leading-relaxed"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                No author's note added yet. Click "Edit About" to share your in-depth background, research, technical focus, and interests!
+              </p>
+            )}
+          </Card>
+
+          {/* Contact & Social Links Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Contact Information */}
+            <Card className="p-5 shadow-card space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
+              </h3>
+              {profile.contactInfo ? (
+                <FormattedContent
+                  content={profile.contactInfo}
+                  maxEnters={1}
+                  className="text-sm text-foreground/90 leading-relaxed"
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No contact information added yet. Click "Edit About" to add your contact details.
+                </p>
+              )}
+            </Card>
+
+            {/* Social & Portfolio Links */}
+            <Card className="p-5 shadow-card space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <LinkIcon className="h-3.5 w-3.5 text-primary" /> Links & Portfolios
+              </h3>
+              <div className="space-y-2.5">
+                {/* Portfolio */}
+                {profile.websiteUrl ? (
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Globe className="h-4 w-4 text-primary" />
+                      <span>Portfolio</span>
+                    </div>
+                    <a
+                      href={
+                        profile.websiteUrl.startsWith("http")
+                          ? profile.websiteUrl
+                          : `https://${profile.websiteUrl}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                    >
+                      {profile.websiteUrl.replace(/^https?:\/\//, "")}
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  </div>
+                ) : null}
+
+                {/* GitHub */}
+                {profile.githubUrl ? (
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Github className="h-4 w-4 text-primary" />
+                      <span>GitHub</span>
+                    </div>
+                    <a
+                      href={
+                        profile.githubUrl.startsWith("http")
+                          ? profile.githubUrl
+                          : `https://${profile.githubUrl}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                    >
+                      {profile.githubUrl.replace(/^https?:\/\//, "")}
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  </div>
+                ) : null}
+
+                {/* Custom Links */}
+                {profile.customLinks &&
+                  profile.customLinks.map((link) => {
+                    if (!link.label || !link.url) return null;
+                    const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
+                    return (
+                      <div key={link.id} className="flex items-center justify-between gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <LinkIcon className="h-4 w-4 text-primary" />
+                          <span className="truncate max-w-[100px]">{link.label}</span>
+                        </div>
+                        <a
+                          href={fullUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                        >
+                          {link.url.replace(/^https?:\/\//, "")}
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      </div>
+                    );
+                  })}
+
+                {!profile.websiteUrl &&
+                  !profile.githubUrl &&
+                  (!profile.customLinks || profile.customLinks.length === 0) && (
+                    <p className="text-xs text-muted-foreground italic">
+                      No links added yet. Click "Edit About" to add your portfolio or social links.
+                    </p>
+                  )}
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 2. Posts Tab */}
         <TabsContent value="posts">
           <div className="space-y-3">
             {activityPosts.length === 0 && (
@@ -454,30 +1918,69 @@ const ProfilePage = () => {
               </Card>
             )}
             {activityPosts.map((post, i) => (
-              <motion.div key={post.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
                 <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <Avatar className="h-9 w-9 shrink-0 mt-0.5">
-                        <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">{initials}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">
+                          {initials}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold text-sm">{profile.name}</span>
-                          <span className="text-xs text-muted-foreground">{post.date}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {post.time || post.date || "Just now"}
+                          </span>
                         </div>
-                        <p className="text-sm leading-relaxed">{post.content}</p>
-                        <div className="flex items-center gap-3 mt-3">
-                          <span className="text-xs text-muted-foreground">❤️ {post.likes}</span>
-                          <div className="flex gap-1.5">
-                            {post.tags.map(t => (
-                              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">#{t}</span>
-                            ))}
+
+                        {/* Normalized multiline clickable post content */}
+                        <FormattedContent content={post.content} className="mt-1" />
+
+                        {/* Post Images */}
+                        {post.images && post.images.length > 0 && (
+                          <div className="mt-3">
+                            <ImageCarousel images={post.images} />
                           </div>
+                        )}
+
+                        {/* Post Video */}
+                        {post.videoUrl && (
+                          <div className="mt-3">
+                            <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                          <span className="text-xs text-muted-foreground">❤️ {post.likes || 0}</span>
+                          {post.tags && post.tags.length > 0 && (
+                            <div className="flex gap-1.5 flex-wrap">
+                              {post.tags.map((t: string) => (
+                                <span
+                                  key={t}
+                                  className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                                >
+                                  #{t.replace(/^#/, "")}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deletePost(post.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => setPostToDelete(post.id)}
+                      title="Delete post"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -487,257 +1990,309 @@ const ProfilePage = () => {
           </div>
         </TabsContent>
 
-        {/* Collaborations */}
-        <TabsContent value="collabs">
-          <Tabs defaultValue="created" className="space-y-4">
-            <TabsList className="bg-muted">
-              <TabsTrigger value="created">My Projects/Teams</TabsTrigger>
-              <TabsTrigger value="joined">My Requests</TabsTrigger>
-            </TabsList>
+        {/* 3. myCon Tab */}
+        <TabsContent value="mycon">
+          <div className="space-y-4">
+            <Card className="p-5 shadow-card border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-sm">Verified Student</h4>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                        Active
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Verified college student badge on CollegeBook
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md shrink-0">
+                  ✓ Verified
+                </span>
+              </div>
+            </Card>
 
-            <TabsContent value="created">
-              <div className="space-y-4">
-                {createdProjects.map((project, i) => (
-                  <motion.div key={project.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-                    <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="font-semibold text-base">{project.title}</h3>
-                            <Badge variant="secondary" className="text-xs capitalize">{project.type}</Badge>
-                            <Badge variant="secondary" className="text-xs">{project.members.length}/{project.maxMembers} members</Badge>
-                            {project.completed && <Badge className="bg-green-500/10 text-green-600 text-xs">Completed</Badge>}
-                            {!project.completed && <Badge className="bg-amber-500/10 text-amber-600 text-xs">Hiring</Badge>}
+            <Card className="p-8 text-center shadow-card">
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
+                  <Award className="h-5 w-5" />
+                </div>
+                <h4 className="font-heading font-semibold text-base">Additional Skill Badges</h4>
+                <p className="text-muted-foreground text-xs max-w-sm">
+                  We will introduce automated skill verification badges soon.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 5. Starred Tab */}
+        <TabsContent value="starred" className="space-y-4 focus-visible:outline-none">
+          {starredProjects.length === 0 ? (
+            <Card className="p-10 text-center shadow-card space-y-3 border-dashed">
+              <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto text-amber-500">
+                <Star className="h-6 w-6" />
+              </div>
+              <h4 className="font-semibold text-base">No Starred Projects Yet</h4>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                Projects and repositories you star in Collaboration Hub will be saved here for quick access.
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-2 text-xs">
+                <Link to="/collab">
+                  <Rocket className="h-3.5 w-3.5 mr-1.5" /> Explore Collab Hub
+                </Link>
+              </Button>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {starredProjects.map((project, i) => {
+                const isOpenSource =
+                  project.type === "OPEN_SOURCE" || project.type === "open_source";
+                const isHackathon =
+                  project.type === "HACKATHON" || project.type === "hackathon";
+
+                return (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i * 0.05, 0.3) }}
+                  >
+                    <Card className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80 hover:border-primary/40">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2.5">
+                          {/* Header badges */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={`/collab/${project.id}`}
+                              className="font-bold text-base text-foreground tracking-tight hover:text-primary hover:underline transition-colors"
+                            >
+                              {project.title}
+                            </Link>
+
+                            {isOpenSource ? (
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px] bg-primary/10 text-primary border border-primary/20"
+                              >
+                                <Code2 className="h-3 w-3 mr-1" /> Open Source
+                              </Badge>
+                            ) : isHackathon ? (
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              >
+                                <Users className="h-3 w-3 mr-1" /> Hackathon Team
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              >
+                                <Rocket className="h-3 w-3 mr-1" /> Team Project
+                              </Badge>
+                            )}
+
+                            {!isOpenSource && (
+                              <Badge variant="outline" className="text-[11px]">
+                                {project.currentMembersCount || 1}/{project.maxMembers || 4} members
+                              </Badge>
+                            )}
+
+                            {project.completed && (
+                              <Badge
+                                variant="outline"
+                                className="text-[11px] text-emerald-600 border-emerald-500/30"
+                              >
+                                Completed
+                              </Badge>
+                            )}
                           </div>
-                          {project.type === "project" && project.description && (
-                            <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+
+                          {/* Description */}
+                          <p className="text-sm text-foreground/85 leading-relaxed line-clamp-2 text-ellipsis">
+                            {project.description || "Collaboration project on CollegeBook."}
+                          </p>
+
+                          {/* GitHub Link */}
+                          {project.githubLink && (
+                            <div>
+                              <a
+                                href={
+                                  project.githubLink.startsWith("http")
+                                    ? project.githubLink
+                                    : `https://${project.githubLink}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/5 hover:bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 transition-colors"
+                              >
+                                <Github className="h-3.5 w-3.5" />
+                                <span className="truncate max-w-[280px]">
+                                  {project.githubLink.replace(/^https?:\/\//, "")}
+                                </span>
+                                <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
+                              </a>
+                            </div>
                           )}
-                          {project.type === "project" && project.githubLink && (
-                            <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mb-3">
-                              <Github className="h-3 w-3" /> {project.githubLink}
-                            </a>
-                          )}
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-muted-foreground mb-1.5">Team Members</p>
-                            <div className="flex flex-wrap gap-2">
-                              {project.members.map(m => (
-                                <div key={m.name} className="flex items-center gap-1.5 text-xs bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50">
-                                  <Avatar className="h-5 w-5"><AvatarFallback className="text-[9px] bg-primary/10 text-primary font-semibold">{m.initials}</AvatarFallback></Avatar>
-                                  {m.name === "You" ? <span className="font-medium">{m.name}</span> : <Link to={`/student/${encodeURIComponent(m.name)}`} className="font-medium hover:text-primary hover:underline">{m.name}</Link>}
-                                  <span className="text-muted-foreground">· {m.role}</span>
-                                </div>
+
+                          {/* Creator / Lead & College */}
+                          <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                            <div className="flex items-center gap-1.5 text-xs bg-muted/60 px-2 py-1 rounded-md border border-border/40">
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                  {(project.ownerName || "L").slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <Link
+                                to={`/student/${encodeURIComponent(project.ownerName || "")}`}
+                                className="font-medium text-foreground hover:text-primary hover:underline"
+                              >
+                                {project.ownerName || "Student"}
+                              </Link>
+                              <span className="text-muted-foreground text-[10px]">
+                                {isOpenSource ? "· Creator" : "· Lead"}
+                              </span>
+                            </div>
+
+                            {project.ownerCollegeName && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <span>{project.ownerCollegeName}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tech stack badges */}
+                          {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
+                            (project.skills && project.skills.length > 0)) && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {Array.from(
+                                new Set([
+                                  ...(project.requiredExpertise || []),
+                                  ...(project.skills || []),
+                                ])
+                              ).map((skill: string, idx: number) => (
+                                <Badge
+                                  key={`${project.id}-skill-${skill}-${idx}`}
+                                  variant="outline"
+                                  className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
+                                >
+                                  {skill}
+                                </Badge>
                               ))}
                             </div>
-                          </div>
-                          {!project.completed && project.requiredExpertise.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs font-medium text-muted-foreground mb-1.5">Looking for</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {project.requiredExpertise.map(skill => (
-                                  <span key={skill} className="text-xs px-2.5 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">{skill}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-1.5">
-                            {project.skills.map(s => (
-                              <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2 shrink-0">
-                          {!project.completed ? (
-                            <>
-                              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => openEditTeam(project)}>
-                                <Pencil className="h-3 w-3" /> Edit
-                              </Button>
-                              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setCompleteConfirm(project.id)}>
-                                <CheckCircle2 className="h-3 w-3" /> Complete
-                              </Button>
-                            </>
-                          ) : (
-                            <Button size="sm" className="gap-1.5 text-xs bg-primary text-primary-foreground">
-                              <MessageCircle className="h-3 w-3" /> Chat
-                            </Button>
                           )}
                         </div>
-                      </div>
 
-                      {!project.completed && project.joinRequests.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-border/50">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Join Requests</p>
-                          <div className="space-y-2">
-                            {project.joinRequests.map(req => (
-                              <div key={req.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/40 border border-border/30">
-                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                  <Avatar className="h-7 w-7 shrink-0 mt-0.5"><AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">{req.studentInitials}</AvatarFallback></Avatar>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <Link to={`/student/${encodeURIComponent(req.studentName)}`} className="text-sm font-semibold hover:text-primary hover:underline">{req.studentName}</Link>
-                                      <Badge variant="secondary" className="text-[10px]">{req.role}</Badge>
-                                      <span className="text-[10px] text-muted-foreground">{req.time}</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1">{req.message}</p>
-                                  </div>
-                                </div>
-                                {req.status === "pending" ? (
-                                  <div className="flex gap-1.5 shrink-0 ml-2">
-                                    <Button size="sm" className="h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => setConfirmAction({ projectId: project.id, requestId: req.id, action: "accepted" })}>
-                                      <Check className="h-3 w-3 mr-1" /> Accept
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => setConfirmAction({ projectId: project.id, requestId: req.id, action: "rejected" })}>
-                                      <X className="h-3 w-3 mr-1" /> Reject
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Badge variant="secondary" className={`text-xs shrink-0 ${req.status === "accepted" ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"}`}>
-                                    {req.status}
-                                  </Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </Card>
-                  </motion.div>
-                ))}
-                {createdProjects.length === 0 && <Card className="p-8 text-center shadow-card"><p className="text-muted-foreground text-sm">No projects or teams created yet</p></Card>}
-              </div>
-            </TabsContent>
+                        {/* Right Actions: View Details, Star */}
+                        <div className="flex sm:flex-col items-center justify-end sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
+                          >
+                            <Link to={`/collab/${project.id}`}>
+                              <Eye className="h-3.5 w-3.5" /> View Details
+                            </Link>
+                          </Button>
 
-            <TabsContent value="joined">
-              <div className="space-y-4">
-                {myRequests.map((req, i) => (
-                  <motion.div key={req.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-                    <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="font-semibold text-base">{req.projectTitle}</h3>
-                            <Badge variant="secondary" className="text-xs capitalize">{req.type}</Badge>
-                            <Badge variant="secondary" className="text-xs">{req.role}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">Led by <Link to={`/student/${encodeURIComponent(req.leadName)}`} className="hover:text-primary hover:underline font-medium">{req.leadName}</Link></p>
-                          <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/30">"{req.reason}"</p>
-                          <p className="text-[11px] text-muted-foreground mt-2">{req.time}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <Badge variant="secondary" className={`text-xs ${
-                            req.status === "accepted" ? "bg-green-500/10 text-green-600" :
-                            req.status === "rejected" ? "bg-destructive/10 text-destructive" :
-                            "bg-amber-500/10 text-amber-600"
-                          }`}>
-                            {req.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
-                            {req.status}
-                          </Badge>
-                          {req.status === "pending" && (
-                            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => openEditReq(req)}>
-                              <Pencil className="h-3 w-3" /> Edit
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleStarProject(project.id)}
+                            className="gap-1.5 text-xs h-9 px-3 border border-amber-400/40 text-amber-500 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 w-full sm:w-auto"
+                            title="Unstar project"
+                          >
+                            <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                            <span className="font-semibold">{project.starsCount || 1}</span>
+                          </Button>
                         </div>
                       </div>
                     </Card>
                   </motion.div>
-                ))}
-                {myRequests.length === 0 && <Card className="p-8 text-center shadow-card"><p className="text-muted-foreground text-sm">No requests sent yet</p></Card>}
-              </div>
-            </TabsContent>
-          </Tabs>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
-        {/* myCon Badges */}
-        <TabsContent value="badges">
-          <div className="space-y-3">
-            {myConBadges.map((badge, i) => (
-              <motion.div key={badge.tag} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card className="p-4 shadow-card">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${badge.verified ? "bg-accent/15" : "bg-muted"}`}>
-                        <BadgeCheck className={`h-5 w-5 ${badge.verified ? "text-accent" : "text-muted-foreground"}`} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">{badge.label}</h3>
-                        <p className="text-xs text-muted-foreground">{badge.tag}</p>
-                      </div>
-                    </div>
-                    {badge.verified ? <Badge variant="secondary" className="bg-accent/10 text-accent-foreground">Verified</Badge> : <Badge variant="secondary">Unverified</Badge>}
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Starred */}
-        <TabsContent value="starred">
-          <div className="space-y-3">
-            {starredProjects.length === 0 && (
-              <Card className="p-8 text-center shadow-card"><p className="text-muted-foreground text-sm">No starred projects</p></Card>
-            )}
-            {starredProjects.map((project, i) => (
-              <motion.div key={project.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                        <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">{project.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">By <Link to={`/student/${encodeURIComponent(project.author)}`} className="hover:text-primary hover:underline">{project.author}</Link></p>
-                        <div className="flex gap-1.5 mt-2">
-                          {project.skills.map(s => <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">{s}</span>)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-sm font-semibold text-amber-500">{project.stars}</span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => unstarProject(project.id)} title="Unstar">
-                        <StarOff className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Saved */}
+        {/* 6. Saved Tab */}
         <TabsContent value="saved">
           <div className="space-y-3">
             {savedPostsList.length === 0 && (
-              <Card className="p-8 text-center shadow-card"><p className="text-muted-foreground text-sm">No saved posts</p></Card>
+              <Card className="p-8 text-center shadow-card">
+                <p className="text-muted-foreground text-sm">No saved posts</p>
+              </Card>
             )}
             {savedPostsList.map((post, i) => (
-              <motion.div key={post.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
                 <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 flex-1">
                       <Avatar className="h-9 w-9 shrink-0 mt-0.5">
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">{post.initials}</AvatarFallback>
+                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                          {post.initials || "U"}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Link to={`/student/${encodeURIComponent(post.author)}`} className="text-sm font-semibold hover:text-primary hover:underline">{post.author}</Link>
-                          <span className="text-xs text-muted-foreground">{post.college}</span>
-                          <span className="text-xs text-muted-foreground">· {post.date}</span>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Link
+                            to={`/student/${encodeURIComponent(post.authorHandle || post.author || post.authorName || "")}`}
+                            className="text-sm font-semibold hover:text-primary hover:underline leading-tight"
+                          >
+                            {post.author || post.authorName || "Student"}
+                          </Link>
+                          {post.authorHandle && (
+                            <span className="text-xs font-mono text-primary/90 font-medium">
+                              @{post.authorHandle}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            · {post.college || post.collegeName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            · {post.date || post.time || "Recently"}
+                          </span>
                         </div>
-                        <p className="text-sm leading-relaxed">{post.content}</p>
-                        <div className="flex items-center gap-3 mt-3">
-                          <span className="text-xs text-muted-foreground">❤️ {post.likes}</span>
-                          <div className="flex gap-1.5">
-                            {post.tags.map(t => (
-                              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">#{t}</span>
-                            ))}
+                        <FormattedContent content={post.content} className="mt-1" />
+
+                        {/* Saved Post Images */}
+                        {post.images && post.images.length > 0 && (
+                          <div className="mt-3">
+                            <ImageCarousel images={post.images} />
                           </div>
+                        )}
+
+                        {/* Saved Post Video */}
+                        {post.videoUrl && (
+                          <div className="mt-3">
+                            <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 mt-3">
+                          <span className="text-xs text-muted-foreground">❤️ {post.likes || 0}</span>
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={() => unsavePost(post.id)} title="Unsave">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => unsavePost(post.id)}
+                      title="Unsave"
+                    >
                       <Bookmark className="h-4 w-4 fill-current" />
                     </Button>
                   </div>
@@ -747,39 +2302,807 @@ const ProfilePage = () => {
           </div>
         </TabsContent>
 
-        {/* Campus / Peers */}
+        {/* 7. Campus / Peers Tab */}
         <TabsContent value="peers">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground mb-4">Students from {profile.college}</p>
-            {collegePeers.map((peer, i) => (
-              <motion.div key={peer.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Link to={`/student/${encodeURIComponent(peer.name)}`}>
-                  <Card className="p-4 shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{peer.initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold text-sm">{peer.name}</p>
-                          <div className="flex gap-1.5 mt-1">
-                            {peer.myCon.map(tag => (
-                              <Badge key={tag} variant="secondary" className="text-[10px] gap-1">
-                                <BadgeCheck className="h-3 w-3 text-accent" /> {tag}
-                              </Badge>
-                            ))}
+            {campusStudents.length === 0 ? (
+              <Card className="p-8 text-center shadow-card">
+                <p className="text-muted-foreground text-sm">
+                  No other students registered from your college yet.
+                </p>
+              </Card>
+            ) : (
+              campusStudents.map((peer, i) => (
+                <motion.div
+                  key={peer.slug || peer.name}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Link to={`/student/${encodeURIComponent(peer.slug || peer.name)}`}>
+                    <Card className="p-4 shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            {peer.avatarUrl ? (
+                              <AvatarImage src={peer.avatarUrl} alt={peer.name} />
+                            ) : (
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                                {peer.initials}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-sm">{peer.name || peer.fullName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {peer.courseName
+                                ? `${peer.courseName}${peer.currentYear ? ` • ${peer.currentYear}${peer.currentYear === 1 ? "st" : peer.currentYear === 2 ? "nd" : peer.currentYear === 3 ? "rd" : "th"} Year` : ""}`
+                                : peer.defaultBio || "Student"}
+                            </p>
                           </div>
                         </div>
+                        <UsersRound className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      <UsersRound className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))
+            )}
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* 1. Edit Collab Team / Project Modal */}
+      <Dialog open={editTeamOpen} onOpenChange={setEditTeamOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/50 bg-card/60 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  {editCategory === "open_source"
+                    ? "Edit Open-Source Project"
+                    : editCategory === "hackathon"
+                    ? "Edit Hackathon Team"
+                    : "Edit Project Collaboration"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Update details for your collaboration listing.
+                </DialogDescription>
+              </div>
+              <Badge
+                variant="secondary"
+                className={`text-xs px-2.5 py-1 capitalize font-medium ${
+                  editCategory === "open_source"
+                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                    : editCategory === "hackathon"
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                }`}
+              >
+                {editCategory === "open_source"
+                  ? "Open Source"
+                  : editCategory === "hackathon"
+                  ? "Hackathon"
+                  : "Team Project"}
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+            {/* Hackathon Name Field (for Hackathons) */}
+            {editCategory === "hackathon" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Hackathon Name & Edition *</Label>
+                <Input
+                  placeholder="e.g. Smart India Hackathon 2025, ETHIndia 2025"
+                  value={editTeamForm.hackathon}
+                  onChange={(e) =>
+                    setEditTeamForm((prev) => ({ ...prev, hackathon: e.target.value }))
+                  }
+                  className="h-9 text-xs"
+                />
+              </div>
+            )}
+
+            {/* Title / Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                {editCategory === "open_source"
+                  ? "Repository / Project Name *"
+                  : editCategory === "hackathon"
+                  ? "Team Name *"
+                  : "Project Title *"}
+              </Label>
+              <Input
+                placeholder={
+                  editCategory === "open_source"
+                    ? "e.g. college-book-web, react-native-ui"
+                    : editCategory === "hackathon"
+                    ? "e.g. Binary Beasts, Code Crusaders"
+                    : "e.g. AI-Powered Notes Summarizer"
+                }
+                value={editTeamForm.title}
+                onChange={(e) =>
+                  setEditTeamForm((prev) => ({ ...prev, title: e.target.value }))
+                }
+                className="h-9 text-xs"
+              />
+            </div>
+
+            {/* GitHub URL (Required for Open Source, Optional for Project) */}
+            {editCategory === "open_source" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">GitHub Repository URL *</Label>
+                <div className="relative">
+                  <Github className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="https://github.com/username/repository"
+                    value={editTeamForm.githubLink}
+                    onChange={(e) =>
+                      setEditTeamForm((prev) => ({ ...prev, githubLink: e.target.value }))
+                    }
+                    className="h-9 text-xs pl-9"
+                  />
+                </div>
+              </div>
+            )}
+
+            {editCategory === "project" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">GitHub Repository URL (Optional)</Label>
+                  <div className="relative">
+                    <Github className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="https://github.com/username/repo"
+                      value={editTeamForm.githubLink}
+                      onChange={(e) =>
+                        setEditTeamForm((prev) => ({ ...prev, githubLink: e.target.value }))
+                      }
+                      className="h-9 text-xs pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Max Team Size</Label>
+                  <Select
+                    value={editTeamForm.maxMembers}
+                    onValueChange={(val) =>
+                      setEditTeamForm((prev) => ({ ...prev, maxMembers: val }))
+                    }
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Select team size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2" className="text-xs">2 Members</SelectItem>
+                      <SelectItem value="3" className="text-xs">3 Members</SelectItem>
+                      <SelectItem value="4" className="text-xs">4 Members</SelectItem>
+                      <SelectItem value="5" className="text-xs">5 Members</SelectItem>
+                      <SelectItem value="6" className="text-xs">6 Members</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {editCategory === "hackathon" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Max Team Size</Label>
+                <Select
+                  value={editTeamForm.maxMembers}
+                  onValueChange={(val) =>
+                    setEditTeamForm((prev) => ({ ...prev, maxMembers: val }))
+                  }
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select team size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2" className="text-xs">2 Members</SelectItem>
+                    <SelectItem value="3" className="text-xs">3 Members</SelectItem>
+                    <SelectItem value="4" className="text-xs">4 Members</SelectItem>
+                    <SelectItem value="5" className="text-xs">5 Members</SelectItem>
+                    <SelectItem value="6" className="text-xs">6 Members</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Description & Goals</Label>
+                <span className="text-[10px] text-muted-foreground">
+                  Supports links & multi-line formatting
+                </span>
+              </div>
+              <Textarea
+                placeholder="Describe your project, features, what you are building, or what help you need..."
+                value={editTeamForm.description}
+                onChange={(e) =>
+                  setEditTeamForm((prev) => ({ ...prev, description: e.target.value }))
+                }
+                className="min-h-[100px] text-xs leading-relaxed"
+              />
+            </div>
+
+            {/* Tech Stack / Tags with suggestions */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Tech Stack / Skills Required</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type a skill/tag and press Enter or comma..."
+                  value={editTagInput}
+                  onChange={(e) => setEditTagInput(e.target.value)}
+                  onKeyDown={handleEditTagKeyDown}
+                  className="h-9 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-9 text-xs"
+                  onClick={() => addEditTag(editTagInput)}
+                >
+                  Add Tag
+                </Button>
+              </div>
+
+              {/* Tag Pills */}
+              {editTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg bg-muted/40 border border-border/50">
+                  {editTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="text-xs gap-1 py-1 pl-2.5 pr-1.5 bg-background border border-border shadow-2xs group"
+                    >
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeEditTag(tag)}
+                        className="h-4 w-4 rounded-full inline-flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Suggestions */}
+              <div className="space-y-1 pt-1">
+                <span className="text-[11px] text-muted-foreground">Suggested tags:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {commonTechSuggestions
+                    .filter((s) => !editTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                    .slice(0, 8)
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addEditTag(s)}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border/50 transition-colors"
+                      >
+                        + {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Team Members Management (Hackathon & Project) */}
+            {editCategory !== "open_source" && (
+              <div className="space-y-3 pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-primary" /> Team Members ({editMembers.length}/{editTeamForm.maxMembers})
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">Add by CollegeBook username</span>
+                </div>
+
+                {/* Add Member Input */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">@</span>
+                    <Input
+                      placeholder="username (e.g. vasu_c)"
+                      value={newMemberHandle}
+                      onChange={(e) => setNewMemberHandle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddMember();
+                        }
+                      }}
+                      className="h-9 text-xs pl-7"
+                      disabled={addingMember}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-9 text-xs gap-1 shrink-0"
+                    onClick={handleAddMember}
+                    disabled={addingMember || !newMemberHandle.trim()}
+                  >
+                    {addingMember ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    Add Member
+                  </Button>
+                </div>
+
+                {/* Members List */}
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                  {editMembers.map((m: any) => {
+                    const isOwner = m.role === "OWNER" || m.userId === editingProject?.ownerId;
+                    const memberHandle = m.handle || m.name || "member";
+                    return (
+                      <div
+                        key={m.userId || memberHandle}
+                        className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/50 text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar className="h-6 w-6 shrink-0">
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                              {(m.name || memberHandle).slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <span className="font-semibold text-foreground truncate block">
+                              {m.name || memberHandle}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground truncate block">
+                              @{memberHandle} {isOwner ? "• Team Lead" : `• ${m.role || "Member"}`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isOwner ? (
+                            <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                              Lead
+                            </Badge>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                              onClick={() => handleRemoveMember(m.userId)}
+                              disabled={removingMemberId === m.userId}
+                            >
+                              {removingMemberId === m.userId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <XIcon className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {editMembers.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-2 text-center">
+                      No other members added yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="px-6 py-3.5 border-t border-border/50 bg-muted/30 shrink-0 gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditTeamOpen(false)}
+              disabled={savingTeam}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveTeam}
+              size="sm"
+              disabled={savingTeam}
+              className="bg-gradient-hero text-primary-foreground font-semibold min-w-[120px]"
+            >
+              {savingTeam ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. View Incoming Requests Modal for Project Lead */}
+      <Dialog
+        open={!!viewRequestsProject}
+        onOpenChange={(open) => !open && setViewRequestsProject(null)}
+      >
+        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/50 bg-card/60 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Join Requests — {viewRequestsProject?.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Review student applications and build your collaboration team.
+                </DialogDescription>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {viewRequestsProject?.currentMembersCount || 1}/{viewRequestsProject?.maxMembers || 4} members
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          <div className="px-6 py-4 space-y-3 overflow-y-auto flex-1">
+            {(() => {
+              const currentRequests = incomingRequests.filter(
+                (r: any) =>
+                  r.teamId === viewRequestsProject?.id ||
+                  r.projectId === viewRequestsProject?.id
+              );
+
+              if (currentRequests.length === 0) {
+                return (
+                  <div className="py-10 text-center space-y-2">
+                    <Inbox className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                    <p className="text-sm font-semibold text-foreground">No applications yet</p>
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                      When students apply to collaborate on this project, their requests will appear here for review.
+                    </p>
+                  </div>
+                );
+              }
+
+              return currentRequests.map((r: any) => {
+                const statusUpper = String(r.status || "pending").toUpperCase();
+                const isPending = statusUpper === "PENDING";
+                const isAccepted = statusUpper === "ACCEPTED";
+                const isRejected = statusUpper === "REJECTED";
+
+                return (
+                  <Card key={r.id} className="p-4 shadow-card border-border/70 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Link to={`/student/${encodeURIComponent(r.applicantName || "")}`}>
+                          <Avatar className="h-9 w-9 hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer">
+                            {r.applicantAvatar ? (
+                              <AvatarImage src={r.applicantAvatar} alt={r.applicantName} />
+                            ) : (
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                                {(r.applicantName || "S").slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                        </Link>
+                        <div>
+                          <Link
+                            to={`/student/${encodeURIComponent(r.applicantName || "")}`}
+                            className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors block"
+                          >
+                            {r.applicantName || "Student Applicant"}
+                          </Link>
+                          <p className="text-xs text-muted-foreground">
+                            {r.applicantCourse || "Student"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs font-medium">
+                          {r.role}
+                        </Badge>
+                        <Badge
+                          variant={
+                            isAccepted
+                              ? "default"
+                              : isRejected
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className={`text-xs capitalize ${
+                            isAccepted
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : isPending
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : ""
+                          }`}
+                        >
+                          {isAccepted ? "Accepted" : isRejected ? "Rejected" : "Pending"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {(r.message || r.reason) && (
+                      <div className="text-xs space-y-1">
+                        <p className="text-[11px] font-semibold text-muted-foreground">
+                          Application Pitch / Links:
+                        </p>
+                        <FormattedContent
+                          content={r.message || r.reason}
+                          maxEnters={2}
+                          className="p-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-foreground/90 leading-relaxed"
+                        />
+                      </div>
+                    )}
+
+                    {isPending ? (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:bg-destructive/10 border-destructive/30 gap-1 text-xs h-8"
+                          disabled={respondingReqId === r.id}
+                          onClick={() =>
+                            handleRespondRequest(r.id, false, viewRequestsProject.id)
+                          }
+                        >
+                          {respondingReqId === r.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <XIcon className="h-3.5 w-3.5" />
+                          )}
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-xs h-8 font-semibold"
+                          disabled={respondingReqId === r.id}
+                          onClick={() =>
+                            handleRespondRequest(r.id, true, viewRequestsProject.id)
+                          }
+                        >
+                          {respondingReqId === r.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          Accept Teammate
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/40 text-xs">
+                        {isAccepted ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Teammate Accepted
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted/60 border border-border/40 px-2.5 py-1 rounded-md">
+                            <XCircle className="h-3.5 w-3.5 text-rose-500/70" /> Application Declined
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              });
+            })()}
+          </div>
+
+          <DialogFooter className="px-6 py-3 border-t border-border/50 bg-muted/30 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewRequestsProject(null)}
+              className="text-xs h-8"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Complete Hiring Confirmation Dialog */}
+      <AlertDialog
+        open={!!completeConfirm}
+        onOpenChange={(open) => !open && setCompleteConfirm(null)}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-foreground">
+              Complete Team Hiring?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed text-muted-foreground">
+              Once you complete hiring, this team will be locked and will no longer appear in the open Collab Hub listings or accept new join requests. Existing members and discussions will remain intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel disabled={completingProject} className="text-xs h-8">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={completingProject}
+              onClick={executeCompleteHiring}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 font-semibold"
+            >
+              {completingProject ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Locking Team...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Complete Hiring</span>
+                </div>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 4. Edit Join Request Modal */}
+      <Dialog open={editReqOpen} onOpenChange={setEditReqOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">
+              Edit Join Request
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Update your desired role or pitch note for this team.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Desired Role</Label>
+              <Select
+                value={editReqForm.role}
+                onValueChange={(val) =>
+                  setEditReqForm((prev) => ({ ...prev, role: val }))
+                }
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs">
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Why do you want to join? (Pitch)</Label>
+                <span className="text-[10px] text-muted-foreground">
+                  {editReqForm.reason.length}/1000
+                </span>
+              </div>
+              <Textarea
+                placeholder="Describe what you can contribute, experience, and links to your work..."
+                value={editReqForm.reason}
+                maxLength={1000}
+                onChange={(e) =>
+                  setEditReqForm((prev) => ({ ...prev, reason: e.target.value }))
+                }
+                className="min-h-[110px] text-xs leading-relaxed"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Supports clickable links and up to 2 line breaks.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditReqOpen(false)}
+              disabled={savingReqEdit}
+              className="text-xs h-8"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveReqEdit}
+              size="sm"
+              disabled={savingReqEdit}
+              className="bg-gradient-hero text-primary-foreground font-semibold text-xs h-8 min-w-[110px]"
+            >
+              {savingReqEdit ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Delete Team/Project Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              <Trash2 className="h-4 w-4" /> Delete Team / Project?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed text-muted-foreground">
+              This action is permanent and cannot be undone. All associated team data, member assignments, join requests, and stars will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel disabled={deletingTeam} className="text-xs h-8">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingTeam}
+              onClick={handleDeleteTeam}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs h-8 font-semibold"
+            >
+              {deletingTeam ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Permanently</span>
+                </div>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 6. Withdraw/Delete Join Request Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteReqConfirm}
+        onOpenChange={(open) => !open && setDeleteReqConfirm(null)}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              <Trash2 className="h-4 w-4" /> Withdraw Join Request?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed text-muted-foreground">
+              Are you sure you want to withdraw this application? The team lead will no longer see your pitch.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel disabled={deletingReq} className="text-xs h-8">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletingReq}
+              onClick={handleDeleteJoinRequest}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs h-8 font-semibold"
+            >
+              {deletingReq ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Withdrawing...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Confirm Withdraw</span>
+                </div>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

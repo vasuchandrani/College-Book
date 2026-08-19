@@ -1,15 +1,29 @@
 import { motion } from "framer-motion";
 import {
-  Newspaper, Compass, Users, UserCircle, BadgeCheck, BookHeart,
-  Heart, Bookmark, Share2, Search, Handshake, MessageSquare,
+  Newspaper,
+  Compass,
+  Users,
+  UserCircle,
+  BadgeCheck,
+  BookHeart,
+  Heart,
+  Bookmark,
+  Share2,
+  Search,
+  Handshake,
+  MessageSquare,
+  CheckCircle2,
+  Lock,
+  Layers,
 } from "lucide-react";
 
 const features = [
   {
-    id: "features",
+    id: "campus-feed",
     icon: Newspaper,
-    title: "Campus Feed",
-    description: "A shared space for your college — post ideas, achievements, and opportunities. Like counts visible, no names. Save & share posts. No follow system, no chat. Clarity over noise.",
+    title: "Clean Campus Feed",
+    description:
+      "A distraction-free space for your university — post ideas, questions, and achievements. Like counts visible without usernames. Save and share posts cleanly.",
     highlights: [
       { icon: Heart, text: "Anonymous likes" },
       { icon: Bookmark, text: "Save posts" },
@@ -17,50 +31,53 @@ const features = [
     ],
   },
   {
-    id: "explore",
-    icon: Compass,
-    title: "Explore",
-    description: "Expand beyond your campus. Discover posts from students across other colleges. Broader ideas, same structured interaction model. No pressure.",
-    highlights: [
-      { icon: Search, text: "Cross-campus discovery" },
-    ],
-  },
-  {
-    id: "collab",
+    id: "collab-hub",
     icon: Users,
-    title: "Collab Hub",
-    description: "Find hackathon teams, start projects, join with intent. Request-based communication until accepted, then private team chat. Collaboration begins with purpose.",
+    title: "Collab Hub Team Building",
+    description:
+      "Find hackathon partners, start research projects, and apply with intent. Private, dedicated team communication channels unlock immediately upon acceptance.",
     highlights: [
       { icon: Handshake, text: "Intent-based joining" },
       { icon: MessageSquare, text: "Private team chat" },
     ],
   },
   {
-    id: "profile",
+    id: "cross-explore",
+    icon: Compass,
+    title: "Cross-Campus Explore",
+    description:
+      "Expand your horizons. Discover open-source projects, breakthroughs, and discussions from students across top engineering campuses nationwide.",
+    highlights: [{ icon: Search, text: "Nationwide discovery" }],
+  },
+  {
+    id: "academic-identity",
     icon: UserCircle,
-    title: "Profile & Academic Identity",
-    description: "Your profile represents your academic journey — education, activity, saved posts, collaborations, and team records. Skill-focused, not popularity-driven.",
-    highlights: [],
+    title: "Academic Identity Profile",
+    description:
+      "Your profile showcases your genuine academic journey — university, course, graduation year, team projects, and saved achievements. Skill-focused, not clout-driven.",
+    highlights: [{ icon: Layers, text: "University-linked" }],
   },
   {
-    id: "mycon",
+    id: "mycon-badges",
     icon: BadgeCheck,
-    title: "myCon — Verified Skill Badges",
-    description: "Earn validated expertise tags like cp, ml, design. Submit verifiable proof. Skills are earned — not self-declared.",
-    highlights: [],
+    title: "myCon Verified Skill Badges",
+    description:
+      "Earn validated expertise badges in competitive programming, machine learning, and systems. Link verifiable proof instead of fake self-declarations.",
+    highlights: [{ icon: CheckCircle2, text: "Proof-backed only" }],
   },
   {
-    id: "memory",
+    id: "memory-book",
     icon: BookHeart,
-    title: "Digital Memory Archive",
-    description: "Your account is time-bound. At graduation, receive a downloadable PDF/HTML archive — posts, collaborations, achievements. Your complete college story.",
-    highlights: [],
+    title: "Graduation Memory Archive",
+    description:
+      "CollegeBook accounts are time-bound to your degree program (2 to 5 years). At graduation, download a timeless portfolio PDF containing your entire college story and achievements.",
+    highlights: [{ icon: Lock, text: "Permanent PDF archive" }],
   },
 ];
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-20 md:py-28">
+    <section id="features" className="py-20 md:py-28 bg-muted/20 border-t border-border/70 relative">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -68,35 +85,45 @@ const FeaturesSection = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Everything Your Campus Needs
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-4">
+            <span>Platform Pillars</span>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+            Six Core Pillars Built for Campus Life
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Six core pillars designed for intentional collaboration and academic growth.
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+            Everything students need to connect, build teams, share ideas, and preserve their college legacy.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {features.map((feature, i) => (
             <motion.div
               key={feature.id}
-              id={feature.id}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="group p-6 rounded-xl bg-card border border-border shadow-card hover:shadow-elevated transition-shadow duration-300"
+              transition={{ delay: i * 0.08 }}
+              className="group p-6 sm:p-7 rounded-2xl bg-card border border-border shadow-card hover:shadow-elevated hover:border-primary/40 transition-all duration-300 flex flex-col justify-between"
             >
-              <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-gradient-hero group-hover:text-primary-foreground transition-colors duration-300">
-                <feature.icon className="h-5 w-5 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-gradient-hero group-hover:text-primary-foreground transition-all duration-300 text-primary">
+                  <feature.icon className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold mb-2.5 text-foreground">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4">{feature.description}</p>
+
               {feature.highlights.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-border/50">
                   {feature.highlights.map((h) => (
-                    <span key={h.text} className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-accent/10 text-accent-foreground">
-                      <h.icon className="h-3 w-3" />
+                    <span
+                      key={h.text}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-accent/10 text-accent-foreground border border-accent/20"
+                    >
+                      <h.icon className="h-3 w-3 text-accent" />
                       {h.text}
                     </span>
                   ))}

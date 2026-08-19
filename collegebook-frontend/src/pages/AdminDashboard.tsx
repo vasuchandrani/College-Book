@@ -1,24 +1,4 @@
-/**
- * BACKEND INTEGRATION
- * ------------------------------------------------------------------
- * This page renders mock data today. When the Spring Boot API is live,
- * replace the local state seeds with these calls from the single HTTP layer:
- *
- *   import { getAdminStats, adminCreateAd, adminDeleteAd } from "@/lib/api";
- *
- *   useEffect(() => {
- *     let alive = true;
- *     setLoading(true);
- *     getAdminStats()
- *       .then((data) => alive && setData(data))
- *       .catch((e) => alive && setError(e.message))
- *       .finally(() => alive && setLoading(false));
- *     return () => { alive = false; };
- *   }, []);
- *
- * Never call fetch/axios here — `src/lib/api.ts` is the only HTTP file.
- */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart3, Users, Newspaper, Megaphone, Plus, Trash2, Eye, LogOut, BookOpen, TrendingUp, DollarSign, MessageCircle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import ImageCarousel from "@/components/ImageCarousel";
+import { getAdminStats, adminCreateAd, adminDeleteAd, type AdminStatsResponse } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Ad {
-  id: number;
+  id: string | number;
   brand: string;
   title: string;
   description: string;
@@ -48,47 +30,104 @@ interface Ad {
   revenue: number;
 }
 
-const initialAds: Ad[] = [
-  { id: 1, brand: "Nike", title: "Just Do It — Campus Edition", description: "Gear up for the semester with Nike's student exclusive collection.", images: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=300&fit=crop", "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=600&h=300&fit=crop"], ctaText: "Shop Now", ctaLink: "https://nike.com", active: true, commentsEnabled: true, discount: "20% off with college ID", impressions: 12400, clicks: 890, revenue: 4450 },
-  { id: 2, brand: "Adidas", title: "Ultraboost for Students", description: "Run further, study harder. Adidas Ultraboost with exclusive campus colorways.", images: ["https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&h=300&fit=crop", "https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&h=300&fit=crop"], ctaText: "Explore", ctaLink: "https://adidas.com", active: true, commentsEnabled: true, discount: "15% student discount", impressions: 9800, clicks: 720, revenue: 3600 },
-  { id: 3, brand: "H&M", title: "Campus Style Guide 2025", description: "Fresh styles for the new semester. Starting at ₹499.", images: ["https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=300&fit=crop"], ctaText: "Browse Collection", ctaLink: "https://hm.com", active: true, commentsEnabled: false, discount: "Flat ₹200 off on ₹999+", impressions: 8200, clicks: 610, revenue: 3050 },
-  { id: 4, brand: "Puma", title: "Puma x College Drops", description: "Limited edition sneakers for campus lifestyle.", images: ["https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=600&h=300&fit=crop"], ctaText: "Get Yours", ctaLink: "https://puma.com", active: true, commentsEnabled: true, discount: "", impressions: 6500, clicks: 480, revenue: 2400 },
-  { id: 5, brand: "Rado", title: "Time for Excellence", description: "Celebrate milestones with Rado.", images: ["https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=600&h=300&fit=crop"], ctaText: "Discover", ctaLink: "https://rado.com", active: false, commentsEnabled: true, discount: "15% off for toppers", impressions: 3200, clicks: 190, revenue: 950 },
-];
-
 const AdminDashboard = () => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+
   const navigate = useNavigate();
-  const [ads, setAds] = useState<Ad[]>(initialAds);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [newAd, setNewAd] = useState({ brand: "", title: "", description: "", imageUrls: "", ctaText: "Shop Now", ctaLink: "", commentsEnabled: true, discount: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<AdminStatsResponse>({
+    totalUsers: 0,
+    totalPosts: 0,
+    activeAds: 0,
+    totalRevenue: 0,
+  });
 
-  const stats = {
-    totalUsers: 2847,
-    totalPosts: 1293,
-    activeAds: ads.filter(a => a.active).length,
-    totalRevenue: ads.reduce((s, a) => s + a.revenue, 0),
-    totalImpressions: ads.reduce((s, a) => s + a.impressions, 0),
-    totalClicks: ads.reduce((s, a) => s + a.clicks, 0),
+  useEffect(() => {
+    let alive = true;
+    getAdminStats()
+      .then((data) => {
+        if (alive) setStats(data);
+      })
+      .catch(() => {
+        // graceful fallback if not logged in as admin
+      });
+    return () => { alive = false; };
+  }, []);
+
+  const toggleAd = (id: string | number) => setAds(ads.map(a => a.id === id ? { ...a, active: !a.active } : a));
+  const toggleComments = (id: string | number) => setAds(ads.map(a => a.id === id ? { ...a, commentsEnabled: !a.commentsEnabled } : a));
+  
+  const deleteAd = async (id: string | number) => {
+    try {
+      if (typeof id === "string") {
+        await adminDeleteAd(id);
+      }
+      setAds(ads.filter(a => a.id !== id));
+      toast.success("Ad removed");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to remove ad");
+    }
   };
 
-  const toggleAd = (id: number) => setAds(ads.map(a => a.id === id ? { ...a, active: !a.active } : a));
-  const toggleComments = (id: number) => setAds(ads.map(a => a.id === id ? { ...a, commentsEnabled: !a.commentsEnabled } : a));
-  const deleteAd = (id: number) => setAds(ads.filter(a => a.id !== id));
-
-  const createAd = () => {
+  const createAd = async () => {
     const images = newAd.imageUrls.split("\n").map(u => u.trim()).filter(Boolean);
-    if (!newAd.brand || !newAd.title || images.length === 0) return;
-    setAds([{
-      id: Date.now(), brand: newAd.brand, title: newAd.title, description: newAd.description,
-      images, ctaText: newAd.ctaText || "Shop Now", ctaLink: newAd.ctaLink || "#",
-      active: true, commentsEnabled: newAd.commentsEnabled, discount: newAd.discount,
-      impressions: 0, clicks: 0, revenue: 0,
-    }, ...ads]);
-    setNewAd({ brand: "", title: "", description: "", imageUrls: "", ctaText: "Shop Now", ctaLink: "", commentsEnabled: true, discount: "" });
-    setDialogOpen(false);
+    if (!newAd.brand || !newAd.title || images.length === 0) {
+      toast.error("Please fill in Brand, Title, and at least one image URL");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const created = await adminCreateAd({
+        brand: newAd.brand,
+        title: newAd.title,
+        description: newAd.description,
+        imageUrls: images,
+        ctaText: newAd.ctaText || "Shop Now",
+        ctaLink: newAd.ctaLink || "#",
+        discount: newAd.discount,
+        commentsEnabled: newAd.commentsEnabled,
+      });
+
+      setAds([{
+        id: created.id || Date.now().toString(),
+        brand: created.brand,
+        title: created.title,
+        description: created.description,
+        images: created.images || images,
+        ctaText: created.ctaText || "Shop Now",
+        ctaLink: created.ctaLink || "#",
+        active: true,
+        commentsEnabled: created.commentsEnabled ?? true,
+        discount: created.discount || "",
+        impressions: 0,
+        clicks: 0,
+        revenue: 0,
+      }, ...ads]);
+
+      setNewAd({ brand: "", title: "", description: "", imageUrls: "", ctaText: "Shop Now", ctaLink: "", commentsEnabled: true, discount: "" });
+      setDialogOpen(false);
+      toast.success("Ad campaign created successfully");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create ad");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLogout = () => { localStorage.removeItem("cb_user"); navigate("/login"); };
+  const handleLogout = () => {
+    localStorage.removeItem("cb_token");
+    localStorage.removeItem("cb_refresh_token");
+    localStorage.removeItem("cb_user");
+    localStorage.removeItem("cb_profile");
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,7 +177,10 @@ const AdminDashboard = () => {
               <Button className="bg-gradient-hero text-primary-foreground gap-2" size="sm"><Plus className="h-4 w-4" /> New Ad</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Create New Ad</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Create New Ad</DialogTitle>
+                <DialogDescription>Create and publish a sponsored ad campaign.</DialogDescription>
+              </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2"><Label>Brand Name</Label><Input placeholder="e.g. Nike" value={newAd.brand} onChange={e => setNewAd({ ...newAd, brand: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Ad Title</Label><Input placeholder="Catchy headline" value={newAd.title} onChange={e => setNewAd({ ...newAd, title: e.target.value })} /></div>

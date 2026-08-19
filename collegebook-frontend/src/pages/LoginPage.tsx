@@ -1,31 +1,13 @@
-/**
- * BACKEND INTEGRATION
- * ------------------------------------------------------------------
- * This page renders mock data today. When the Spring Boot API is live,
- * replace the local state seeds with these calls from the single HTTP layer:
- *
- *   import { login, forgotPassword } from "@/lib/api";
- *
- *   useEffect(() => {
- *     let alive = true;
- *     setLoading(true);
- *     login()
- *       .then((data) => alive && setData(data))
- *       .catch((e) => alive && setError(e.message))
- *       .finally(() => alive && setLoading(false));
- *     return () => { alive = false; };
- *   }, []);
- *
- * Never call fetch/axios here — `src/lib/api.ts` is the only HTTP file.
- */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import { BookOpen, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { login, formatApiError } from "@/lib/api";
+import { toast } from "sonner";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -33,34 +15,48 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (email === "admin@collegebook.com" && password === "admin@123") {
-      localStorage.setItem("cb_user", JSON.stringify({ role: "admin", name: "Admin", email }));
-      navigate("/admin");
+    if (!email || !password) {
+      setError("Please enter your email and password");
       return;
     }
 
-    if (email && password) {
-      localStorage.setItem("cb_user", JSON.stringify({
-        role: "student",
-        name: "Vatsal Chandrani",
-        email,
-        college: "IIT Delhi",
-        collegeShort: "IIT-D",
-        course: "B.Tech",
-        year: "3rd Year",
-        gender: "Male",
-        initials: "VC",
-      }));
+    setLoading(true);
+    try {
+      if (email === "admin@collegebook.com" && password === "admin@123") {
+        localStorage.setItem("cb_user", JSON.stringify({ role: "admin", name: "Admin", email }));
+        toast.success("Welcome back, Admin!");
+        navigate("/admin");
+        return;
+      }
+
+      const user = await login({ email: email.trim(), password });
+      localStorage.setItem(
+        "cb_user",
+        JSON.stringify({
+          role: "student",
+          name: user.name,
+          email: user.email,
+          college: user.college,
+          collegeShort: user.collegeShort,
+          course: user.course,
+          currentYear: user.currentYear,
+          defaultBio: user.defaultBio,
+          initials: user.initials,
+        })
+      );
+      toast.success(`Welcome back, ${user.name}!`);
       navigate("/feed");
-      return;
+    } catch (e: any) {
+      setError(formatApiError(e, "Invalid email or password. Please try again."));
+    } finally {
+      setLoading(false);
     }
-
-    setError("Please enter valid credentials");
   };
 
   return (
@@ -79,12 +75,31 @@ const LoginPage = () => {
         <Card className="p-6 shadow-elevated">
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</div>
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm leading-relaxed"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span>{error}</span>
+                </div>
+              </motion.div>
             )}
 
             <div className="space-y-2">
               <Label htmlFor="email">College Email</Label>
-              <Input id="email" type="email" placeholder="you@college.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@college.edu"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -93,15 +108,25 @@ const LoginPage = () => {
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                  }}
+                  required
+                />
                 <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-hero text-primary-foreground">
-              Sign In
+            <Button type="submit" className="w-full bg-gradient-hero text-primary-foreground" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 

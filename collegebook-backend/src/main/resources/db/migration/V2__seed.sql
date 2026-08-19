@@ -1,0 +1,2 @@
+-- Flyway Migration V2__seed.sql
+-- Seed data disabled per project guidelines. Initial data will be populated directly by system administration.

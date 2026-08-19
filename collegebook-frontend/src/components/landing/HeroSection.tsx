@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import heroImg from "@/assets/hero-illustration.png";
@@ -7,76 +7,93 @@ import DownloadAppButton from "@/components/DownloadAppButton";
 
 const HeroSection = () => {
   return (
-    <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-        backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)",
-        backgroundSize: "40px 40px",
-      }} />
+    <section className="relative min-h-[calc(100vh-4rem)] flex items-center pt-24 pb-12 md:pt-28 md:pb-16 overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)",
+          backgroundSize: "36px 36px",
+        }}
+      />
 
-      <div className="container mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          {/* Left Content Column */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-7 space-y-5"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 mb-6">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              <span className="text-xs font-medium text-accent-foreground">Built for Campus Life</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <span className="text-xs font-semibold text-primary">Built for Campus Life</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.12] tracking-tight">
               Build Your{" "}
               <span className="text-gradient-hero">College Story.</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-lg mb-8 leading-relaxed">
-              A purpose-built digital campus platform — focused on collaboration,
-              visibility, and meaningful academic interaction. No noise. No distractions.
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-lg leading-relaxed">
+              A purpose-built digital campus platform — focused on collaboration, student life,
+              visibility, and meaningful connections. No noise. No addictive algorithms.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="bg-gradient-hero text-primary-foreground hover:opacity-90 gap-2 text-base px-8" asChild>
-                <Link to="/signup">Get Started <ArrowRight className="h-4 w-4" /></Link>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+              <Button
+                size="lg"
+                className="bg-gradient-hero text-primary-foreground hover:opacity-90 gap-2 text-base px-8 h-12 font-semibold shadow-sm"
+                asChild
+              >
+                <Link to="/signup">
+                  Get Started <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8" asChild>
-                <a href="#features">Explore Features</a>
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-base px-8 h-12 font-medium"
+                asChild
+              >
+                <a href="#experience">Explore Platform Demo</a>
               </Button>
             </div>
 
             {/* Download App Button */}
-            <div className="mt-6">
+            <div className="pt-2">
               <DownloadAppButton />
             </div>
 
-            <div className="flex items-center gap-6 mt-10 text-sm text-muted-foreground">
+            <div className="flex items-center gap-5 sm:gap-6 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-accent" />
-                Time-bound accounts
+                <div className="h-2 w-2 rounded-full bg-primary" />
+                Degree time-bound
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-accent" />
+                <div className="h-2 w-2 rounded-full bg-primary" />
                 Zero distractions
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-accent" />
+                <div className="h-2 w-2 rounded-full bg-primary" />
                 Campus-only
               </div>
             </div>
           </motion.div>
 
+          {/* Right Logo / Illustration Column (Centered and brought closer) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="flex justify-center lg:justify-end"
+            transition={{ duration: 0.65, delay: 0.15 }}
+            className="lg:col-span-5 flex justify-center items-center"
           >
             <img
               src={heroImg}
               alt="CollegeBook - Digital Campus Network"
               width={1024}
               height={768}
-              className="w-full max-w-lg drop-shadow-2xl"
+              className="w-full max-w-sm sm:max-w-md lg:max-w-lg drop-shadow-xl hover:scale-105 transition-transform duration-500"
             />
           </motion.div>
         </div>

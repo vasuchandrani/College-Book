@@ -1,98 +1,347 @@
-import { useEffect, useState } from "react";
-import { Heart, Bookmark, Share2, Search, MoreHorizontal } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import {
+  Heart,
+  Bookmark,
+  Share2,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
+import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
+import FormattedContent from "@/components/FormattedContent";
+import ThemedLoader from "@/components/ThemedLoader";
+import { toast } from "sonner";
 import {
   getExplorePosts,
   getExploreAds,
-  getTrendingTags,
   likePost as apiLikePost,
   savePost as apiSavePost,
+  sharePostLink,
 } from "@/lib/api";
-import type { ExplorePost } from "@/data/mock";
+import type { ExplorePost } from "@/types";
+
+const PAGE_SIZE = 15;
 
 const ExplorePage = () => {
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
   const [posts, setPosts] = useState<ExplorePost[]>([]);
   const [ads, setAds] = useState<AdData[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // Initial fetch / tag filter change
   useEffect(() => {
-    getExplorePosts().then(setPosts);
-    getExploreAds().then(setAds);
-    getTrendingTags().then(setTags);
-  }, []);
+    let alive = true;
+    setLoadingInitial(true);
+    setPage(0);
+    setHasMore(true);
 
-  const toggleLike = (id: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p)));
+    getExplorePosts(0, PAGE_SIZE, selectedTag || undefined)
+      .then((res) => {
+        if (alive) {
+          setPosts(res.posts || []);
+          setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setPosts([]);
+          setHasMore(false);
+        }
+      })
+      .finally(() => {
+        if (alive) setLoadingInitial(false);
+      });
+
+    getExploreAds()
+      .then((data) => alive && setAds(data || []))
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTag]);
+
+  // Load next page of posts
+  const loadMorePosts = useCallback(() => {
+    if (loadingMore || !hasMore || loadingInitial) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+
+    getExplorePosts(nextPage, PAGE_SIZE, selectedTag || undefined)
+      .then((res) => {
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => String(p.id)));
+          const fresh = (res.posts || []).filter((p) => !existingIds.has(String(p.id)));
+          return [...prev, ...fresh];
+        });
+        setPage(nextPage);
+        setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+      })
+      .catch(() => {
+        setHasMore(false);
+      })
+      .finally(() => {
+        setLoadingMore(false);
+      });
+  }, [page, hasMore, loadingMore, loadingInitial, selectedTag]);
+
+  // IntersectionObserver for infinite scrolling sentinel
+  useEffect(() => {
+    if (loadingInitial || !hasMore || posts.length === 0) {
+      if (observerRef.current) observerRef.current.disconnect();
+      return;
+    }
+
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1, rootMargin: "200px" }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, [loadMorePosts, hasMore, loadingMore, loadingInitial, posts.length]);
+
+  // Compute dynamic hashtags with usage counts, sorted descending (most used to least used)
+  const dynamicTagsWithCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach((p) => {
+      (p.tags || []).forEach((t) => {
+        const clean = t.replace(/^#/, "").trim();
+        if (clean) {
+          counts[clean] = (counts[clean] || 0) + 1;
+        }
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag, count]) => ({ tag, count }));
+  }, [posts]);
+
+  const toggleLike = (id: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 }
+          : p
+      )
+    );
     apiLikePost(id);
   };
 
-  const toggleSave = (id: number) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p)));
+  const toggleSave = (id: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p))
+    );
     apiSavePost(id);
   };
 
-  const filtered = posts.filter(p => {
-    const matchesSearch = !search || p.content.toLowerCase().includes(search.toLowerCase()) || p.author.toLowerCase().includes(search.toLowerCase());
-    const matchesTag = !selectedTag || p.tags.includes(selectedTag);
-    return matchesSearch && matchesTag;
-  });
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase().replace(/^#/, "");
+    return posts.filter((p) => {
+      const matchesSearch =
+        !query ||
+        p.content.toLowerCase().includes(query) ||
+        p.author.toLowerCase().includes(query) ||
+        (p.tags && p.tags.some((t) => t.toLowerCase().replace(/^#/, "").includes(query)));
+      const matchesTag =
+        !selectedTag ||
+        (p.tags &&
+          p.tags.some(
+            (t) => t.toLowerCase().replace(/^#/, "") === selectedTag.toLowerCase().replace(/^#/, "")
+          ));
+      return matchesSearch && matchesTag;
+    });
+  }, [posts, search, selectedTag]);
 
-  const getAdForSlot = (index: number) => ads[Math.floor(index / 5) % Math.max(ads.length, 1)];
-
+  const getAdForSlot = (index: number) =>
+    ads[Math.floor(index / 5) % Math.max(ads.length, 1)];
 
   const renderFeed = () => {
+    if (loadingInitial) {
+      return (
+        <div className="py-16 flex items-center justify-center">
+          <ThemedLoader size="md" />
+        </div>
+      );
+    }
+
+    if (filtered.length === 0) {
+      return (
+        <Card className="p-8 text-center shadow-card">
+          <p className="text-muted-foreground text-sm">
+            {selectedTag
+              ? `No posts found for #${selectedTag}.`
+              : search
+              ? "No matching posts found."
+              : "No explore posts available right now."}
+          </p>
+          {selectedTag && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedTag(null)}
+              className="mt-3 text-xs"
+            >
+              Clear tag filter
+            </Button>
+          )}
+        </Card>
+      );
+    }
+
     const items: React.ReactNode[] = [];
     filtered.forEach((post, i) => {
       items.push(
-        <motion.div key={post.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
+        <motion.div
+          key={post.id}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: Math.min(i * 0.03, 0.3) }}
+        >
           <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{post.initials}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {post.initials}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Link to={`/student/${encodeURIComponent(post.author)}`} className="font-semibold text-sm hover:text-primary hover:underline transition-colors">
+                    <Link
+                      to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                      className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight"
+                    >
                       {post.author}
                     </Link>
-                    <span className="text-muted-foreground text-xs ml-2">{post.college}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                      {post.authorHandle && (
+                        <span className="font-mono text-primary/90 font-medium">
+                          @{post.authorHandle}
+                        </span>
+                      )}
+                      {post.authorHandle && <span>•</span>}
+                      <span>{post.college}</span>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                    {post.time}
+                  </span>
                 </div>
-                <p className="text-sm mt-2 leading-relaxed">{post.content}</p>
 
-                {post.images.length > 0 && (
-                  <div className="mt-3"><ImageCarousel images={post.images} /></div>
+                {/* Multiline, 2-line gap normalized, auto-linked content */}
+                <FormattedContent content={post.content} className="mt-2" />
+
+                {/* Images */}
+                {post.images && post.images.length > 0 && (
+                  <div className="mt-3">
+                    <ImageCarousel images={post.images} />
+                  </div>
                 )}
 
+                {/* Video */}
                 {post.videoUrl && (
-                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">🎬 Video attached — click to watch</p>
+                  <div className="mt-3">
+                    <VideoPlayer
+                      videoUrl={post.videoUrl}
+                      videoId={post.videoUrl}
+                    />
+                  </div>
                 )}
 
-                <div className="flex gap-1.5 mt-3">
-                  {post.tags.map(tag => (
-                    <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground font-medium">#{tag}</span>
-                  ))}
-                </div>
+                {/* Hashtags below content/media and above actions bar */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex gap-1.5 mt-3 flex-wrap">
+                    {post.tags.map((t) => {
+                      const cleanTag = t.replace(/^#/, "");
+                      const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
+                      return (
+                        <button
+                          key={cleanTag}
+                          type="button"
+                          onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          #{cleanTag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
-                  <Button variant="ghost" size="sm" onClick={() => toggleLike(post.id)} className={`gap-1.5 text-xs ${post.liked ? "text-red-500" : "text-muted-foreground"}`}>
-                    <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} /> {post.likes}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleLike(post.id)}
+                    className={`gap-1.5 text-xs ${
+                      post.liked ? "text-red-500" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${
+                        post.liked ? "fill-red-500" : ""
+                      }`}
+                    />{" "}
+                    {post.likes}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => toggleSave(post.id)} className={`gap-1.5 text-xs ${post.saved ? "text-accent" : "text-muted-foreground"}`}>
-                    <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} /> Save
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSave(post.id)}
+                    className={`gap-1.5 text-xs ${
+                      post.saved ? "text-accent" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Bookmark
+                      className={`h-4 w-4 ${
+                        post.saved ? "fill-current" : ""
+                      }`}
+                    />{" "}
+                    Save
                   </Button>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await sharePostLink(post.id);
+                      toast.success("Post link copied to clipboard!");
+                    }}
+                  >
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
                 </div>
@@ -102,44 +351,112 @@ const ExplorePage = () => {
         </motion.div>
       );
 
-      if ((i + 1) % 5 === 0 && i < filtered.length - 1) {
+      if ((i + 1) % 5 === 0 && ads.length > 0) {
         const ad = getAdForSlot(i);
-        items.push(
-          <motion.div key={ad.id + "-" + i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-            <AdCard ad={ad} />
-          </motion.div>
-        );
+        if (ad) {
+          items.push(<AdCard key={`ad-${i}`} ad={ad} />);
+        }
       }
     });
     return items;
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-bold mb-1">Explore</h1>
-        <p className="text-muted-foreground text-sm">Discover ideas from students across all campuses</p>
+    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-16">
+      <div className="mb-6">
+        <h1 className="font-heading text-2xl font-bold">Explore</h1>
+        <p className="text-muted-foreground text-sm">
+          Discover ideas from students across all campuses
+        </p>
       </div>
 
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search posts, people..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <Input
+          placeholder="Search posts, people, #hashtags..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        {tags.map(tag => (
-          <Badge
-            key={tag}
-            variant={selectedTag === tag ? "default" : "secondary"}
-            className={`cursor-pointer transition-colors ${selectedTag === tag ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-            onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-          >
-            #{tag}
-          </Badge>
-        ))}
-      </div>
+      {/* Dynamic Trending Hashtags Filter (Fixed-position Expand/Collapse button, no scrollbars) */}
+      {dynamicTagsWithCounts.length > 0 && (
+        <div className="mb-6 bg-card/60 border border-border/70 rounded-xl p-2.5 shadow-xs backdrop-blur-sm relative">
+          <div className={`flex items-center gap-1.5 flex-wrap ${dynamicTagsWithCounts.length > 6 ? "pr-24" : ""}`}>
+            {(tagsExpanded ? dynamicTagsWithCounts : dynamicTagsWithCounts.slice(0, 6)).map(({ tag }) => {
+              const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === tag.toLowerCase();
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag(isSelected ? null : tag)}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 border ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/70 hover:bg-muted text-foreground border-border/50 hover:border-border"
+                  }`}
+                >
+                  <span>#{tag}</span>
+                </button>
+              );
+            })}
+          </div>
 
+          {dynamicTagsWithCounts.length > 6 && (
+            <button
+              type="button"
+              onClick={() => setTagsExpanded(!tagsExpanded)}
+              className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
+              title={tagsExpanded ? "Collapse hashtags" : "Expand all hashtags"}
+            >
+              <span>{tagsExpanded ? "Collapse" : "Expand"}</span>
+              {tagsExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+
+          {selectedTag && (
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground px-1">
+              <span>
+                Filtering by <strong className="text-foreground">#{selectedTag}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className="text-primary hover:underline text-xs font-medium"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Posts List */}
       <div className="space-y-4">{renderFeed()}</div>
+
+      {/* Infinite Scroll Sentinel & Bottom Loader */}
+      {hasMore && posts.length > 0 && (
+        <div ref={loadMoreRef} className="py-6 flex items-center justify-center">
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span>Loading more posts...</span>
+            </div>
+          )}
+        </div>
+      )}
+      {!hasMore && posts.length > 0 && !loadingInitial && (
+        <div className="py-6 flex items-center justify-center">
+          <p className="text-xs text-muted-foreground/70 font-medium">
+            You're all caught up!
+          </p>
+        </div>
+      )}
     </div>
   );
 };

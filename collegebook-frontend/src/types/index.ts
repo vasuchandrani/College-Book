@@ -2,13 +2,25 @@
  * Shared domain types for CollegeBook.
  *
  * These mirror the backend DTOs documented in `docs/03-api-contract.md`.
- * When the Spring Boot API goes live, only these shapes need to match —
- * components and pages stay untouched.
+ * Cloudflare R2 is used for images/files, and Cloudflare Stream is used for videos.
  */
 
+export interface MediaItem {
+  id?: string;
+  mediaType: "IMAGE" | "VIDEO" | string;
+  url: string;
+  thumbnailUrl?: string;
+  videoId?: string;
+  width?: number;
+  height?: number;
+  durationSeconds?: number;
+  position?: number;
+}
+
 export interface FeedPost {
-  id: number;
+  id: string | number;
   author: string;
+  authorHandle?: string;
   initials: string;
   course: string;
   time: string;
@@ -18,20 +30,24 @@ export interface FeedPost {
   saved: boolean;
   tags: string[];
   images: string[];
+  media?: MediaItem[];
   videoUrl?: string;
 }
 
 export interface ExplorePost {
-  id: number;
+  id: string | number;
   author: string;
+  authorHandle?: string;
   initials: string;
   college: string;
+  time?: string;
   content: string;
   likes: number;
   liked: boolean;
   saved: boolean;
   tags: string[];
   images: string[];
+  media?: MediaItem[];
   videoUrl?: string;
 }
 
