@@ -188,6 +188,7 @@ export default function MyCollaborationPage() {
       setMyTeams(teamsData || []);
       setMyRequests(reqsData || []);
       setIncomingRequests(incomingData || []);
+      window.dispatchEvent(new Event("cb_collab_updated"));
     } catch (err: any) {
       toast.error("Failed to load collaboration data");
     } finally {
@@ -223,6 +224,12 @@ export default function MyCollaborationPage() {
         t.completed
     );
   }, [myTeams]);
+
+  const totalPendingRequests = useMemo(() => {
+    return incomingRequests.filter(
+      (r: any) => String(r.status).toUpperCase() === "PENDING"
+    ).length;
+  }, [incomingRequests]);
 
   const isUserCreatorOf = (project: any) => {
     return (
@@ -567,6 +574,7 @@ export default function MyCollaborationPage() {
       setIncomingRequests((prev) =>
         prev.map((r) => (r.id === reqId ? { ...r, status } : r))
       );
+      window.dispatchEvent(new Event("cb_collab_updated"));
       // Reload teams to update member count
       const updatedTeams = await getMyCreatedTeams();
       setMyTeams(updatedTeams || []);
@@ -628,6 +636,14 @@ export default function MyCollaborationPage() {
           </TabsTrigger>
           <TabsTrigger value="active_teams" className="gap-2 py-2 text-xs sm:text-sm font-medium">
             <Rocket className="h-4 w-4 text-primary shrink-0" /> Active teams
+            {totalPendingRequests > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-0.5"
+              >
+                {totalPendingRequests}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="completed_teams" className="gap-2 py-2 text-xs sm:text-sm font-medium">
             <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Completed teams
@@ -855,23 +871,25 @@ export default function MyCollaborationPage() {
 
                         <div className="flex items-center gap-2 shrink-0">
                           {isPending && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5 text-xs h-8"
-                              onClick={() => openEditReq(req)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" /> Edit Request
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-xs h-8"
+                                onClick={() => openEditReq(req)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Edit Request
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1 text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteReqConfirm(req.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Withdraw
+                              </Button>
+                            </>
                           )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="gap-1 text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteReqConfirm(req.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> {isPending ? "Withdraw" : "Remove"}
-                          </Button>
                         </div>
                       </div>
                     </Card>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Newspaper, Compass, Users, UserCircle, BadgeCheck, BookOpen, LogOut, PanelLeftClose, PanelLeft, FolderGit2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -13,6 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getIncomingJoinRequests } from "@/lib/api";
 
 const mainNav = [
   { title: "Campus Feed", url: "/feed", icon: Newspaper },
@@ -28,6 +30,36 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingCollabCount, setPendingCollabCount] = useState(0);
+
+  const fetchPendingCount = async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
+    if (!token) return;
+    try {
+      const requests = await getIncomingJoinRequests();
+      const count = (requests || []).filter(
+        (r: any) => String(r.status).toUpperCase() === "PENDING"
+      ).length;
+      setPendingCollabCount(count);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
+
+    const handleUpdate = () => fetchPendingCount();
+    window.addEventListener("cb_collab_updated", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+    const interval = setInterval(fetchPendingCount, 15000);
+
+    return () => {
+      window.removeEventListener("cb_collab_updated", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+      clearInterval(interval);
+    };
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("cb_token");
@@ -52,21 +84,41 @@ export function AppSidebar() {
 
           <SidebarGroupContent className="mt-4">
             <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNav.map((item) => {
+                const isCollab = item.url === "/my-collaboration";
+                const showBadge = isCollab && pendingCollabCount > 0;
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={item.title}>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className="hover:bg-muted/50 relative flex items-center justify-between"
+                        activeClassName="bg-primary/10 text-primary font-medium"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="relative">
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {collapsed && showBadge && (
+                              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                            )}
+                          </div>
+                          {!collapsed && (
+                            <span className="truncate">{item.title}</span>
+                          )}
+                        </div>
+
+                        {!collapsed && showBadge && (
+                          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                            {pendingCollabCount}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

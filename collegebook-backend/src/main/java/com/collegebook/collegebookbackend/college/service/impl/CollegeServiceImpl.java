@@ -58,8 +58,10 @@ public class CollegeServiceImpl implements CollegeService {
 
     @Override
     @Transactional
-    public com.collegebook.collegebookbackend.college.dto.CollegeRequestDto requestCollege(com.collegebook.collegebookbackend.college.dto.CollegeRequestDto request) {
-        com.collegebook.collegebookbackend.college.entity.CollegeRequest entity = com.collegebook.collegebookbackend.college.entity.CollegeRequest.builder()
+    public com.collegebook.collegebookbackend.college.dto.CollegeRequestDto requestCollege(
+            com.collegebook.collegebookbackend.college.dto.CollegeRequestDto request) {
+        com.collegebook.collegebookbackend.college.entity.CollegeRequest entity = com.collegebook.collegebookbackend.college.entity.CollegeRequest
+                .builder()
                 .collegeName(request.getCollegeName().trim())
                 .city(request.getCity() != null ? request.getCity().trim() : null)
                 .state(request.getState() != null ? request.getState().trim() : null)

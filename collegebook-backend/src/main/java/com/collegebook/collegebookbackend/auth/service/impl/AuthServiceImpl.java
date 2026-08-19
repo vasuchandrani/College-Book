@@ -288,15 +288,23 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto login(LoginRequest request, String userAgent, String ip) {
-        User user = userRepository.findByEmailIgnoreCase(request.getEmail().trim())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+        if (request.getEmail() == null || request.getEmail().isBlank() || request.getPassword() == null) {
+            return AuthResponseDto.failure("INVALID_CREDENTIALS", "Incorrect email or password. Please verify your credentials.");
+        }
+
+        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
+        if (userOpt.isEmpty()) {
+            return AuthResponseDto.failure("INVALID_CREDENTIALS", "Incorrect email or password. Please verify your credentials.");
+        }
+
+        User user = userOpt.get();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+            return AuthResponseDto.failure("INVALID_CREDENTIALS", "Incorrect email or password. Please verify your credentials.");
         }
 
         if (user.getStatus() == AccountStatus.SUSPENDED) {
-            throw new AppException(ErrorCode.FORBIDDEN, "Account has been suspended");
+            return AuthResponseDto.failure("ACCOUNT_SUSPENDED", "Account has been suspended");
         }
 
         user.setLastLoginAt(Instant.now());
@@ -313,7 +321,9 @@ public class AuthServiceImpl implements AuthService {
         TokenService.RefreshTokenResult refreshTokenResult = tokenService.createRefreshToken(user, null, userAgent, ip);
 
         UserDto userDto = toUserDto(user, profile, roles);
-        return new AuthResponseDto(accessToken, refreshTokenResult.rawToken(), userDto);
+        AuthResponseDto response = new AuthResponseDto(accessToken, refreshTokenResult.rawToken(), userDto);
+        response.setSuccess(true);
+        return response;
     }
 
     @Override

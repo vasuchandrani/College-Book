@@ -139,7 +139,7 @@ const InteractiveFeatureShowcase = () => {
                   <ul className="space-y-2 text-sm text-foreground/85">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                      <span><strong>Anonymous likes:</strong> No vanity popularity contests or follower clout.</span>
+                      <span><strong>Anonymous likes:</strong> Appreciate posts freely without hesitation or social pressure.</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />

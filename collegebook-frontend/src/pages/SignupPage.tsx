@@ -31,7 +31,7 @@ const defaultColleges: { name: string; short: string; domain: string; uuid?: str
   { name: "Nirma University (Institute of Technology) - Ahmedabad", short: "Nirma", domain: "nirmauni.ac.in" },
   { name: "L.D. College of Engineering - Ahmedabad", short: "LDCE", domain: "ldce.ac.in" },
   { name: "Vishwakarma Government Engineering College - Chandkheda", short: "VGEC", domain: "vgecg.ac.in" },
-  { name: "Dhirubhai Ambani Institute of Information and Communication Technology - Gandhinagar", short: "DA-IICT", domain: "daiict.ac.in" },
+  { name: "Dhirubhai Ambani University - Gandhinagar", short: "DAU", domain: "dau.ac.in,daiict.ac.in" },
   { name: "Indian Institute of Technology Gandhinagar", short: "IIT-GN", domain: "iitgn.ac.in" },
   { name: "Pandit Deendayal Energy University - Gandhinagar", short: "PDEU", domain: "pdeu.ac.in" },
   { name: "School of Engineering and Applied Science (Ahmedabad University)", short: "SEAS-AU", domain: "ahduni.edu.in" },
@@ -127,6 +127,15 @@ const genders = ["Male", "Female", "Non-binary", "Prefer not to say"];
 
 const categories = ["All", "Gujarat", "IITs", "NITs", "BITS", "IIITs"];
 
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const SignupPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -140,7 +149,7 @@ const SignupPage = () => {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [colleges, setColleges] = useState(defaultColleges);
+  const [colleges, setColleges] = useState(() => shuffleArray(defaultColleges));
   const [coursesList, setCoursesList] = useState<{ id: string; name: string; shortName: string; durationYears: number }[]>([]);
 
   // Request College Dialog State
@@ -223,14 +232,13 @@ const SignupPage = () => {
     getColleges()
       .then((data) => {
         if (alive && data && data.length > 0) {
-          setColleges(
-            data.map((c) => ({
-              uuid: c.uuid,
-              name: c.name,
-              short: c.short,
-              domain: c.emailDomain || "ac.in",
-            }))
-          );
+          const mapped = data.map((c) => ({
+            uuid: c.uuid,
+            name: c.name,
+            short: c.short,
+            domain: c.emailDomain || "ac.in",
+          }));
+          setColleges(shuffleArray(mapped));
         }
       })
       .catch(() => {});
@@ -558,7 +566,7 @@ const SignupPage = () => {
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search Ahmedabad, Nadiad, IITs, NITs..." 
+                    placeholder="Search your college" 
                     value={collegeSearch} 
                     onChange={(e) => setCollegeSearch(e.target.value)} 
                     className="pl-9 text-sm" 

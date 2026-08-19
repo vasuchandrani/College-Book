@@ -25,10 +25,10 @@ const pillars = [
   },
   {
     icon: ShieldCheck,
-    tag: "Merit-Driven",
+    tag: "Pressure-Free",
     title: "Authentic Peer Recognition",
     description:
-      "Anonymous likes and genuine peer appreciation eliminate popularity contests and clout-chasing, keeping focus on actual student growth and meaningful collaboration.",
+      "Anonymous likes allow students to appreciate ideas, projects, and moments freely without hesitation, anxiety, or social pressure.",
   },
   {
     icon: CheckCircle2,

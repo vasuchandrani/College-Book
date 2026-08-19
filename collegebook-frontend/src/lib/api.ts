@@ -133,9 +133,13 @@ export async function request<T>(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
 
+  const cleanBaseUrl = (API_BASE_URL || "/api/v1").replace(/\/+$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const fullUrl = `${cleanBaseUrl}${cleanPath}`;
+
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(fullUrl, {
       ...init,
       headers: {
         "Content-Type": "application/json",
@@ -231,9 +235,12 @@ export interface AuthUser {
 
 export const login = async (payload: LoginPayload): Promise<AuthUser> => {
   const res = await request<{
-    accessToken: string;
-    refreshToken: string;
-    user: {
+    success?: boolean;
+    message?: string;
+    code?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    user?: {
       id?: string;
       email: string;
       collegeName?: string;
@@ -251,9 +258,20 @@ export const login = async (payload: LoginPayload): Promise<AuthUser> => {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+  if (res && (res.success === false || !res.accessToken)) {
+    throw new ApiError(
+      res.message || "Incorrect email or password. Please verify your credentials.",
+      200,
+      res.code || "INVALID_CREDENTIALS"
+    );
+  }
+
   if (res.accessToken) {
     localStorage.setItem("cb_token", res.accessToken);
-    localStorage.setItem("cb_refresh_token", res.refreshToken);
+    if (res.refreshToken) {
+      localStorage.setItem("cb_refresh_token", res.refreshToken);
+    }
   }
   const fullName = res.user?.profile?.fullName || "User";
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
@@ -264,12 +282,12 @@ export const login = async (payload: LoginPayload): Promise<AuthUser> => {
     id: res.user?.id,
     name: fullName,
     initials: initials || "U",
-    email: res.user.email,
+    email: res.user?.email || payload.email,
     college: collegeName,
     collegeShort: collegeShort,
-    course: res.user.profile?.courseName || "Student",
-    currentYear: res.user.profile?.currentYear,
-    defaultBio: res.user.profile?.defaultBio,
+    course: res.user?.profile?.courseName || "Student",
+    currentYear: res.user?.profile?.currentYear,
+    defaultBio: res.user?.profile?.defaultBio,
   };
 };
 

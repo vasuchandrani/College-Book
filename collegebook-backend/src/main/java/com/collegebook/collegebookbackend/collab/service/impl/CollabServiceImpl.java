@@ -515,7 +515,11 @@ public class CollabServiceImpl implements CollabService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Join request not found"));
 
         if (!joinReq.getApplicant().getId().equals(userId)) {
-            throw new AppException(ErrorCode.FORBIDDEN, "You can only withdraw/delete your own join requests");
+            throw new AppException(ErrorCode.FORBIDDEN, "You can only withdraw your own join requests");
+        }
+
+        if (joinReq.getStatus() != JoinRequestStatus.PENDING) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Cannot withdraw or remove a request that has already been accepted or rejected");
         }
 
         joinRequestRepository.delete(joinReq);

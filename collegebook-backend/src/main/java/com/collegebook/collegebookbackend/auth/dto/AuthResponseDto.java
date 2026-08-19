@@ -1,50 +1,41 @@
 package com.collegebook.collegebookbackend.auth.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AuthResponseDto {
 
+    @Builder.Default
+    private boolean success = true;
+    private String message;
+    private String code;
     private String accessToken;
     private String refreshToken;
+    @Builder.Default
     private String tokenType = "Bearer";
     private UserDto user;
 
-    public AuthResponseDto() {
-    }
-
     public AuthResponseDto(String accessToken, String refreshToken, UserDto user) {
+        this.success = true;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.user = user;
     }
 
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
-    public String getTokenType() {
-        return tokenType;
-    }
-
-    public void setTokenType(String tokenType) {
-        this.tokenType = tokenType;
-    }
-
-    public UserDto getUser() {
-        return user;
-    }
-
-    public void setUser(UserDto user) {
-        this.user = user;
+    public static AuthResponseDto failure(String code, String message) {
+        AuthResponseDto dto = new AuthResponseDto();
+        dto.setSuccess(false);
+        dto.setCode(code);
+        dto.setMessage(message);
+        return dto;
     }
 }
+

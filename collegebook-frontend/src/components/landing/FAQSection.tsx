@@ -9,9 +9,9 @@ const faqs = [
       "Students sign up with their institutional college email (e.g., student@university.edu) or select their verified campus from our comprehensive database of colleges and universities. Every profile is anchored to their authentic university identity.",
   },
   {
-    question: "Why are like counts anonymous on posts?",
+    question: "Why are likes anonymous on posts?",
     answer:
-      "To eliminate popularity bias, clout-chasing, and dopamine addiction. On CollegeBook, great technical ideas, hackathon accomplishments, and project updates receive peer recognition without creating superficial influencer hierarchies.",
+      "Likes are anonymous so that any student can appreciate a post freely without hesitation, anxiety, or social pressure. An introvert or overthinker never has to think twice about whether they should like a post or worry about who will see it — you can simply support what your peers share with complete peace of mind.",
   },
   {
     question: "How does the Collab Hub team building and communication work?",
@@ -29,9 +29,9 @@ const faqs = [
       "CollegeBook accounts are intentionally time-bound to your degree program duration (e.g., 2 years for M.Tech/MCA, 3 years for BCA/B.Sc, 4 years for B.Tech, 5 years for Dual Degree/PhD). Upon graduation, all your posts, team records, and validated achievements are compiled into a downloadable Digital Memory Book PDF and portfolio archive that you keep forever.",
   },
   {
-    question: "Is CollegeBook free for students and colleges?",
+    question: "Is CollegeBook free for students?",
     answer:
-      "Yes, CollegeBook is 100% free for students and campuses. We do not sell user data or deploy intrusive advertising trackers.",
+      "Yes, CollegeBook is a 100% student-focused platform and completely free for all students.",
   },
 ];
 
@@ -79,9 +79,8 @@ const FAQSection = () => {
                 >
                   <span className="text-sm sm:text-base">{faq.question}</span>
                   <ChevronDown
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-primary" : "text-muted-foreground"
-                    }`}
+                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180 text-primary" : "text-muted-foreground"
+                      }`}
                   />
                 </button>
 

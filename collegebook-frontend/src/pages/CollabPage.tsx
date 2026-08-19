@@ -17,6 +17,7 @@ import {
   Eye,
   CheckCircle2,
   FolderGit2,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
