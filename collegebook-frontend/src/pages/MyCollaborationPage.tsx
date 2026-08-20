@@ -634,12 +634,12 @@ export default function MyCollaborationPage() {
           <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
             <Code2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
             <span className="hidden sm:inline">Open source</span>
-            <span className="sm:hidden">Open src</span>
+            <span className="sm:hidden">Open-source</span>
           </TabsTrigger>
           <TabsTrigger value="my_requests" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
             <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
             <span className="hidden sm:inline">My request</span>
-            <span className="sm:hidden">Requests</span>
+            <span className="sm:hidden">My requests</span>
           </TabsTrigger>
           <TabsTrigger value="active_teams" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
             <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
@@ -1022,14 +1022,14 @@ export default function MyCollaborationPage() {
                         </div>
 
                         {/* Actions Block */}
-                        <div className="flex flex-col gap-2 shrink-0">
+                        <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                           {/* Primary Actions */}
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex flex-wrap items-center gap-1.5 w-full justify-start">
                             <Button
                               asChild
                               variant="outline"
                               size="sm"
-                              className="gap-1 text-xs h-8"
+                              className="gap-1 text-xs h-8 px-2.5 w-auto"
                             >
                               <Link to={`/collab/${project.id}`}>
                                 <Eye className="h-3.5 w-3.5" /> View Details
@@ -1040,7 +1040,7 @@ export default function MyCollaborationPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className={`gap-1.5 text-xs h-8 ${
+                                className={`gap-1.5 text-xs h-8 px-2.5 w-auto ${
                                   pendingRequests.length > 0
                                     ? "border-primary text-primary bg-primary/5 font-semibold"
                                     : ""
@@ -1060,7 +1060,7 @@ export default function MyCollaborationPage() {
                             ) : (
                               <Badge
                                 variant="secondary"
-                                className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
+                                className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none w-auto"
                               >
                                 ✓ Joined Member
                               </Badge>
@@ -1070,7 +1070,7 @@ export default function MyCollaborationPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleToggleStar(project.id)}
-                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 w-auto ${
                                 project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
                               }`}
                             >
@@ -1081,20 +1081,20 @@ export default function MyCollaborationPage() {
 
                           {/* Admin Actions (Owner Only) */}
                           {isUserCreatorOf(project) && (
-                            <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/40 justify-end flex-wrap">
+                            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40 w-full justify-start sm:justify-end">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="gap-1.5 text-xs h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                                className="gap-1.5 text-xs h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 w-auto"
                                 onClick={() => setCompleteConfirm(project.id)}
                               >
-                                <CheckCircle2 className="h-3 w-3" /> Complete Hiring
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
                               </Button>
 
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
+                                className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground w-auto"
                                 onClick={() => openEditTeam(project)}
                               >
                                 <Pencil className="h-3 w-3" /> Edit
@@ -1103,7 +1103,7 @@ export default function MyCollaborationPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10 w-auto"
                                 onClick={() => setDeleteConfirm(project.id)}
                               >
                                 <Trash2 className="h-3 w-3" /> Delete

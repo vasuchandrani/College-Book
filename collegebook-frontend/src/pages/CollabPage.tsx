@@ -1051,15 +1051,21 @@ const CollabPage = () => {
 
       {/* Tabs in Exact Order without numbers: 1. Open Source -> 2. Hackathon -> 3. Team Project */}
       <Tabs defaultValue="open_source" className="space-y-5">
-        <TabsList className="grid grid-cols-3 bg-muted/80 p-1 rounded-xl">
-          <TabsTrigger value="open_source" className="gap-2 text-xs sm:text-sm font-semibold">
-            <Code2 className="h-4 w-4" /> Open-source Projects
+        <TabsList className="grid grid-cols-3 bg-muted/80 p-1 rounded-xl h-auto">
+          <TabsTrigger value="open_source" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
+            <Code2 className="h-4 w-4 hidden sm:block shrink-0" />
+            <span className="sm:hidden">Open-source</span>
+            <span className="hidden sm:inline">Open-source Projects</span>
           </TabsTrigger>
-          <TabsTrigger value="hackathon" className="gap-2 text-xs sm:text-sm font-semibold">
-            <Users className="h-4 w-4" /> Hackathon Teams
+          <TabsTrigger value="hackathon" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
+            <Users className="h-4 w-4 hidden sm:block shrink-0" />
+            <span className="sm:hidden">Hackathon</span>
+            <span className="hidden sm:inline">Hackathon Teams</span>
           </TabsTrigger>
-          <TabsTrigger value="project" className="gap-2 text-xs sm:text-sm font-semibold">
-            <Rocket className="h-4 w-4" /> Team Projects
+          <TabsTrigger value="project" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
+            <Rocket className="h-4 w-4 hidden sm:block shrink-0" />
+            <span className="sm:hidden">Projects</span>
+            <span className="hidden sm:inline">Team Projects</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1171,12 +1177,12 @@ const CollabPage = () => {
                       </div>
 
                       {/* Right Actions: View Details, Star & Contribute */}
-                      <div className="flex sm:flex-col items-center justify-end sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0">
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
-                          className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
+                          className="gap-1.5 text-xs h-8 px-2.5 border border-border/70 hover:bg-muted font-medium w-auto"
                         >
                           <Link to={`/collab/${project.id}`}>
                             <Eye className="h-3.5 w-3.5" /> View Details
@@ -1192,7 +1198,7 @@ const CollabPage = () => {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity w-full sm:w-auto"
+                            className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-2.5 py-1.5 rounded-lg shadow-sm hover:opacity-90 transition-opacity w-auto h-8"
                           >
                             <Github className="h-3.5 w-3.5" /> Contribute
                           </a>
@@ -1202,7 +1208,7 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
-                          className={`gap-1.5 text-xs h-9 px-3 border border-border/50 hover:border-border ${
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${
                             project.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"
@@ -1329,12 +1335,12 @@ const CollabPage = () => {
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}
-                      <div className="flex sm:flex-col items-center justify-end sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0">
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
-                          className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
+                          className="gap-1.5 text-xs h-8 px-2.5 border border-border/70 hover:bg-muted font-medium w-auto"
                         >
                           <Link to={`/collab/${team.id}`}>
                             <Eye className="h-3.5 w-3.5" /> View Details
@@ -1344,28 +1350,28 @@ const CollabPage = () => {
                         {isUserLeadOf(team) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-primary/10 text-primary border border-primary/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-primary/10 text-primary border border-primary/20 font-medium flex items-center justify-center w-auto select-none"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
                           </Badge>
                         ) : isUserMemberOf(team) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center justify-center w-auto select-none"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
                           </Badge>
                         ) : isUserPendingFor(team) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium flex items-center justify-center w-auto select-none"
                           >
                             <Clock className="h-3.5 w-3.5 text-amber-500" /> Pending Review
                           </Badge>
                         ) : (
                           <Button
                             size="sm"
-                            className="gap-1.5 text-xs h-9 px-3.5 bg-gradient-hero text-primary-foreground font-semibold w-full sm:w-auto"
+                            className="gap-1.5 text-xs h-8 px-2.5 bg-gradient-hero text-primary-foreground font-semibold w-auto"
                             onClick={() => openJoinDialog(team.id, team.title, "hackathon")}
                           >
                             <UserPlus className="h-3.5 w-3.5" /> Request to Join
@@ -1376,7 +1382,7 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(team.id)}
-                          className={`gap-1.5 text-xs h-9 px-3 border border-border/50 hover:border-border ${
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${
                             team.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"
@@ -1528,12 +1534,12 @@ const CollabPage = () => {
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}
-                      <div className="flex sm:flex-col items-center justify-end sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0">
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
                         <Button
                           asChild
                           size="sm"
                           variant="outline"
-                          className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
+                          className="gap-1.5 text-xs h-8 px-2.5 border border-border/70 hover:bg-muted font-medium w-auto inline-flex"
                         >
                           <Link to={`/collab/${project.id}`}>
                             <Eye className="h-3.5 w-3.5" /> View Details
@@ -1543,28 +1549,28 @@ const CollabPage = () => {
                         {isUserLeadOf(project) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-primary/10 text-primary border border-primary/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-primary/10 text-primary border border-primary/20 font-medium flex items-center justify-center w-auto select-none inline-flex"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
                           </Badge>
                         ) : isUserMemberOf(project) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center justify-center w-auto select-none inline-flex"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
                           </Badge>
                         ) : isUserPendingFor(project) ? (
                           <Badge
                             variant="secondary"
-                            className="gap-1 text-xs h-9 px-3.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
+                            className="gap-1 text-xs h-8 px-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium flex items-center justify-center w-auto select-none inline-flex"
                           >
                             <Clock className="h-3.5 w-3.5 text-amber-500" /> Pending Review
                           </Badge>
                         ) : (
                           <Button
                             size="sm"
-                            className="gap-1.5 text-xs h-9 px-3.5 bg-gradient-hero text-primary-foreground font-semibold w-full sm:w-auto"
+                            className="gap-1.5 text-xs h-8 px-2.5 bg-gradient-hero text-primary-foreground font-semibold w-auto inline-flex"
                             onClick={() => openJoinDialog(project.id, project.title, "project")}
                           >
                             <UserPlus className="h-3.5 w-3.5" /> Request to Join
@@ -1575,7 +1581,7 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
-                          className={`gap-1.5 text-xs h-9 px-3 border border-border/50 hover:border-border ${
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto inline-flex ${
                             project.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"

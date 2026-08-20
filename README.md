@@ -10,6 +10,13 @@ CollegeBook creates a shared digital space where students can connect, express t
 
 Unlike traditional social platforms, CollegeBook is time-bound to a student's academic journey. Every account exists only for the duration of the student's course. Upon graduation, the account is permanently closed and transformed into a personalized digital archive called the Memory Book, preserving the student's contributions, experiences, friendships, collaborations, achievements, and growth throughout college.
 
+### 🔑 Demo Explorer Credentials
+Not a student but want to explore CollegeBook? You can log in using our read-only Demo Explorer profile:
+- **Email**: `demo@collegebook.edu`
+- **Password**: `demo123`
+
+---
+
 CollegeBook exists to help students:
 
 - Connect with peers
