@@ -28,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final GuestReadOnlyFilter guestReadOnlyFilter;
     private final com.collegebook.collegebookbackend.config.ratelimit.RateLimitFilter rateLimitFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:8080,http://localhost:5173,http://localhost:3000,http://localhost:8081,https://*.vercel.app}")
@@ -35,10 +36,12 @@ public class SecurityConfig {
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
+            GuestReadOnlyFilter guestReadOnlyFilter,
             @org.springframework.beans.factory.annotation.Autowired(required = false)
             com.collegebook.collegebookbackend.config.ratelimit.RateLimitFilter rateLimitFilter
     ) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.guestReadOnlyFilter = guestReadOnlyFilter;
         this.rateLimitFilter = rateLimitFilter;
     }
 
@@ -67,6 +70,7 @@ public class SecurityConfig {
             http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         }
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(guestReadOnlyFilter, JwtAuthFilter.class);
 
         return http.build();
     }

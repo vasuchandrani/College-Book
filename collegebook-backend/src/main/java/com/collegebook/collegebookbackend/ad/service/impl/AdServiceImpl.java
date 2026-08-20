@@ -20,6 +20,7 @@ import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,6 +76,7 @@ public class AdServiceImpl implements AdService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "activeAds", allEntries = true)
     public Map<String, Object> toggleLike(UUID userId, UUID adId) {
         Ad ad = adRepository.findById(adId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Ad not found"));
@@ -112,6 +114,7 @@ public class AdServiceImpl implements AdService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "activeAds", allEntries = true)
     public CommentResponseDto addComment(UUID userId, UUID adId, CreateCommentRequest request) {
         Ad ad = adRepository.findById(adId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Ad not found"));

@@ -292,6 +292,44 @@ public class AuthServiceImpl implements AuthService {
             return AuthResponseDto.failure("INVALID_CREDENTIALS", "Incorrect email or password. Please verify your credentials.");
         }
 
+        if ("demo@collegebook.edu".equalsIgnoreCase(request.getEmail().trim())) {
+            Optional<User> demoUserOpt = userRepository.findByEmailIgnoreCase("demo@collegebook.edu");
+            if (demoUserOpt.isEmpty()) {
+                College college = collegeRepository.findBySlug("dharmsinh-desai-university-nadiad")
+                        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "DDU college not found"));
+                
+                Course course = courseRepository.findByCollegeId(college.getId()).stream()
+                        .filter(c -> "B.Tech IT".equalsIgnoreCase(c.getShortName()))
+                        .findFirst()
+                        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "B.Tech IT course not found"));
+                
+                User user = new User();
+                user.setEmail("demo@collegebook.edu");
+                user.setPasswordHash(passwordEncoder.encode("demo123"));
+                user.setCollege(college);
+                user.setStatus(AccountStatus.ACTIVE);
+                user.setEmailVerifiedAt(Instant.now());
+                user.setLastLoginAt(Instant.now());
+                user = userRepository.save(user);
+
+                UserRole role = new UserRole(user, AppRole.STUDENT);
+                userRoleRepository.save(role);
+
+                Profile profile = new Profile();
+                profile.setUser(user);
+                profile.setFullName("Demo Explorer");
+                profile.setInitials("DE");
+                profile.setHandle("demo");
+                profile.setGender(com.collegebook.collegebookbackend.profile.entity.Gender.MALE);
+                profile.setCourse(course);
+                profile.setCurrentYear((short) 1);
+                profile.setDefaultBio("B.Tech IT • 1st Year");
+                profileRepository.save(profile);
+                
+                handleBloomFilterService.addHandle("demo");
+            }
+        }
+
         Optional<User> userOpt = userRepository.findByEmailIgnoreCase(request.getEmail().trim());
         if (userOpt.isEmpty()) {
             return AuthResponseDto.failure("INVALID_CREDENTIALS", "Incorrect email or password. Please verify your credentials.");

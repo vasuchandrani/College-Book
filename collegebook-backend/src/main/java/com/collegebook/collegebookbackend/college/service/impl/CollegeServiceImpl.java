@@ -9,6 +9,7 @@ import com.collegebook.collegebookbackend.college.repository.CourseRepository;
 import com.collegebook.collegebookbackend.college.service.CollegeService;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class CollegeServiceImpl implements CollegeService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "colleges")
     public List<CollegeDto> getAllColleges() {
         return collegeRepository.findAll().stream()
                 .map(this::toCollegeDto)
@@ -42,6 +44,7 @@ public class CollegeServiceImpl implements CollegeService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "colleges", key = "#slug")
     public CollegeDto getCollegeBySlug(String slug) {
         College college = collegeRepository.findBySlug(slug)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "College not found"));
@@ -50,6 +53,7 @@ public class CollegeServiceImpl implements CollegeService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "courses", key = "#collegeId")
     public List<CourseDto> getCoursesByCollegeId(UUID collegeId) {
         return courseRepository.findByCollegeId(collegeId).stream()
                 .map(this::toCourseDto)

@@ -133,6 +133,36 @@ export async function request<T>(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
 
+  // Intercept write operations for the demo@collegebook.edu guest user
+  const method = init.method?.toUpperCase() || "GET";
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+    let isGuest = false;
+    try {
+      const userStr = typeof window !== "undefined" ? localStorage.getItem("cb_user") : null;
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.email?.trim().toLowerCase() === "demo@collegebook.edu") {
+          isGuest = true;
+        }
+      }
+    } catch {}
+
+    if (isGuest) {
+      const isAllowedAuth =
+        path.includes("/auth/login") ||
+        path.includes("/auth/signup") ||
+        path.includes("/auth/refresh") ||
+        path.includes("/auth/logout");
+      if (!isAllowedAuth) {
+        throw new ApiError(
+          "Write operations are disabled in demo mode. Please register for a full student account to participate.",
+          403,
+          "GUEST_RESTRICTION"
+        );
+      }
+    }
+  }
+
   const cleanBaseUrl = (API_BASE_URL || "/api/v1").replace(/\/+$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const fullUrl = `${cleanBaseUrl}${cleanPath}`;

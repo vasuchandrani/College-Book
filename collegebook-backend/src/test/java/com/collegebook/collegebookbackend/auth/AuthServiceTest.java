@@ -3,6 +3,7 @@ package com.collegebook.collegebookbackend.auth;
 import com.collegebook.collegebookbackend.auth.bloom.HandleBloomFilterService;
 import com.collegebook.collegebookbackend.auth.dto.AuthResponseDto;
 import com.collegebook.collegebookbackend.auth.dto.HandleAvailabilityResponse;
+import com.collegebook.collegebookbackend.auth.dto.LoginRequest;
 import com.collegebook.collegebookbackend.auth.dto.SignupRequest;
 import com.collegebook.collegebookbackend.auth.entity.AppRole;
 import com.collegebook.collegebookbackend.auth.entity.User;
@@ -198,5 +199,52 @@ public class AuthServiceTest {
 
         HandleAvailabilityResponse res = authService.checkHandle("taken_user");
         assertFalse(res.isAvailable());
+    }
+
+    @Test
+    void testLogin_DynamicGuestRegistration() {
+        LoginRequest req = new LoginRequest("demo@collegebook.edu", "demo123");
+
+        College college = new College();
+        UUID collegeId = UUID.randomUUID();
+        college.setId(collegeId);
+        college.setName("Dharmsinh Desai University - Nadiad");
+        college.setSlug("dharmsinh-desai-university-nadiad");
+
+        Course course = new Course();
+        course.setId(UUID.randomUUID());
+        course.setCollege(college);
+        course.setName("B.Tech Information Technology");
+        course.setShortName("B.Tech IT");
+
+        when(userRepository.findByEmailIgnoreCase("demo@collegebook.edu"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(new User()));
+
+        when(collegeRepository.findBySlug("dharmsinh-desai-university-nadiad")).thenReturn(Optional.of(college));
+        when(courseRepository.findByCollegeId(collegeId)).thenReturn(List.of(course));
+
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(UUID.randomUUID());
+            u.setCollege(college);
+            return u;
+        });
+
+        when(passwordEncoder.encode("demo123")).thenReturn("hashedDemoPassword");
+        when(passwordEncoder.matches(eq("demo123"), any())).thenReturn(true);
+
+        when(jwtService.generateAccessToken(any(), any(), any())).thenReturn("mockJwtToken");
+        when(tokenService.createRefreshToken(any(), any(), any(), any()))
+                .thenReturn(new TokenService.RefreshTokenResult("rawRefresh", UUID.randomUUID()));
+
+        AuthResponseDto resp = authService.login(req, "Agent", "127.0.0.1");
+
+        assertNotNull(resp);
+        assertTrue(resp.isSuccess());
+
+        verify(userRepository, times(2)).save(any(User.class));
+        verify(profileRepository).save(any(Profile.class));
+        verify(handleBloomFilterService).addHandle("demo");
     }
 }

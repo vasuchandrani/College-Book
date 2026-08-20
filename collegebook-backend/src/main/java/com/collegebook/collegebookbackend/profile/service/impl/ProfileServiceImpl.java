@@ -11,6 +11,8 @@ import com.collegebook.collegebookbackend.profile.dto.PublicProfileDto;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
 import com.collegebook.collegebookbackend.profile.service.ProfileService;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "profiles", key = "#userId")
     public ProfileDto getMyProfile(UUID userId) {
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Profile not found"));
@@ -57,6 +60,8 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
+    @CachePut(value = "profiles", key = "#userId")
+    @org.springframework.cache.annotation.CacheEvict(value = "publicProfiles", allEntries = true)
     public ProfileDto updateMyProfile(UUID userId, ProfileUpdateDto updateDto) {
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Profile not found"));
@@ -103,6 +108,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "publicProfiles", key = "#slug")
     public PublicProfileDto getStudentBySlug(String slug) {
         if (slug == null || slug.isBlank()) {
             throw new AppException(ErrorCode.NOT_FOUND, "Student profile not found");
@@ -127,6 +133,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "publicProfiles", key = "#handleOrName")
     public java.util.Optional<PublicProfileDto> findStudentByHandleOrName(String handleOrName) {
         if (handleOrName == null || handleOrName.isBlank()) {
             return java.util.Optional.empty();
