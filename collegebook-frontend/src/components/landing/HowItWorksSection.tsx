@@ -32,23 +32,23 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-20 md:py-28 bg-background relative overflow-hidden">
+    <section className="py-14 sm:py-20 md:py-28 bg-background relative overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-xs font-semibold text-accent-foreground mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-xs font-semibold text-accent-foreground mb-3 sm:mb-4">
             <span>3 Simple Steps</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
             How CollegeBook Works
           </h2>
-          <p className="text-muted-foreground text-base">
+          <p className="text-muted-foreground text-xs sm:text-base">
             From your first day on campus to your graduation ceremony — your structured academic journey.
           </p>
         </div>
 
-        {/* Steps Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        {/* Desktop Steps Grid (md and up) */}
+        <div className="hidden md:grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {steps.map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -90,9 +90,51 @@ const HowItWorksSection = () => {
           })}
         </div>
 
+        {/* Mobile Connected Roadmap Timeline (< md) */}
+        <div className="md:hidden space-y-4 max-w-md mx-auto relative pl-7 before:content-[''] before:absolute before:left-3 before:top-4 before:bottom-8 before:w-0.5 before:bg-gradient-to-b before:from-primary before:via-accent before:to-muted-foreground/20">
+          {steps.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.step} className="relative">
+                {/* Connected step dot */}
+                <div className="absolute -left-7 top-4 h-6 w-6 rounded-full bg-background border-2 border-primary text-primary flex items-center justify-center text-[10px] font-bold shadow-xs z-10">
+                  {idx + 1}
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl p-4.5 shadow-card space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <h3 className="text-sm font-bold text-foreground">{item.title}</h3>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-muted-foreground/50">
+                      Step {item.step}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  <div className="pt-2 border-t border-border/40 space-y-1.5 text-[11px] text-foreground/80">
+                    {item.highlights.map((h, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                        <span>{h}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Bottom CTA */}
-        <div className="mt-14 text-center">
-          <Button size="lg" className="bg-gradient-hero text-primary-foreground gap-2 font-semibold px-8" asChild>
+        <div className="mt-10 sm:mt-14 text-center">
+          <Button size="lg" className="w-full sm:w-auto bg-gradient-hero text-primary-foreground gap-2 font-semibold px-8 h-12" asChild>
             <Link to="/signup">
               Get Started in 60 Seconds <ArrowRight className="h-4 w-4" />
             </Link>

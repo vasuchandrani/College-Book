@@ -1,12 +1,27 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen, UserCircle } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
-import { Outlet, Navigate, useLocation } from "react-router-dom";
+import { Outlet, Navigate, useLocation, Link } from "react-router-dom";
+import { useMemo } from "react";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
   const location = useLocation();
+
+  const userInitials = useMemo(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("cb_user") || "{}");
+      const name: string = u.name || u.fullName || "";
+      if (name) {
+        const parts = name.trim().split(" ");
+        return parts.length >= 2
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+          : name.substring(0, 2).toUpperCase();
+      }
+    } catch {}
+    return "";
+  }, []);
 
   // If student is not authenticated or token expired/removed, redirect to landing page
   if (!token) {
@@ -19,13 +34,29 @@ const AppLayout = () => {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile top bar */}
-          <header className="md:hidden sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 backdrop-blur px-3">
+          <header className="md:hidden sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-3">
             <a href="/" className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-md bg-gradient-hero flex items-center justify-center">
                 <BookOpen className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="font-heading text-base font-bold">CollegeBook</span>
             </a>
+
+            <Link
+              to="/profile"
+              className={`flex items-center justify-center h-8 w-8 rounded-full transition-all ${
+                location.pathname === "/profile"
+                  ? "bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/20"
+                  : "bg-muted hover:bg-muted/80 text-foreground border border-border/40"
+              }`}
+              aria-label="Profile"
+            >
+              {userInitials ? (
+                <span className="text-xs font-semibold">{userInitials}</span>
+              ) : (
+                <UserCircle className="h-5 w-5" />
+              )}
+            </Link>
           </header>
           <main className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
             <Outlet />

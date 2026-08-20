@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Layers,
@@ -6,6 +7,7 @@ import {
   CheckCircle2,
   Compass,
   GraduationCap,
+  Sparkles,
 } from "lucide-react";
 
 const pillars = [
@@ -54,24 +56,45 @@ const pillars = [
 ];
 
 const ProblemSection = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, offsetWidth } = scrollContainerRef.current;
+    const index = Math.round(scrollLeft / (offsetWidth * 0.82));
+    setActiveIndex(Math.min(Math.max(index, 0), pillars.length - 1));
+  };
+
+  const scrollToIndex = (index: number) => {
+    if (!scrollContainerRef.current) return;
+    const cardWidth = scrollContainerRef.current.offsetWidth * 0.84;
+    scrollContainerRef.current.scrollTo({
+      left: index * cardWidth,
+      behavior: "smooth",
+    });
+    setActiveIndex(index);
+  };
+
   return (
-    <section className="py-20 md:py-28 bg-muted/30 border-y border-border/70 relative">
+    <section className="py-14 sm:py-20 md:py-28 bg-muted/30 border-y border-border/70 relative">
       <div className="container mx-auto px-4">
         {/* Heading */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-3 sm:mb-4">
+            <Sparkles className="h-3.5 w-3.5" />
             <span>The CollegeBook Model</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
             Engineered for Real Student Connection
           </h2>
-          <p className="text-muted-foreground text-base">
+          <p className="text-muted-foreground text-xs sm:text-base">
             Built from the ground up for collaboration, student life, and cross-campus discovery — with non-addictive, high-signal design.
           </p>
         </div>
 
-        {/* Pillars Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {/* Desktop Grid (md and up) */}
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {pillars.map((pillar, idx) => {
             const Icon = pillar.icon;
             return (
@@ -103,6 +126,62 @@ const ProblemSection = () => {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Mobile Horizontal Snap Carousel (< md) */}
+        <div className="md:hidden">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-3 px-1 no-scrollbar -mx-4 px-4"
+          >
+            {pillars.map((pillar, idx) => {
+              const Icon = pillar.icon;
+              return (
+                <div
+                  key={pillar.title}
+                  className="w-[84vw] max-w-[340px] shrink-0 snap-center bg-card border border-border rounded-2xl p-5 shadow-card flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                        {pillar.tag}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-foreground mb-2">
+                      {pillar.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {pillar.description}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Pillar {idx + 1} of {pillars.length}</span>
+                    <span className="text-primary font-medium">Swipe &rarr;</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Dots pagination */}
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {pillars.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                aria-label={`Go to slide ${idx + 1}`}
+                onClick={() => scrollToIndex(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activeIndex === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

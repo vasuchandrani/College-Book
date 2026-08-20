@@ -1751,14 +1751,14 @@ const ProfilePage = () => {
       </AlertDialog>
 
       {/* Profile Navigation Tabs */}
-      <Tabs defaultValue="about" className="space-y-6">
-        <TabsList className="bg-muted flex-wrap">
-          <TabsTrigger value="about">About</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="mycon">myCon</TabsTrigger>
-          <TabsTrigger value="starred">Starred</TabsTrigger>
-          <TabsTrigger value="saved">Saved</TabsTrigger>
-          <TabsTrigger value="peers">Campus</TabsTrigger>
+      <Tabs defaultValue="about" className="space-y-4 sm:space-y-6">
+        <TabsList className="bg-muted w-full flex overflow-x-auto no-scrollbar justify-start sm:justify-center p-1 rounded-xl gap-1">
+          <TabsTrigger value="about" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">About</TabsTrigger>
+          <TabsTrigger value="posts" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Posts</TabsTrigger>
+          <TabsTrigger value="mycon" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">myCon</TabsTrigger>
+          <TabsTrigger value="starred" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Starred</TabsTrigger>
+          <TabsTrigger value="saved" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Saved</TabsTrigger>
+          <TabsTrigger value="peers" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Campus</TabsTrigger>
         </TabsList>
 
         {/* 1. About Tab */}

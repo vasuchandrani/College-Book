@@ -553,22 +553,24 @@ const CollabPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1 flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Collab Hub
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 flex items-center gap-2">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> Collab Hub
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Discover open-source gems, assemble hackathon teams, and collaborate with peers across campuses.
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Discover open-source gems, assemble hackathon teams, and collaborate with peers.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <Button asChild variant="outline" className="gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
             <Link to="/my-collaboration">
-              <FolderGit2 className="h-4 w-4 text-primary" /> My Collaboration
+              <FolderGit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <span className="hidden sm:inline">My Collaboration</span>
+              <span className="sm:hidden">My Collab</span>
             </Link>
           </Button>
 
@@ -580,8 +582,8 @@ const CollabPage = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="bg-gradient-hero text-primary-foreground gap-2 shrink-0 shadow-md hover:shadow-lg transition-all">
-                <Plus className="h-4 w-4" /> Create Collab
+              <Button size="sm" className="bg-gradient-hero text-primary-foreground gap-1.5 sm:gap-2 shrink-0 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm">
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Create
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-xl max-h-[90vh] p-0 flex flex-col overflow-hidden rounded-2xl border shadow-2xl">

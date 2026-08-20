@@ -1,17 +1,47 @@
-import { Newspaper, Compass, Users, UserCircle, BadgeCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Newspaper, Compass, Users, BadgeCheck, FolderGit2 } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { getIncomingJoinRequests } from "@/lib/api";
 
 const navItems = [
   { title: "Feed", url: "/feed", icon: Newspaper },
   { title: "Explore", url: "/explore", icon: Compass },
   { title: "Collab", url: "/collab", icon: Users },
-  { title: "Profile", url: "/profile", icon: UserCircle },
+  { title: "My Collab", url: "/my-collaboration", icon: FolderGit2 },
   { title: "myCon", url: "/mycon", icon: BadgeCheck },
 ];
 
 export function BottomNav() {
   const location = useLocation();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      const token = localStorage.getItem("cb_token");
+      if (!token) return;
+      try {
+        const reqs = await getIncomingJoinRequests();
+        const count = (reqs || []).filter(
+          (r: any) => String(r.status).toUpperCase() === "PENDING"
+        ).length;
+        setPendingCount(count);
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchCount();
+
+    const handleUpdate = () => fetchCount();
+    window.addEventListener("cb_collab_updated", handleUpdate);
+    window.addEventListener("focus", handleUpdate);
+
+    return () => {
+      window.removeEventListener("cb_collab_updated", handleUpdate);
+      window.removeEventListener("focus", handleUpdate);
+    };
+  }, [location.pathname]);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg safe-area-bottom">
@@ -20,6 +50,8 @@ export function BottomNav() {
           const isActive =
             location.pathname === item.url ||
             (item.url !== "/" && location.pathname.startsWith(item.url));
+          const isCollab = item.url === "/my-collaboration";
+          const showDot = isCollab && pendingCount > 0;
 
           return (
             <RouterNavLink
@@ -32,13 +64,18 @@ export function BottomNav() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 transition-transform",
-                  isActive && "scale-110"
+              <div className="relative">
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 transition-transform",
+                    isActive && "scale-110"
+                  )}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                {showDot && (
+                  <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-primary ring-1.5 ring-background" />
                 )}
-                strokeWidth={isActive ? 2.5 : 2}
-              />
+              </div>
               <span>{item.title}</span>
             </RouterNavLink>
           );

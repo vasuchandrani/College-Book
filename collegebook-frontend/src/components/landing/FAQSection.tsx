@@ -43,18 +43,18 @@ const FAQSection = () => {
   };
 
   return (
-    <section id="faq" className="py-20 md:py-28 bg-muted/20 border-t border-border/70 relative">
+    <section id="faq" className="py-14 sm:py-20 md:py-28 bg-muted/20 border-t border-border/70 relative">
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-4">
+        <div className="text-center mb-8 sm:mb-14">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-3 sm:mb-4">
             <HelpCircle className="h-3.5 w-3.5" />
             <span>Got Questions?</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-3 sm:mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-muted-foreground text-base">
+          <p className="text-muted-foreground text-xs sm:text-base">
             Everything you need to know about the CollegeBook campus ecosystem.
           </p>
         </div>

@@ -597,45 +597,54 @@ export default function MyCollaborationPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6 pb-20">
+    <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
       {/* Page Header with 2 Buttons matching Collab Hub */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/60 pb-4 sm:pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FolderGit2 className="h-6 w-6 text-primary" /> My Collaboration
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <FolderGit2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> My Collaboration
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your open-source projects, hackathon teams, and incoming join applications.
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Manage your projects, teams, and join applications.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <Button asChild variant="outline" className="gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
             <Link to="/collab">
-              <Users className="h-4 w-4 text-primary" /> Explore Collab Hub
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <span className="hidden sm:inline">Explore Collab Hub</span>
+              <span className="sm:hidden">Explore Hub</span>
             </Link>
           </Button>
 
           <Button
             onClick={() => openCreateDialog("open_source")}
-            className="bg-gradient-hero text-primary-foreground gap-2 shrink-0 shadow-md hover:shadow-lg transition-all"
+            size="sm"
+            className="bg-gradient-hero text-primary-foreground gap-1.5 sm:gap-2 shrink-0 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4" /> Create Collab
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Create
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="open_source" className="space-y-5">
+      <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
         <TabsList className="bg-muted p-1 rounded-xl grid grid-cols-2 sm:grid-cols-4 max-w-2xl h-auto gap-1">
-          <TabsTrigger value="open_source" className="gap-2 py-2 text-xs sm:text-sm font-medium">
-            <Code2 className="h-4 w-4 text-primary shrink-0" /> Open source
+          <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
+            <Code2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+            <span className="hidden sm:inline">Open source</span>
+            <span className="sm:hidden">Open src</span>
           </TabsTrigger>
-          <TabsTrigger value="my_requests" className="gap-2 py-2 text-xs sm:text-sm font-medium">
-            <Users className="h-4 w-4 text-primary shrink-0" /> My request
+          <TabsTrigger value="my_requests" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
+            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+            <span className="hidden sm:inline">My request</span>
+            <span className="sm:hidden">Requests</span>
           </TabsTrigger>
-          <TabsTrigger value="active_teams" className="gap-2 py-2 text-xs sm:text-sm font-medium">
-            <Rocket className="h-4 w-4 text-primary shrink-0" /> Active teams
+          <TabsTrigger value="active_teams" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
+            <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+            <span className="hidden sm:inline">Active teams</span>
+            <span className="sm:hidden">Active</span>
             {totalPendingRequests > 0 && (
               <Badge
                 variant="secondary"
@@ -645,15 +654,17 @@ export default function MyCollaborationPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="completed_teams" className="gap-2 py-2 text-xs sm:text-sm font-medium">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> Completed teams
+          <TabsTrigger value="completed_teams" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
+            <span className="hidden sm:inline">Completed teams</span>
+            <span className="sm:hidden">Done</span>
           </TabsTrigger>
         </TabsList>
 
         {/* 1. Open Source */}
         <TabsContent value="open_source" className="space-y-4">
           {myOpenSourceProjects.length === 0 ? (
-            <Card className="p-10 text-center shadow-card space-y-3 border-dashed">
+            <Card className="p-6 sm:p-10 text-center shadow-card space-y-3 border-dashed">
               <Code2 className="h-10 w-10 text-muted-foreground/60 mx-auto" />
               <h3 className="font-semibold text-base">No Open-Source Repositories Published</h3>
               <p className="text-muted-foreground text-xs max-w-md mx-auto">
@@ -677,7 +688,7 @@ export default function MyCollaborationPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
                 >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
+                  <Card className="p-3 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -714,7 +725,7 @@ export default function MyCollaborationPage() {
                               className="text-xs text-primary hover:underline inline-flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20"
                             >
                               <Github className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[280px]">
+                              <span className="truncate max-w-[180px] sm:max-w-[280px]">
                                 {project.githubLink.replace(/^https?:\/\//, "")}
                               </span>
                               <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
@@ -935,7 +946,7 @@ export default function MyCollaborationPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06 }}
                   >
-                    <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <Card className="p-3 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap mb-1">

@@ -22,10 +22,10 @@ const badges: BadgeItem[] = [
 
 const MyConPage = () => {
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-1">myCon — Skill Badges</h1>
-        <p className="text-muted-foreground text-sm">Earn verified badges to showcase your credentials on College-Book</p>
+    <div className="max-w-3xl mx-auto p-3 sm:p-6 pb-20">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">myCon — Skill Badges</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">Earn verified badges to showcase your credentials on College-Book</p>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>

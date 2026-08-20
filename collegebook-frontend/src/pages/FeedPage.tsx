@@ -571,10 +571,10 @@ const FeedPage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-16">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold">Campus Feed</h1>
-        <p className="text-muted-foreground text-sm">
+    <div className="max-w-2xl mx-auto p-3 sm:p-6 pb-20">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           What's happening at {collegeDisplay}
         </p>
       </div>
@@ -648,7 +648,7 @@ const FeedPage = () => {
       {/* Post Creation Card */}
       <Card className="p-4 mb-6 shadow-card">
         <div className="flex gap-3">
-          <Avatar className="h-9 w-9 shrink-0">
+          <Avatar className="hidden sm:flex h-9 w-9 shrink-0">
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
               {user.initials || "YO"}
             </AvatarFallback>
@@ -766,8 +766,8 @@ const FeedPage = () => {
               </div>
             )}
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mt-3 pt-3 border-t border-border">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <input
                   ref={mediaInputRef}
                   type="file"
@@ -779,18 +779,18 @@ const FeedPage = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground hover:text-foreground gap-1.5"
+                  className="text-muted-foreground hover:text-foreground gap-1 px-2 sm:px-3 h-8 text-xs"
                   onClick={() => mediaInputRef.current?.click()}
                   disabled={isUploading}
                 >
-                  <ImageIcon className="h-4 w-4" /> Media
+                  <ImageIcon className="h-3.5 w-3.5" /> Media
                 </Button>
 
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className={`gap-1.5 ${
+                  className={`gap-1 px-2 sm:px-3 h-8 text-xs ${
                     showTagInput || postTags.length > 0
                       ? "text-primary font-medium"
                       : "text-muted-foreground hover:text-foreground"
@@ -803,16 +803,16 @@ const FeedPage = () => {
                   }}
                   disabled={isUploading}
                 >
-                  <Hash className="h-4 w-4" /> Hashtag
+                  <Hash className="h-3.5 w-3.5" /> Hashtag
                 </Button>
 
                 <div className="flex bg-muted p-0.5 rounded-full border border-border/40">
                   <button
                     type="button"
                     onClick={() => setIsGlobal(true)}
-                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                    className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 ${
                       isGlobal
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -822,9 +822,9 @@ const FeedPage = () => {
                   <button
                     type="button"
                     onClick={() => setIsGlobal(false)}
-                    className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                    className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 ${
                       !isGlobal
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -833,22 +833,25 @@ const FeedPage = () => {
                   </button>
                 </div>
               </div>
-              <Button
-                size="sm"
-                onClick={handlePost}
-                disabled={
-                  (!newPost.trim() && pendingImages.length === 0 && !pendingVideo) ||
-                  isUploading
-                }
-                className="bg-gradient-hero text-primary-foreground gap-1.5"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Send className="h-3.5 w-3.5" />
-                )}
-                Post
-              </Button>
+
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handlePost}
+                  disabled={
+                    (!newPost.trim() && pendingImages.length === 0 && !pendingVideo) ||
+                    isUploading
+                  }
+                  className="bg-gradient-hero text-primary-foreground gap-1.5 h-8 px-4 text-xs font-semibold w-full sm:w-auto"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
+                  Post
+                </Button>
+              </div>
             </div>
           </div>
         </div>

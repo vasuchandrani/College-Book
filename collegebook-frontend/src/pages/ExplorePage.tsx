@@ -362,10 +362,10 @@ const ExplorePage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-16">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold">Explore</h1>
-        <p className="text-muted-foreground text-sm">
+    <div className="max-w-2xl mx-auto p-3 sm:p-6 pb-20">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="font-heading text-xl sm:text-2xl font-bold">Explore</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Discover ideas from students across all campuses
         </p>
       </div>

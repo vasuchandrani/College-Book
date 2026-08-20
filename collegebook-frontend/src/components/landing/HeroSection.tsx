@@ -7,7 +7,7 @@ import DownloadAppButton from "@/components/DownloadAppButton";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[calc(100vh-4rem)] flex items-center pt-24 pb-12 md:pt-28 md:pb-16 overflow-hidden">
+    <section className="relative min-h-[calc(100vh-4rem)] flex items-center pt-20 pb-10 sm:pt-24 sm:pb-12 md:pt-28 md:pb-16 overflow-hidden">
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
@@ -24,26 +24,26 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="lg:col-span-7 space-y-5"
+            className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
               <span className="text-xs font-semibold text-primary">Built for Campus Life</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.12] tracking-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.15] tracking-tight">
               Build Your{" "}
               <span className="text-gradient-hero">College Story.</span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-lg leading-relaxed">
+            <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
               A purpose-built digital campus platform — focused on collaboration, student life,
               visibility, and meaningful connections. No noise. No addictive algorithms.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 pt-1">
               <Button
                 size="lg"
-                className="bg-gradient-hero text-primary-foreground hover:opacity-90 gap-2 text-base px-8 h-12 font-semibold shadow-sm"
+                className="bg-gradient-hero text-primary-foreground hover:opacity-90 gap-2 text-base px-8 h-12 font-semibold shadow-sm w-full sm:w-auto"
                 asChild
               >
                 <Link to="/signup">
@@ -53,7 +53,7 @@ const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-base px-8 h-12 font-medium"
+                className="text-base px-8 h-12 font-medium w-full sm:w-auto"
                 asChild
               >
                 <a href="#experience">Explore Platform Demo</a>
@@ -61,11 +61,11 @@ const HeroSection = () => {
             </div>
 
             {/* Download App Button */}
-            <div className="pt-2">
+            <div className="pt-1 flex justify-center lg:justify-start">
               <DownloadAppButton />
             </div>
 
-            <div className="flex items-center gap-5 sm:gap-6 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6 pt-4 border-t border-border/60 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary" />
                 Degree time-bound
