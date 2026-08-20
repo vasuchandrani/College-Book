@@ -20,7 +20,7 @@ const AppLayout = () => {
           ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
           : name.substring(0, 2).toUpperCase();
       }
-    } catch {}
+    } catch { }
     return "";
   }, []);
 
@@ -41,7 +41,7 @@ const AppLayout = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile top bar */}
           <header className="md:hidden sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-3">
             <a href="/" className="flex items-center gap-2">
@@ -78,7 +78,7 @@ const AppLayout = () => {
               </button>
             </div>
           </header>
-          <main className="flex-1 overflow-x-hidden min-w-0 pb-16 md:pb-0">
+          <main className="flex-1 min-w-0 pb-16 md:pb-0">
             <Outlet />
           </main>
         </div>

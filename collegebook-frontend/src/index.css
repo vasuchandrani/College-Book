@@ -167,15 +167,10 @@
 
 /* Native shell: respect device safe areas (notch / home indicator) */
 @layer base {
-  html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
   body {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
   }
 }
 
