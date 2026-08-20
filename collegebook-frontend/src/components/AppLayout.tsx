@@ -1,28 +1,13 @@
-import { BookOpen, UserCircle, LogOut } from "lucide-react";
+import { BookOpen, BadgeCheck, LogOut } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { Outlet, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
   const location = useLocation();
   const navigate = useNavigate();
-
-  const userInitials = useMemo(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("cb_user") || "{}");
-      const name: string = u.name || u.fullName || "";
-      if (name) {
-        const parts = name.trim().split(" ");
-        return parts.length >= 2
-          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-          : name.substring(0, 2).toUpperCase();
-      }
-    } catch { }
-    return "";
-  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("cb_token");
@@ -36,6 +21,8 @@ const AppLayout = () => {
   if (!token) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
+
+  const isMyCon = location.pathname === "/mycon";
 
   return (
     <SidebarProvider>
@@ -53,19 +40,16 @@ const AppLayout = () => {
 
             <div className="flex items-center gap-2">
               <Link
-                to="/profile"
-                className={`flex items-center justify-center h-8 w-8 rounded-full transition-all ${
-                  location.pathname === "/profile"
+                to="/mycon"
+                className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-full transition-all text-xs font-semibold ${
+                  isMyCon
                     ? "bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/20"
                     : "bg-muted hover:bg-muted/80 text-foreground border border-border/40"
                 }`}
-                aria-label="Profile"
+                aria-label="myCon"
               >
-                {userInitials ? (
-                  <span className="text-xs font-semibold">{userInitials}</span>
-                ) : (
-                  <UserCircle className="h-5 w-5" />
-                )}
+                <BadgeCheck className={`h-4 w-4 ${isMyCon ? "text-primary-foreground" : "text-primary"}`} />
+                <span>myCon</span>
               </Link>
 
               <button

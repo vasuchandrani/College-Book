@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Newspaper, Compass, Users, BadgeCheck, FolderGit2 } from "lucide-react";
+import { Newspaper, Compass, Users, UserCircle, FolderGit2 } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getIncomingJoinRequests } from "@/lib/api";
@@ -9,7 +9,7 @@ const navItems = [
   { title: "Explore", url: "/explore", icon: Compass },
   { title: "Collab", url: "/collab", icon: Users },
   { title: "My Collab", url: "/my-collaboration", icon: FolderGit2 },
-  { title: "myCon", url: "/mycon", icon: BadgeCheck },
+  { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
 export function BottomNav() {
