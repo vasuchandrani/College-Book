@@ -169,7 +169,7 @@ const InteractiveFeatureShowcase = () => {
               </header>
 
               {/* Mobile Scrollable Viewport */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-16 no-scrollbar">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 pb-16 no-scrollbar">
                 <AnimatePresence mode="wait">
                   
                   {/* 1. CAMPUS FEED TAB */}
@@ -182,20 +182,15 @@ const InteractiveFeatureShowcase = () => {
                       transition={{ duration: 0.2 }}
                       className="space-y-3"
                     >
-                      {/* Page Header */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-heading text-base font-bold text-foreground">Campus Feed</h3>
-                          <p className="text-[11px] text-muted-foreground">
-                            {feedMode === "campus" ? "What's happening at DDU" : "Global Cross-Campus Pulse"}
-                          </p>
-                        </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                          {feedMode === "campus" ? "DDU Campus" : "Global"}
-                        </span>
+                      {/* Page Header (Matches Explore layout) */}
+                      <div>
+                        <h3 className="font-heading text-base font-bold text-foreground">Campus Feed</h3>
+                        <p className="text-[11px] text-muted-foreground">
+                          {feedMode === "campus" ? "What's happening at Dharmsinh Desai University" : "Global Cross-Campus Pulse"}
+                        </p>
                       </div>
 
-                      {/* Search Bar */}
+                      {/* Search Bar (Matches Explore) */}
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <input
@@ -206,7 +201,7 @@ const InteractiveFeatureShowcase = () => {
                         />
                       </div>
 
-                      {/* Hashtag Filter Pills */}
+                      {/* Hashtag Filter Pills (Matches Explore) */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {["#campus", "#student", "#university", "#collaboration", "#mycon"].map((tag, idx) => (
                           <span
@@ -218,54 +213,54 @@ const InteractiveFeatureShowcase = () => {
                         ))}
                       </div>
 
-                      {/* Post Creator Box with Global & Campus Toggle */}
-                      <div className="rounded-xl border border-border bg-card p-3 shadow-xs space-y-2.5">
+                      {/* Post Creator Box (Compact, mobile-friendly & overflow-proof) */}
+                      <div className="rounded-xl border border-border bg-card p-2.5 shadow-xs space-y-2">
                         <div className="text-xs text-muted-foreground italic">
                           Share an idea, achievement, or opportunity...
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px]">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <span className="flex items-center gap-1 hover:text-foreground cursor-pointer">
-                              <ImageIcon className="h-3.5 w-3.5" /> Media
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border/60 text-[10px] gap-1">
+                          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer">
+                              <ImageIcon className="h-3 w-3" /> Media
                             </span>
-                            <span className="flex items-center gap-1 hover:text-foreground cursor-pointer">
-                              <Hash className="h-3.5 w-3.5" /> Tag
+                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer">
+                              <Hash className="h-3 w-3" /> Tag
                             </span>
                           </div>
 
-                          {/* Both Campus and Global buttons shown */}
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex items-center bg-muted/80 p-0.5 rounded-lg border border-border/50">
+                          {/* Both Campus and Global buttons shown compactly */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <div className="inline-flex items-center bg-muted/80 p-0.5 rounded-md border border-border/40">
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("campus")}
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 ${
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
                                   feedMode === "campus"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                <Building2 className="h-3 w-3" /> Campus
+                                <Building2 className="h-2.5 w-2.5" /> Campus
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("global")}
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 ${
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
                                   feedMode === "global"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                <Globe className="h-3 w-3" /> Global
+                                <Globe className="h-2.5 w-2.5" /> Global
                               </button>
                             </div>
 
                             <button
                               type="button"
                               onClick={() => toast.success("Sign up to publish live posts!")}
-                              className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground font-semibold text-[11px] flex items-center gap-1 hover:opacity-90 shadow-xs"
+                              className="px-2 py-0.5 rounded-md bg-primary text-primary-foreground font-semibold text-[10px] flex items-center gap-0.5 hover:opacity-90 shadow-xs shrink-0"
                             >
-                              <Send className="h-3 w-3" /> Post
+                              <Send className="h-2.5 w-2.5" /> Post
                             </button>
                           </div>
                         </div>
