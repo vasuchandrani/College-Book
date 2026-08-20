@@ -21,7 +21,7 @@ const CTASection = () => {
           <div className="relative z-10 max-w-2xl mx-auto space-y-4 sm:space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-white backdrop-blur-md">
               <GraduationCap className="h-3.5 w-3.5 text-accent" />
-              <span>100% Free For All Students</span>
+              <span>Build Your College Story</span>
             </div>
 
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-primary-foreground tracking-tight leading-tight">

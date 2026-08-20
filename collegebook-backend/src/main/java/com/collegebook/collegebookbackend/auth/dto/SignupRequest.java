@@ -28,6 +28,8 @@ public class SignupRequest {
 
     private UUID courseId;
 
+    private UUID departmentId;
+
     private Integer currentYear = 1;
 
     private String gender;
@@ -81,6 +83,14 @@ public class SignupRequest {
 
     public void setCourseId(UUID courseId) {
         this.courseId = courseId;
+    }
+
+    public UUID getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(UUID departmentId) {
+        this.departmentId = departmentId;
     }
 
     public Integer getCurrentYear() {

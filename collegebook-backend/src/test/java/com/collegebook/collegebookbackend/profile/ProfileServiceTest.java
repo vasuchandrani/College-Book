@@ -51,11 +51,24 @@ public class ProfileServiceTest {
     @Mock
     private com.collegebook.collegebookbackend.storage.service.StorageService storageService;
 
+    @Mock
+    private com.collegebook.collegebookbackend.college.repository.CourseRepository courseRepository;
+
+    @Mock
+    private com.collegebook.collegebookbackend.college.repository.DepartmentRepository departmentRepository;
+
     private ProfileServiceImpl profileService;
 
     @BeforeEach
     void setUp() {
-        profileService = new ProfileServiceImpl(profileRepository, emailOtpRepository, emailService, storageService);
+        profileService = new ProfileServiceImpl(
+                profileRepository,
+                emailOtpRepository,
+                emailService,
+                storageService,
+                courseRepository,
+                departmentRepository
+        );
     }
 
     @Test

@@ -36,8 +36,8 @@ const HeroSection = () => {
             </h1>
 
             <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              A purpose-built digital campus platform — focused on collaboration, student life,
-              visibility, and meaningful connections. No noise. No addictive algorithms.
+              A purpose-built digital campus platform — focused on collaboration, student life, and meaningful connections.
+              Share fun activities across your campus and turn your awesome ideas into reality.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 pt-1">

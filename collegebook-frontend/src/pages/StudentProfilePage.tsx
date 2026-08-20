@@ -64,6 +64,7 @@ import {
   likePost as apiLikePost,
   savePost as apiSavePost,
   sharePostLink,
+  normalizeCourseShort,
   type PublicStudentProfile,
   type FeedPost,
 } from "@/lib/api";
@@ -301,11 +302,23 @@ const StudentProfilePage = () => {
 
   const studentYear = student?.currentYear || 4;
   const studentYearStr = `${studentYear}${studentYear === 1 ? "st" : studentYear === 2 ? "nd" : studentYear === 3 ? "rd" : "th"} Year`;
+  const rawBio = student?.defaultBio || "";
+  let cleanBioFromRaw = rawBio.includes("•") ? rawBio.split("•")[0].trim() : rawBio;
+  if (cleanBioFromRaw.includes("Bachelor of Technology")) {
+    cleanBioFromRaw = cleanBioFromRaw.replace(/Bachelor of Technology/g, "B.Tech");
+  }
+  if (cleanBioFromRaw.includes("Master of Technology")) {
+    cleanBioFromRaw = cleanBioFromRaw.replace(/Master of Technology/g, "M.Tech");
+  }
+
+  const shortCourse = normalizeCourseShort(student?.courseName, student?.courseShortName);
   const studentDefaultBio =
-    student?.defaultBio ||
-    (student?.courseName
-      ? `${student.courseName} • ${studentYearStr}`
-      : `Student • ${studentYearStr}`);
+    cleanBioFromRaw ||
+    (shortCourse
+      ? student?.departmentName && !shortCourse.toLowerCase().includes(student.departmentName.toLowerCase())
+        ? `${shortCourse} ${student.departmentName}`
+        : shortCourse
+      : "Student");
 
   if (loading) {
     return (
@@ -346,7 +359,7 @@ const StudentProfilePage = () => {
                 </div>
               </div>
 
-              {student?.bio && student.bio !== studentDefaultBio && (
+              {student?.bio && student.bio !== studentDefaultBio && !student.bio.includes("•") && (
                 <FormattedContent
                   content={student.bio}
                   maxEnters={2}

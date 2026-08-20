@@ -2,6 +2,7 @@ package com.collegebook.collegebookbackend.college.controller;
 
 import com.collegebook.collegebookbackend.college.dto.CollegeDto;
 import com.collegebook.collegebookbackend.college.dto.CourseDto;
+import com.collegebook.collegebookbackend.college.dto.DepartmentDto;
 import com.collegebook.collegebookbackend.college.service.CollegeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,11 @@ public class CollegeController {
     @GetMapping("/{id}/courses")
     public ResponseEntity<List<CourseDto>> getCoursesByCollegeId(@PathVariable("id") UUID collegeId) {
         return ResponseEntity.ok(collegeService.getCoursesByCollegeId(collegeId));
+    }
+
+    @GetMapping("/courses/{id}/departments")
+    public ResponseEntity<List<DepartmentDto>> getDepartmentsByCourseId(@PathVariable("id") UUID courseId) {
+        return ResponseEntity.ok(collegeService.getDepartmentsByCourseId(courseId));
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/request")

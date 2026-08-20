@@ -25,7 +25,7 @@ const features = [
     icon: Newspaper,
     title: "Clean Campus Feed",
     description:
-      "A distraction-free space for your university — post ideas, questions, and achievements. Like counts visible without usernames. Save and share posts cleanly.",
+      "Real student ideas, questions, hackathon achievements, and campus updates. Zero addictive algorithms, zero endless reels, and zero vanity clout — just high-signal student activity.",
     highlights: [
       { icon: Heart, text: "Anonymous likes" },
       { icon: Bookmark, text: "Save posts" },
@@ -64,7 +64,7 @@ const features = [
     icon: BadgeCheck,
     title: "myCon Verified Skill Badges",
     description:
-      "Earn validated expertise badges in competitive programming, machine learning, and systems. Link verifiable proof instead of fake self-declarations.",
+      "Earn validated expertise badges backed by public competitive programming profiles, open-source pull requests, and project proofs — not empty self-declarations.",
     highlights: [{ icon: CheckCircle2, text: "Proof-backed only" }],
   },
   {
@@ -72,7 +72,7 @@ const features = [
     icon: BookHeart,
     title: "Graduation Memory Archive",
     description:
-      "CollegeBook accounts are time-bound to your degree program (2 to 5 years). At graduation, download a timeless portfolio PDF containing your entire college story and achievements.",
+      "Intentionally aligned with your degree journey (2 to 5 years). At graduation, all your achievements and collaborations are compiled into an exportable Memory Book archive.",
     highlights: [{ icon: Lock, text: "Permanent PDF archive" }],
   },
 ];
@@ -108,7 +108,6 @@ const FeaturesSection = () => {
           className="text-center mb-10 sm:mb-16"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-3 sm:mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
             <span>Platform Pillars</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight mb-3 sm:mb-4">
@@ -210,9 +209,8 @@ const FeaturesSection = () => {
                 type="button"
                 aria-label={`Go to slide ${idx + 1}`}
                 onClick={() => scrollToIndex(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  activeIndex === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${activeIndex === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                  }`}
               />
             ))}
           </div>

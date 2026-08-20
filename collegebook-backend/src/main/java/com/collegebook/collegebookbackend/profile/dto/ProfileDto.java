@@ -26,6 +26,10 @@ public class ProfileDto {
     private String collegeSlug;
     private UUID courseId;
     private String courseName;
+    private String courseShortName;
+    private UUID departmentId;
+    private String departmentName;
+    private String departmentShortName;
     private Integer currentYear;
     private String defaultBio;
     private String bioExtra;

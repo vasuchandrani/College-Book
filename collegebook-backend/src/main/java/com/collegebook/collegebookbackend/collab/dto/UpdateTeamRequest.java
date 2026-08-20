@@ -17,6 +17,7 @@ public class UpdateTeamRequest {
     private String description;
     private String githubLink;
     private List<String> skills;
+    private List<String> requiredRoles;
     private List<String> requiredExpertise;
 
     @Min(value = 0, message = "Max members must be at least 0 (0 = unlimited for open source)")
@@ -25,14 +26,19 @@ public class UpdateTeamRequest {
     public UpdateTeamRequest() {
     }
 
-    public UpdateTeamRequest(String title, TeamType type, String description, String githubLink, List<String> skills, List<String> requiredExpertise, Integer maxMembers) {
+    public UpdateTeamRequest(String title, TeamType type, String description, String githubLink, List<String> skills, List<String> requiredRoles, List<String> requiredExpertise, Integer maxMembers) {
         this.title = title;
         this.type = type;
         this.description = description;
         this.githubLink = githubLink;
         this.skills = skills;
+        this.requiredRoles = requiredRoles;
         this.requiredExpertise = requiredExpertise;
         this.maxMembers = maxMembers;
+    }
+
+    public UpdateTeamRequest(String title, TeamType type, String description, String githubLink, List<String> skills, List<String> requiredExpertise, Integer maxMembers) {
+        this(title, type, description, githubLink, skills, requiredExpertise, requiredExpertise, maxMembers);
     }
 
     public String getTitle() {
@@ -73,6 +79,14 @@ public class UpdateTeamRequest {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
+    }
+
+    public List<String> getRequiredRoles() {
+        return requiredRoles;
+    }
+
+    public void setRequiredRoles(List<String> requiredRoles) {
+        this.requiredRoles = requiredRoles;
     }
 
     public List<String> getRequiredExpertise() {

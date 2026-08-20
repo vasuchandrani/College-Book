@@ -185,7 +185,10 @@ public class CollabServiceImpl implements CollabService {
         team.setDescription(request.getDescription());
         team.setGithubLink(request.getGithubLink());
         team.setSkills(request.getSkills() != null ? request.getSkills() : Collections.emptyList());
-        team.setRequiredExpertise(request.getRequiredExpertise() != null ? request.getRequiredExpertise() : Collections.emptyList());
+        List<String> roles = request.getRequiredRoles() != null ? request.getRequiredRoles() :
+                (request.getRequiredExpertise() != null ? request.getRequiredExpertise() : Collections.emptyList());
+        team.setRequiredRoles(roles);
+        team.setRequiredExpertise(roles);
 
         // Open source projects have unlimited members (maxMembers=0)
         if (request.getType() == TeamType.OPEN_SOURCE) {
@@ -263,7 +266,11 @@ public class CollabServiceImpl implements CollabService {
         if (request.getSkills() != null) {
             team.setSkills(request.getSkills());
         }
-        if (request.getRequiredExpertise() != null) {
+        if (request.getRequiredRoles() != null) {
+            team.setRequiredRoles(request.getRequiredRoles());
+            team.setRequiredExpertise(request.getRequiredRoles());
+        } else if (request.getRequiredExpertise() != null) {
+            team.setRequiredRoles(request.getRequiredExpertise());
             team.setRequiredExpertise(request.getRequiredExpertise());
         }
         if (request.getType() != null) {
@@ -538,8 +545,11 @@ public class CollabServiceImpl implements CollabService {
         dto.setType(team.getType());
         dto.setDescription(team.getDescription());
         dto.setGithubLink(team.getGithubLink());
-        dto.setSkills(team.getSkills());
-        dto.setRequiredExpertise(team.getRequiredExpertise());
+        dto.setSkills(team.getSkills() != null ? team.getSkills() : Collections.emptyList());
+        List<String> roles = team.getRequiredRoles() != null && !team.getRequiredRoles().isEmpty() ?
+                team.getRequiredRoles() : team.getRequiredExpertise();
+        dto.setRequiredRoles(roles != null ? roles : Collections.emptyList());
+        dto.setRequiredExpertise(roles != null ? roles : Collections.emptyList());
         dto.setMaxMembers(team.getMaxMembers());
         dto.setCurrentMembersCount(team.getCurrentMembersCount());
         dto.setCompleted(team.isCompleted());

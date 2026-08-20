@@ -57,6 +57,10 @@ public class Team {
     private List<String> skills = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "required_roles", columnDefinition = "text[]")
+    private List<String> requiredRoles = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "required_expertise", columnDefinition = "text[]")
     private List<String> requiredExpertise = new ArrayList<>();
 
@@ -162,6 +166,14 @@ public class Team {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
+    }
+
+    public List<String> getRequiredRoles() {
+        return requiredRoles;
+    }
+
+    public void setRequiredRoles(List<String> requiredRoles) {
+        this.requiredRoles = requiredRoles;
     }
 
     public List<String> getRequiredExpertise() {

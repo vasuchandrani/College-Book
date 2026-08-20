@@ -17,6 +17,7 @@ public class TeamResponseDto {
     private String description;
     private String githubLink;
     private List<String> skills;
+    private List<String> requiredRoles;
     private List<String> requiredExpertise;
     private int maxMembers;
     private int currentMembersCount;
@@ -163,6 +164,14 @@ public class TeamResponseDto {
 
     public void setSkills(List<String> skills) {
         this.skills = skills;
+    }
+
+    public List<String> getRequiredRoles() {
+        return requiredRoles;
+    }
+
+    public void setRequiredRoles(List<String> requiredRoles) {
+        this.requiredRoles = requiredRoles;
     }
 
     public List<String> getRequiredExpertise() {

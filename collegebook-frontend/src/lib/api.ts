@@ -244,10 +244,12 @@ export interface SignupPayload {
   password: string;
   collegeId?: string;
   courseId?: string;
+  departmentId?: string;
   currentYear?: number;
   gender?: string;
   college?: string;
   course?: string;
+  department?: string;
   year?: string;
 }
 export interface AuthUser {
@@ -259,6 +261,7 @@ export interface AuthUser {
   college: string;
   collegeShort: string;
   course: string;
+  department?: string;
   currentYear?: number;
   defaultBio?: string;
 }
@@ -729,11 +732,12 @@ export const getTeamById = async (teamId: string | number) => {
 
 export interface CreateTeamPayload {
   title: string;
-  type: "project" | "hackathon" | "open_source";
+  type: "project" | "hackathon" | "open_source" | "PROJECT" | "HACKATHON" | "OPEN_SOURCE";
   description?: string;
   githubLink?: string;
   skills: string[];
-  requiredExpertise: string[];
+  requiredRoles?: string[];
+  requiredExpertise?: string[];
   maxMembers: number;
   memberHandles?: string[];
 }
@@ -852,10 +856,11 @@ export const updateJoinRequest = async (
 
 export interface UpdateTeamPayload {
   title: string;
-  type?: "OPEN_SOURCE" | "HACKATHON" | "PROJECT";
+  type?: "OPEN_SOURCE" | "HACKATHON" | "PROJECT" | "open_source" | "hackathon" | "project";
   description?: string;
   githubLink?: string;
   skills?: string[];
+  requiredRoles?: string[];
   requiredExpertise?: string[];
   maxMembers?: number;
 }
@@ -934,6 +939,7 @@ export const signup = async (payload: SignupPayload): Promise<AuthUser> => {
       handle: payload.handle ? payload.handle.trim().toLowerCase().replace(/^@/, "") : undefined,
       collegeId: payload.collegeId,
       courseId: payload.courseId,
+      departmentId: payload.departmentId,
       currentYear: payload.currentYear,
       gender: payload.gender || "PREFER_NOT_TO_SAY",
     }),
@@ -983,10 +989,26 @@ export const getColleges = async () => {
   }));
 };
 
-export const getCoursesByCollege = async (collegeUuid: string) => {
-  return await request<
-    { id: string; name: string; shortName: string; durationYears: number }[]
-  >(`/colleges/${collegeUuid}/courses`);
+export interface Course {
+  id: string;
+  name: string;
+  shortName: string;
+  durationYears: number;
+}
+
+export interface Department {
+  id: string;
+  courseId: string;
+  name: string;
+  shortName?: string;
+}
+
+export const getCoursesByCollege = async (collegeUuid: string): Promise<Course[]> => {
+  return await request<Course[]>(`/colleges/${collegeUuid}/courses`);
+};
+
+export const getDepartmentsByCourse = async (courseId: string): Promise<Department[]> => {
+  return await request<Department[]>(`/colleges/courses/${courseId}/departments`);
 };
 
 export interface CollegeRequestPayload {
@@ -1247,19 +1269,41 @@ export const uploadVideoToStream = async (
 // Profile & Campus
 // ---------------------------------------------------------------------------
 
+export const normalizeCourseShort = (courseName?: string, courseShortName?: string): string => {
+  if (courseShortName && courseShortName.trim()) return courseShortName.trim();
+  if (!courseName) return "Student";
+  const cn = courseName.trim();
+  if (cn.includes("Bachelor of Technology") || cn === "Bachelor of Technology") return "B.Tech";
+  if (cn.includes("Master of Technology") || cn === "Master of Technology") return "M.Tech";
+  if (cn.includes("Bachelor of Computer Applications") || cn === "Bachelor of Computer Applications") return "BCA";
+  if (cn.includes("Master of Computer Applications") || cn === "Master of Computer Applications") return "MCA";
+  if (cn.includes("Bachelor of Science") || cn === "Bachelor of Science") return "B.Sc";
+  if (cn.includes("Master of Science") || cn === "Master of Science") return "M.Sc";
+  if (cn.includes("Bachelor of Business Administration") || cn === "Bachelor of Business Administration") return "BBA";
+  if (cn.includes("Master of Business Administration") || cn === "Master of Business Administration") return "MBA";
+  return cn;
+};
+
 export interface UserProfileData {
   userId: string;
   handle: string;
   name: string;
   fullName: string;
   initials: string;
+  collegeId?: string;
   college: string;
   collegeName: string;
-  collegeShort?: string;
-  collegeShortName?: string;
+  collegeShort: string;
+  collegeShortName: string;
   collegeSlug?: string;
+  courseId?: string;
   course: string;
   courseName: string;
+  courseShortName?: string;
+  departmentId?: string;
+  department?: string;
+  departmentName?: string;
+  departmentShortName?: string;
   currentYear?: number;
   defaultBio: string;
   bioExtra?: string;
@@ -1281,7 +1325,12 @@ export interface PublicStudentProfile {
   fullName: string;
   name: string;
   initials: string;
+  courseId?: string;
   courseName: string;
+  courseShortName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  departmentShortName?: string;
   collegeName: string;
   collegeShortName?: string;
   currentYear?: number;
@@ -1300,6 +1349,7 @@ export const getProfile = async (): Promise<UserProfileData> => {
   const p = await request<any>("/profiles/me");
   const collegeName = p.collegeName || "Dharmsinh Desai University";
   const collegeShort = p.collegeShortName || (collegeName === "Dharmsinh Desai University" ? "DDU" : collegeName.split(" ").map((w: string) => w[0]).join(""));
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
 
   return {
     userId: p.userId,
@@ -1307,13 +1357,20 @@ export const getProfile = async (): Promise<UserProfileData> => {
     name: p.fullName || "User",
     fullName: p.fullName || "User",
     initials: p.initials || "U",
+    collegeId: p.collegeId,
     college: collegeName,
     collegeName: collegeName,
     collegeShort: collegeShort,
     collegeShortName: collegeShort,
     collegeSlug: p.collegeSlug,
-    course: p.courseName || "Student",
-    courseName: p.courseName || "Student",
+    courseId: p.courseId,
+    course: shortCourse,
+    courseName: shortCourse,
+    courseShortName: shortCourse,
+    departmentId: p.departmentId,
+    department: p.departmentName,
+    departmentName: p.departmentName,
+    departmentShortName: p.departmentShortName,
     currentYear: p.currentYear,
     defaultBio: p.defaultBio || "",
     bioExtra: p.bioExtra || "",
@@ -1333,6 +1390,9 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     method: "PATCH",
     body: JSON.stringify({
       fullName: data.fullName || data.name,
+      courseId: data.courseId,
+      departmentId: data.departmentId,
+      currentYear: data.currentYear,
       defaultBio: data.defaultBio,
       bioExtra: data.bioExtra,
       avatarUrl: data.avatarUrl,
@@ -1353,16 +1413,23 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     name: p.fullName || "User",
     fullName: p.fullName || "User",
     initials: p.initials || "U",
+    collegeId: p.collegeId || data.collegeId,
     college: collegeName,
     collegeName: collegeName,
     collegeShort: collegeShort,
     collegeShortName: collegeShort,
     collegeSlug: p.collegeSlug,
-    course: p.courseName || "Student",
-    courseName: p.courseName || "Student",
-    currentYear: p.currentYear,
-    defaultBio: p.defaultBio || "",
-    bioExtra: p.bioExtra || "",
+    courseId: p.courseId || data.courseId,
+    course: normalizeCourseShort(p.courseName, p.courseShortName) || data.course || "Student",
+    courseName: normalizeCourseShort(p.courseName, p.courseShortName) || data.courseName || "Student",
+    courseShortName: normalizeCourseShort(p.courseName, p.courseShortName) || data.courseShortName || "Student",
+    departmentId: p.departmentId || data.departmentId,
+    department: p.departmentName || data.department,
+    departmentName: p.departmentName || data.departmentName,
+    departmentShortName: p.departmentShortName || data.departmentShortName,
+    currentYear: p.currentYear !== undefined ? p.currentYear : data.currentYear,
+    defaultBio: p.defaultBio || data.defaultBio || "",
+    bioExtra: p.bioExtra || data.bioExtra || "",
     avatarUrl: p.avatarUrl,
     githubUrl: p.githubUrl,
     linkedinUrl: p.linkedinUrl,
@@ -1370,7 +1437,7 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     memoryBookEmail: p.memoryBookEmail || "",
     customLinks: p.customLinks,
     contactDetails: p.contactDetails,
-    isPublic: p.public,
+    isPublic: p.public !== undefined ? p.public : data.isPublic,
   };
 };
 
@@ -1401,6 +1468,7 @@ export const verifyMemoryBookEmail = async (email: string, otp: string): Promise
   });
   const collegeName = p.collegeName || "Dharmsinh Desai University";
   const collegeShort = p.collegeShortName || (collegeName === "Dharmsinh Desai University" ? "DDU" : collegeName.split(" ").map((w: string) => w[0]).join(""));
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
 
   return {
     userId: p.userId,
@@ -1413,8 +1481,9 @@ export const verifyMemoryBookEmail = async (email: string, otp: string): Promise
     collegeShort: collegeShort,
     collegeShortName: collegeShort,
     collegeSlug: p.collegeSlug,
-    course: p.courseName || "Student",
-    courseName: p.courseName || "Student",
+    course: shortCourse,
+    courseName: shortCourse,
+    courseShortName: shortCourse,
     currentYear: p.currentYear,
     defaultBio: p.defaultBio || "",
     bioExtra: p.bioExtra || "",
@@ -1435,6 +1504,7 @@ export const removeMemoryBookEmail = async (): Promise<UserProfileData> => {
   });
   const collegeName = p.collegeName || "Dharmsinh Desai University";
   const collegeShort = p.collegeShortName || (collegeName === "Dharmsinh Desai University" ? "DDU" : collegeName.split(" ").map((w: string) => w[0]).join(""));
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
 
   return {
     userId: p.userId,
@@ -1447,8 +1517,9 @@ export const removeMemoryBookEmail = async (): Promise<UserProfileData> => {
     collegeShort: collegeShort,
     collegeShortName: collegeShort,
     collegeSlug: p.collegeSlug,
-    course: p.courseName || "Student",
-    courseName: p.courseName || "Student",
+    course: shortCourse,
+    courseName: shortCourse,
+    courseShortName: shortCourse,
     currentYear: p.currentYear,
     defaultBio: p.defaultBio || "",
     bioExtra: p.bioExtra || "",
@@ -1465,6 +1536,7 @@ export const removeMemoryBookEmail = async (): Promise<UserProfileData> => {
 
 export const getStudentBySlug = async (slug: string): Promise<PublicStudentProfile> => {
   const p = await request<any>(`/students/${encodeURIComponent(slug)}`);
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
   return {
     id: p.userId,
     userId: p.userId,
@@ -1473,7 +1545,10 @@ export const getStudentBySlug = async (slug: string): Promise<PublicStudentProfi
     fullName: p.fullName || "Student",
     name: p.fullName || "Student",
     initials: p.initials || "U",
-    courseName: p.courseName || "Student",
+    courseName: shortCourse,
+    courseShortName: shortCourse,
+    departmentName: p.departmentName,
+    departmentShortName: p.departmentShortName,
     collegeName: p.collegeName || "Dharmsinh Desai University",
     collegeShortName: p.collegeShortName || "DDU",
     currentYear: p.currentYear,
@@ -1492,26 +1567,32 @@ export const getStudentBySlug = async (slug: string): Promise<PublicStudentProfi
 export const getCampusStudents = async (): Promise<PublicStudentProfile[]> => {
   const list = await request<any[]>("/campus/students");
   if (!Array.isArray(list)) return [];
-  return list.map((p) => ({
-    id: p.userId,
-    userId: p.userId,
-    handle: p.handle || p.slug || "",
-    slug: p.slug || p.handle || "",
-    fullName: p.fullName || "Student",
-    name: p.fullName || "Student",
-    initials: p.initials || "U",
-    courseName: p.courseName || "Student",
-    collegeName: p.collegeName || "Dharmsinh Desai University",
-    collegeShortName: p.collegeShortName || "DDU",
-    currentYear: p.currentYear,
-    defaultBio: p.defaultBio || "",
-    bio: p.bioExtra || p.defaultBio || "",
-    bioExtra: p.bioExtra || "",
-    avatarUrl: p.avatarUrl,
-    githubUrl: p.githubUrl,
-    linkedinUrl: p.linkedinUrl,
-    websiteUrl: p.websiteUrl,
-  }));
+  return list.map((p) => {
+    const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
+    return {
+      id: p.userId,
+      userId: p.userId,
+      handle: p.handle || p.slug || "",
+      slug: p.slug || p.handle || "",
+      fullName: p.fullName || "Student",
+      name: p.fullName || "Student",
+      initials: p.initials || "U",
+      courseName: shortCourse,
+      courseShortName: shortCourse,
+      departmentName: p.departmentName,
+      departmentShortName: p.departmentShortName,
+      collegeName: p.collegeName || "Dharmsinh Desai University",
+      collegeShortName: p.collegeShortName || "DDU",
+      currentYear: p.currentYear,
+      defaultBio: p.defaultBio || "",
+      bio: p.bioExtra || p.defaultBio || "",
+      bioExtra: p.bioExtra || "",
+      avatarUrl: p.avatarUrl,
+      githubUrl: p.githubUrl,
+      linkedinUrl: p.linkedinUrl,
+      websiteUrl: p.websiteUrl,
+    };
+  });
 };
 
 // ---------------------------------------------------------------------------

@@ -115,9 +115,13 @@ const CollabPage = () => {
     githubLink: "",
   });
 
-  // Tag-based required expertise & tech stack
-  const [expertiseTags, setExpertiseTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  // Tag-based required roles
+  const [roleTags, setRoleTags] = useState<string[]>([]);
+  const [roleTagInput, setRoleTagInput] = useState("");
+
+  // Tag-based skills / tech stack
+  const [skillTags, setSkillTags] = useState<string[]>([]);
+  const [skillTagInput, setSkillTagInput] = useState("");
 
   // Team Members
   const [memberEntries, setMemberEntries] = useState<MemberEntry[]>([]);
@@ -127,7 +131,7 @@ const CollabPage = () => {
 
   // Join request dialog
   const [joinOpen, setJoinOpen] = useState(false);
-  const [joinTarget, setJoinTarget] = useState<{ name: string; type: string } | null>(null);
+  const [joinTarget, setJoinTarget] = useState<{ name: string; type: string; openRoles?: string[] } | null>(null);
   const [joinRole, setJoinRole] = useState("");
   const [joinReason, setJoinReason] = useState("");
   const [joinTargetId, setJoinTargetId] = useState<string | number | null>(null);
@@ -179,29 +183,55 @@ const CollabPage = () => {
     }
   };
 
-  const addTag = (tag: string) => {
-    const clean = tag.trim();
+  const addRoleTag = (role: string) => {
+    const clean = role.trim();
     if (!clean) return;
-    if (expertiseTags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
-      toast.info(`"${clean}" is already added.`);
+    if (roleTags.some((r) => r.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Role "${clean}" is already added.`);
       return;
     }
-    if (expertiseTags.length >= 10) {
-      toast.error("Maximum 10 tags allowed.");
+    if (roleTags.length >= 8) {
+      toast.error("Maximum 8 required roles allowed.");
       return;
     }
-    setExpertiseTags([...expertiseTags, clean]);
-    setTagInput("");
+    setRoleTags([...roleTags, clean]);
+    setRoleTagInput("");
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setExpertiseTags(expertiseTags.filter((t) => t !== tagToRemove));
+  const removeRoleTag = (roleToRemove: string) => {
+    setRoleTags(roleTags.filter((r) => r !== roleToRemove));
   };
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleRoleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      addTag(tagInput);
+      addRoleTag(roleTagInput);
+    }
+  };
+
+  const addSkillTag = (skill: string) => {
+    const clean = skill.trim();
+    if (!clean) return;
+    if (skillTags.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Skill "${clean}" is already added.`);
+      return;
+    }
+    if (skillTags.length >= 12) {
+      toast.error("Maximum 12 skill tags allowed.");
+      return;
+    }
+    setSkillTags([...skillTags, clean]);
+    setSkillTagInput("");
+  };
+
+  const removeSkillTag = (skillToRemove: string) => {
+    setSkillTags(skillTags.filter((s) => s !== skillToRemove));
+  };
+
+  const handleSkillTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addSkillTag(skillTagInput);
     }
   };
 
@@ -287,8 +317,10 @@ const CollabPage = () => {
       hackathon: "",
       githubLink: "",
     });
-    setExpertiseTags([]);
-    setTagInput("");
+    setRoleTags([]);
+    setRoleTagInput("");
+    setSkillTags([]);
+    setSkillTagInput("");
     setMemberEntries([]);
     setNewMemberName("");
     setNewMemberRole("");
@@ -328,8 +360,9 @@ const CollabPage = () => {
         type: createType,
         description: finalDescription,
         githubLink: createForm.githubLink.trim() ? normalizeUrl(createForm.githubLink.trim()) : "",
-        skills: memberEntries.map((m) => m.role),
-        requiredExpertise: expertiseTags,
+        skills: skillTags,
+        requiredRoles: roleTags,
+        requiredExpertise: roleTags,
         memberHandles: memberEntries.map((m) => m.name.trim().replace(/^@/, "")),
         maxMembers: maxM,
       });
@@ -393,9 +426,13 @@ const CollabPage = () => {
         return;
       }
     }
+    const openRoles =
+      targetTeam?.requiredRoles && targetTeam.requiredRoles.length > 0
+        ? targetTeam.requiredRoles
+        : targetTeam?.requiredExpertise || [];
     setJoinTargetId(id);
-    setJoinTarget({ name, type });
-    setJoinRole("");
+    setJoinTarget({ name, type, openRoles });
+    setJoinRole(openRoles[0] || "");
     setJoinReason("");
     setJoinOpen(true);
   };
@@ -444,18 +481,36 @@ const CollabPage = () => {
   const availableColleges = useMemo(() => {
     const list = new Set<string>();
     teams.forEach((t) => {
-      if (t.ownerCollegeName) list.add(t.ownerCollegeName);
+      const col = t.ownerCollegeName || t.collegeName || t.college;
+      if (col && typeof col === "string" && col.trim()) {
+        list.add(col.trim());
+      }
     });
-    return Array.from(list);
+    return Array.from(list).sort((a, b) => a.localeCompare(b));
   }, [teams]);
 
   const availableTechs = useMemo(() => {
     const set = new Set<string>();
     teams.forEach((t) => {
-      (t.requiredExpertise || []).forEach((skill: string) => set.add(skill));
-      (t.skills || []).forEach((skill: string) => set.add(skill));
+      (t.skills || []).forEach((skill: string) => {
+        if (skill && typeof skill === "string" && skill.trim()) {
+          set.add(skill.trim());
+        }
+      });
     });
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [teams]);
+
+  const availableRoles = useMemo(() => {
+    const set = new Set<string>();
+    teams.forEach((t) => {
+      (t.requiredRoles || t.requiredExpertise || []).forEach((role: string) => {
+        if (role && typeof role === "string" && role.trim()) {
+          set.add(role.trim());
+        }
+      });
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [teams]);
 
   // Master Filter function (3 filters: Tech Stack, Role, College)
@@ -468,40 +523,34 @@ const CollabPage = () => {
         const matchesDesc = (t.description || "").toLowerCase().includes(q);
         const matchesLead = (t.ownerName || "").toLowerCase().includes(q);
         const matchesCollege = (t.ownerCollegeName || "").toLowerCase().includes(q);
-        const matchesExpertise = (t.requiredExpertise || []).some((s: string) =>
-          s.toLowerCase().includes(q)
+        const matchesSkills = (t.skills || []).some((s: string) => s.toLowerCase().includes(q));
+        const matchesRoles = (t.requiredRoles || t.requiredExpertise || []).some((r: string) =>
+          r.toLowerCase().includes(q)
         );
-        if (!matchesTitle && !matchesDesc && !matchesLead && !matchesCollege && !matchesExpertise) {
+        if (!matchesTitle && !matchesDesc && !matchesLead && !matchesCollege && !matchesSkills && !matchesRoles) {
           return false;
         }
       }
 
-      // 1. Tech Stack Filter
+      // 1. Tech Stack / Skills Filter
       if (selectedTech !== "ALL") {
         if (selectedTech === "NOT_PROVIDED") {
-          const hasTech =
-            (t.requiredExpertise && t.requiredExpertise.length > 0) ||
-            (t.skills && t.skills.length > 0);
+          const hasTech = t.skills && t.skills.length > 0;
           if (hasTech) return false;
         } else {
-          const hasMatch =
-            (t.requiredExpertise || []).some(
-              (s: string) => s.toLowerCase() === selectedTech.toLowerCase()
-            ) ||
-            (t.skills || []).some((s: string) => s.toLowerCase() === selectedTech.toLowerCase());
+          const hasMatch = (t.skills || []).some(
+            (s: string) => s.toLowerCase() === selectedTech.toLowerCase()
+          );
           if (!hasMatch) return false;
         }
       }
 
       // 2. Role Filter
       if (selectedRole !== "ALL") {
-        const matchesRole =
-          (t.requiredExpertise || []).some((s: string) =>
-            s.toLowerCase().includes(selectedRole.toLowerCase())
-          ) ||
-          (t.skills || []).some((s: string) =>
-            s.toLowerCase().includes(selectedRole.toLowerCase())
-          );
+        const matchesRole = (t.requiredRoles || t.requiredExpertise || []).some((s: string) =>
+          s.toLowerCase().includes(selectedRole.toLowerCase()) ||
+          selectedRole.toLowerCase().includes(s.toLowerCase())
+        );
         if (!matchesRole) return false;
       }
 
@@ -730,29 +779,109 @@ const CollabPage = () => {
                 </div>
               )}
 
-              {/* Interactive Tag-Based Required Expertise / Tech Stack */}
-              <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+              {/* 1. Required Roles (Looking for Roles) */}
+              <div className="space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5">
-                    <Code2 className="h-3.5 w-3.5 text-primary" />
-                    {createType === "open_source" ? "Technologies & Tech Stack" : "Required Expertise & Skills"}
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Required Roles (Looking for)
                   </Label>
-                  <span className="text-[11px] text-muted-foreground">{expertiseTags.length} added</span>
+                  <span className="text-[11px] text-muted-foreground">{roleTags.length} added</span>
                 </div>
 
-                {/* Tag Pills */}
-                {expertiseTags.length > 0 ? (
+                {/* Role Tag Pills */}
+                {roleTags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {expertiseTags.map((tag) => (
+                    {roleTags.map((tag) => (
                       <Badge
                         key={tag}
                         variant="secondary"
-                        className="gap-1 px-2.5 py-1 text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-all"
+                        className="gap-1 px-2.5 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
                       >
                         {tag}
                         <button
                           type="button"
-                          onClick={() => removeTag(tag)}
+                          onClick={() => removeRoleTag(tag)}
+                          className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none ml-0.5"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Add the roles you need in this team (e.g. Frontend Dev, ML Engineer).
+                  </p>
+                )}
+
+                {/* Role Input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type role and press Enter (e.g. Frontend Dev, UI/UX Designer)..."
+                    value={roleTagInput}
+                    onChange={(e) => setRoleTagInput(e.target.value)}
+                    onKeyDown={handleRoleTagKeyDown}
+                    className="h-8 text-xs bg-background"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs shrink-0 gap-1"
+                    onClick={() => addRoleTag(roleTagInput)}
+                    disabled={!roleTagInput.trim()}
+                  >
+                    <Plus className="h-3 w-3" /> Add Role
+                  </Button>
+                </div>
+
+                {/* Quick Role Suggestions */}
+                <div className="space-y-1 pt-1">
+                  <span className="text-[11px] font-medium text-muted-foreground block">
+                    Quick role suggestions:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {roleOptions
+                      .filter((s) => !roleTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                      .slice(0, 8)
+                      .map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => addRoleTag(suggestion)}
+                          className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-foreground border border-border/60 transition-colors"
+                        >
+                          + {suggestion}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Technologies & Required Skills */}
+              <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Code2 className="h-3.5 w-3.5 text-primary" />
+                    Required Skills & Tech Stack
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">{skillTags.length} added</span>
+                </div>
+
+                {/* Skill Tag Pills */}
+                {skillTags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {skillTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="gap-1 px-2.5 py-1 text-xs bg-muted text-foreground border border-border hover:bg-muted/80 transition-all"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeSkillTag(tag)}
                           className="text-muted-foreground hover:text-destructive focus:outline-none ml-0.5"
                         >
                           <XIcon className="h-3 w-3" />
@@ -762,17 +891,17 @@ const CollabPage = () => {
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">
-                    No tags added yet. Type below or click popular suggestions.
+                    Add tech stack tools and frameworks (e.g. React, Python, Docker).
                   </p>
                 )}
 
-                {/* Tag Input */}
+                {/* Skill Input */}
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type skill/tech and press Enter (e.g. React, Docker, Python)..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
+                    value={skillTagInput}
+                    onChange={(e) => setSkillTagInput(e.target.value)}
+                    onKeyDown={handleSkillTagKeyDown}
                     className="h-8 text-xs bg-background"
                   />
                   <Button
@@ -780,27 +909,27 @@ const CollabPage = () => {
                     variant="outline"
                     size="sm"
                     className="h-8 text-xs shrink-0 gap-1"
-                    onClick={() => addTag(tagInput)}
-                    disabled={!tagInput.trim()}
+                    onClick={() => addSkillTag(skillTagInput)}
+                    disabled={!skillTagInput.trim()}
                   >
-                    <Plus className="h-3 w-3" /> Add
+                    <Plus className="h-3 w-3" /> Add Skill
                   </Button>
                 </div>
 
                 {/* Popular Quick Suggestions */}
                 <div className="space-y-1 pt-1">
                   <span className="text-[11px] font-medium text-muted-foreground block">
-                    Quick suggestions:
+                    Quick skill suggestions:
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {commonTechSuggestions
-                      .filter((s) => !expertiseTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                      .filter((s) => !skillTags.some((t) => t.toLowerCase() === s.toLowerCase()))
                       .slice(0, 8)
                       .map((suggestion) => (
                         <button
                           key={suggestion}
                           type="button"
-                          onClick={() => addTag(suggestion)}
+                          onClick={() => addSkillTag(suggestion)}
                           className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors"
                         >
                           + {suggestion}
@@ -1007,7 +1136,7 @@ const CollabPage = () => {
                 <SelectItem value="ALL" className="text-xs">
                   All Roles
                 </SelectItem>
-                {roleOptions.map((role) => (
+                {availableRoles.map((role) => (
                   <SelectItem key={role} value={role} className="text-xs">
                     {role}
                   </SelectItem>
@@ -1161,25 +1290,49 @@ const CollabPage = () => {
                           )}
                         </div>
 
-                        {/* Tech Stack Tags */}
-                        {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
-                          (project.skills && project.skills.length > 0)) && (
-                          <div className="space-y-1 pt-1">
-                            <div className="flex flex-wrap gap-1.5">
-                              {Array.from(
-                                new Set([...(project.requiredExpertise || []), ...(project.skills || [])])
-                              ).map((skill: string, idx: number) => (
-                                <Badge
-                                  key={`${project.id}-skill-${skill}-${idx}`}
-                                  variant="outline"
-                                  className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
-                                >
-                                  {skill}
-                                </Badge>
-                              ))}
+                        {/* Open Roles & Tech Stack Tags */}
+                        <div className="space-y-2 pt-1">
+                          {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                            (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                <Briefcase className="h-3 w-3" /> Looking for roles:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(project.requiredRoles || project.requiredExpertise || []).map(
+                                  (role: string, idx: number) => (
+                                    <Badge
+                                      key={`${project.id}-role-${role}-${idx}`}
+                                      variant="secondary"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {role}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+
+                          {project.skills && project.skills.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                <Code2 className="h-3 w-3" /> Tech Stack:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {project.skills.map((skill: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-skill-${skill}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Right Actions: View Details, Star & Contribute */}
@@ -1319,25 +1472,49 @@ const CollabPage = () => {
                           )}
                         </div>
 
-                        {/* Looking For Skills */}
-                        {team.requiredExpertise && team.requiredExpertise.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-semibold text-muted-foreground block">
-                              Looking for roles:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {team.requiredExpertise.map((skill: string, idx: number) => (
-                                <Badge
-                                  key={`${team.id}-req-${skill}-${idx}`}
-                                  variant="secondary"
-                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                >
-                                  {skill}
-                                </Badge>
-                              ))}
+                        {/* Looking for Roles & Tech Stack */}
+                        <div className="space-y-2 pt-1">
+                          {((team.requiredRoles && team.requiredRoles.length > 0) ||
+                            (team.requiredExpertise && team.requiredExpertise.length > 0)) && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                <Briefcase className="h-3 w-3" /> Looking for roles:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(team.requiredRoles || team.requiredExpertise || []).map(
+                                  (role: string, idx: number) => (
+                                    <Badge
+                                      key={`${team.id}-req-${role}-${idx}`}
+                                      variant="secondary"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {role}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+
+                          {team.skills && team.skills.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                <Code2 className="h-3 w-3" /> Tech Stack:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {team.skills.map((skill: string, idx: number) => (
+                                  <Badge
+                                    key={`${team.id}-skill-${skill}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}
@@ -1518,25 +1695,49 @@ const CollabPage = () => {
                           )}
                         </div>
 
-                        {/* Looking for Roles / Skills */}
-                        {project.requiredExpertise && project.requiredExpertise.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-semibold text-muted-foreground block">
-                              Looking for expertise:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.requiredExpertise.map((skill: string, idx: number) => (
-                                <Badge
-                                  key={`${project.id}-exp-${skill}-${idx}`}
-                                  variant="secondary"
-                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                >
-                                  {skill}
-                                </Badge>
-                              ))}
+                        {/* Looking for Roles & Tech Stack */}
+                        <div className="space-y-2 pt-1">
+                          {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                            (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                <Briefcase className="h-3 w-3" /> Looking for roles:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(project.requiredRoles || project.requiredExpertise || []).map(
+                                  (role: string, idx: number) => (
+                                    <Badge
+                                      key={`${project.id}-role-${role}-${idx}`}
+                                      variant="secondary"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {role}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+
+                          {project.skills && project.skills.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                <Code2 className="h-3 w-3" /> Tech Stack:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {project.skills.map((skill: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-skill-${skill}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}

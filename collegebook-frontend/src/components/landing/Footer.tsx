@@ -16,12 +16,8 @@ const Footer = () => {
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
               The high-signal campus network for engineering and technology universities.
-              Connect with purpose, build hackathons, and graduate with your complete story.
+              Connect with purpose, build projects, and graduate with your complete story.
             </p>
-            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-3 py-1 rounded-full border border-border/50">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span>Campus Systems Active on 100+ Colleges</span>
-            </div>
           </div>
 
           {/* Col 2: Navigation */}
@@ -86,7 +82,7 @@ const Footer = () => {
             >
               Vatsal Chandrani
             </a>{" "}
-            — Turning ideas into digital systems.
+            — Turning ideas into software.
           </p>
 
           <p>© {new Date().getFullYear()} CollegeBook. All rights reserved.</p>

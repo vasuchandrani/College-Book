@@ -19,6 +19,8 @@ public class SignupCompleteRequest {
     @NotNull(message = "Course ID is required")
     private UUID courseId;
 
+    private UUID departmentId;
+
     @NotNull(message = "Current year is required")
     private Integer currentYear;
 
@@ -57,6 +59,14 @@ public class SignupCompleteRequest {
 
     public void setCourseId(UUID courseId) {
         this.courseId = courseId;
+    }
+
+    public UUID getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(UUID departmentId) {
+        this.departmentId = departmentId;
     }
 
     public Integer getCurrentYear() {

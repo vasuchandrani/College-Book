@@ -16,17 +16,17 @@ const faqs = [
   {
     question: "How does the Collab Hub team building and communication work?",
     answer:
-      "When a project creator posts a team opening with required skills (e.g., React, PyTorch, Golang), prospective members submit a structured join request outlining their intent and experience. Once accepted by the team creator, a private, dedicated team chat room is unlocked.",
+      "When a project creator posts a team opening with required skills, prospective members submit a structured join request outlining their intent and experience. Once accepted by the team creator, a private, dedicated team chat room is unlocked.",
   },
   {
     question: "What is myCon and how are skill badges validated?",
     answer:
-      "Unlike conventional platforms where anyone can add self-proclaimed skills without proof, myCon verifies authentic credentials by connecting to public coding profiles (Codeforces, LeetCode, GitHub PRs, Kaggle) or verified competition links.",
+      "Unlike conventional platforms where anyone can add self-proclaimed skills without proof, myCon verifies authentic credentials by connecting to public coding profiles or verified competition links.",
   },
   {
     question: "What happens to my account when I graduate?",
     answer:
-      "CollegeBook accounts are intentionally time-bound to your degree program duration (e.g., 2 years for M.Tech/MCA, 3 years for BCA/B.Sc, 4 years for B.Tech, 5 years for Dual Degree/PhD). Upon graduation, all your posts, team records, and validated achievements are compiled into a downloadable Digital Memory Book PDF and portfolio archive that you keep forever.",
+      "CollegeBook accounts are intentionally time-bound to your degree program duration. Upon graduation, all your posts, team records, and validated achievements are compiled into a downloadable Digital Memory Book that you keep forever.",
   },
   {
     question: "Is CollegeBook free for students?",

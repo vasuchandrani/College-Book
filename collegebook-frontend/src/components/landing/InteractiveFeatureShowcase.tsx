@@ -42,9 +42,9 @@ const InteractiveFeatureShowcase = () => {
   const [myCollabSubTab, setMyCollabSubTab] = useState<"open_source" | "requests" | "active" | "completed">("active");
 
   const [feedLiked, setFeedLiked] = useState(false);
-  const [feedLikesCount, setFeedLikesCount] = useState(142);
+  const [feedLikesCount, setFeedLikesCount] = useState(1104);
   const [ronakLiked, setRonakLiked] = useState(false);
-  const [ronakLikesCount, setRonakLikesCount] = useState(86);
+  const [ronakLikesCount, setRonakLikesCount] = useState(680);
   const [exploreLiked, setExploreLiked] = useState(false);
   const [exploreLikesCount, setExploreLikesCount] = useState(98);
   const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
@@ -67,7 +67,7 @@ const InteractiveFeatureShowcase = () => {
 
       <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          
+
           {/* Left Column: Descriptive Content & Actions */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
@@ -102,7 +102,7 @@ const InteractiveFeatureShowcase = () => {
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-foreground">Cross-Campus Horizon</h4>
-                  <p className="text-xs text-muted-foreground">Discover hackathon invites, comedy shows, and events from IIT Bombay, DDU, and top universities.</p>
+                  <p className="text-xs text-muted-foreground">Discover hackathon, fest and events invites from top universities.</p>
                 </div>
               </div>
 
@@ -112,7 +112,7 @@ const InteractiveFeatureShowcase = () => {
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-foreground">Collab Hub & Verified myCon Badges</h4>
-                  <p className="text-xs text-muted-foreground">Assemble dream teams for hackathons, startups, and open-source projects with verified skills (CP, Web Dev, Open Source, ML).</p>
+                  <p className="text-xs text-muted-foreground">Assemble dream teams for hackathons, startups, and open-source projects.</p>
                 </div>
               </div>
             </div>
@@ -128,16 +128,12 @@ const InteractiveFeatureShowcase = () => {
                 <DownloadAppButton />
               </div>
             </div>
-
-            <p className="text-xs text-muted-foreground italic">
-              💡 Tap any of the 5 bottom navigation tabs or sub-tabs in the phone to explore live screens!
-            </p>
           </div>
 
           {/* Right Column: Live Mobile App Frame */}
           <div className="lg:col-span-6 flex justify-center items-center">
             <div className="w-full max-w-[360px] sm:max-w-[390px] rounded-[2.5rem] bg-background border-[6px] border-border shadow-2xl overflow-hidden flex flex-col relative h-[680px] sm:h-[720px] ring-1 ring-primary/20">
-              
+
               {/* Smartphone Top Speaker / Notch simulation */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-3.5 bg-muted/80 rounded-full z-40" />
 
@@ -171,7 +167,7 @@ const InteractiveFeatureShowcase = () => {
               {/* Mobile Scrollable Viewport */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 pb-16 no-scrollbar">
                 <AnimatePresence mode="wait">
-                  
+
                   {/* 1. CAMPUS FEED TAB */}
                   {activeTab === "feed" && (
                     <motion.div
@@ -216,7 +212,7 @@ const InteractiveFeatureShowcase = () => {
                       {/* Post Creator Box (Compact, mobile-friendly & overflow-proof) */}
                       <div className="rounded-xl border border-border bg-card p-2.5 shadow-xs space-y-2">
                         <div className="text-xs text-muted-foreground italic">
-                          Share an idea, achievement, or opportunity...
+                          Share an idea, fun, or opportunity...
                         </div>
                         <div className="flex items-center justify-between pt-1.5 border-t border-border/60 text-[10px] gap-1">
                           <div className="flex items-center gap-2 text-muted-foreground shrink-0">
@@ -234,22 +230,20 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("campus")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
-                                  feedMode === "campus"
-                                    ? "bg-background text-primary shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${feedMode === "campus"
+                                  ? "bg-background text-primary shadow-xs"
+                                  : "text-muted-foreground hover:text-foreground"
+                                  }`}
                               >
                                 <Building2 className="h-2.5 w-2.5" /> Campus
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("global")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
-                                  feedMode === "global"
-                                    ? "bg-background text-primary shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${feedMode === "global"
+                                  ? "bg-background text-primary shadow-xs"
+                                  : "text-muted-foreground hover:text-foreground"
+                                  }`}
                               >
                                 <Globe className="h-2.5 w-2.5" /> Global
                               </button>
@@ -277,16 +271,24 @@ const InteractiveFeatureShowcase = () => {
                               <span className="text-xs font-bold text-foreground truncate">Vatsal Chandrani</span>
                               <span className="text-[10px] text-muted-foreground">Just now</span>
                             </div>
-                            <div className="text-[10px] text-primary font-semibold">@vatsalchandrani • Founder @ CollegeBook</div>
-                            <div className="text-[10px] text-muted-foreground">B.Tech IT • Dharmsinh Desai University</div>
+                            <div className="text-[10px] text-muted-foreground">@vatsalchandrani • B.Tech Information Technology</div>
+                            <div className="text-[10px] text-primary font-semibold">Founder @ CollegeBook</div>
                           </div>
                         </div>
 
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          Hey everyone! 👋 I am really happy and excited to see all your interactions and vibrant energy on CollegeBook! CollegeBook is built as a purpose-built platform to build your authentic college story. Here, you can share ideas freely with your peers, connect with students across campuses, and bridge university networks through our big Collab Hub.
+                          Hey everyone! 👋 I am really happy and excited to see all your interactions and vibrant energy on CollegeBook! CollegeBook is a platform to build your authentic college story.
+                        </p>
+
+                        <p className="text-xs text-foreground/90 leading-relaxed">
+                          Here, you can share ideas freely with your peers, connect with students across campuses, and bridge university networks through our Collab Hub.
                         </p>
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          Your account is degree time-bound, and upon graduation, you'll receive a timeless digital Memory Book compiling your entire college journey, projects, and achievements. Earn verified myCon badges for your real skills, share fun activities with your campus friends using Campus posts, or pitch a startup/project idea to the entire nation with Global posts. Excited to see you all create, collaborate, and thrive together! 🚀🎓
+                          Your account is degree time-bound, and upon graduation, you'll receive a timeless digital Memory Book compiling your entire college journey, projects, and achievements.
+                        </p>
+
+                        <p className="text-xs text-foreground/90 leading-relaxed">
+                          Earn verified myCon badges for your real skills, share fun activities with your campus friends using Campus posts, or pitch a startup/project idea to the entire nation with Global posts. Excited to see you all create, collaborate, and thrive together! 🚀🎓
                         </p>
 
                         <div className="flex gap-1.5 flex-wrap">
@@ -396,7 +398,7 @@ const InteractiveFeatureShowcase = () => {
                     </motion.div>
                   )}
 
-                  {/* 2. EXPLORE TAB: Vatsal Chandrani Global Post + Jaykrishna Gadhavi from IIT Bombay */}
+                  {/* 2. EXPLORE TAB */}
                   {activeTab === "explore" && (
                     <motion.div
                       key="explore"
@@ -444,18 +446,25 @@ const InteractiveFeatureShowcase = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Vatsal Chandrani</span>
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-semibold">Global Post</span>
                             </div>
-                            <div className="text-[10px] text-primary font-semibold">@vatsalchandrani • Founder @ CollegeBook</div>
-                            <div className="text-[10px] text-muted-foreground">B.Tech IT • Dharmsinh Desai University</div>
+                            <div className="text-[10px] text-primary font-semibold">@vatsalchandrani • Dharmsinh Desai University</div>
+                            <div className="text-[10px] text-muted-foreground">Founder @ CollegeBook</div>
                           </div>
                         </div>
 
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          Hey everyone! 👋 I am really happy and excited to see all your interactions and vibrant energy on CollegeBook! CollegeBook is built as a purpose-built platform to build your authentic college story. Here, you can share ideas freely with your peers, connect with students across campuses, and bridge university networks through our big Collab Hub.
+                          Hey everyone! 👋 I am really happy and excited to see all your interactions and vibrant energy on CollegeBook! CollegeBook is a platform to build your authentic college story.
+                        </p>
+
+                        <p className="text-xs text-foreground/90 leading-relaxed">
+                          Here, you can share ideas freely with your peers, connect with students across campuses, and bridge university networks through our Collab Hub.
                         </p>
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          Your account is degree time-bound, and upon graduation, you'll receive a timeless digital Memory Book compiling your entire college journey, projects, and achievements. Earn verified myCon badges for your real skills, share fun activities with your campus friends using Campus posts, or pitch a startup/project idea to the entire nation with Global posts. Excited to see you all create, collaborate, and thrive together! 🚀🎓
+                          Your account is degree time-bound, and upon graduation, you'll receive a timeless digital Memory Book compiling your entire college journey, projects, and achievements.
+                        </p>
+
+                        <p className="text-xs text-foreground/90 leading-relaxed">
+                          Earn verified myCon badges for your real skills, share fun activities with your campus friends using Campus posts, or pitch a startup/project idea to the entire nation with Global posts. Excited to see you all create, collaborate, and thrive together! 🚀🎓
                         </p>
 
                         <div className="flex gap-1.5 flex-wrap">
@@ -510,7 +519,6 @@ const InteractiveFeatureShowcase = () => {
                               <span className="text-[10px] text-muted-foreground">30m ago</span>
                             </div>
                             <div className="text-[10px] text-amber-600 font-semibold">@jaykrishnagadhavi • IIT Bombay</div>
-                            <div className="text-[10px] text-muted-foreground">Mechanical Engineering • 4th Year</div>
                           </div>
                         </div>
 
@@ -599,33 +607,30 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("open_source")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
-                            collabSubTab === "open_source"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "open_source"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           <Code2 className="h-3 w-3" /> Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("hackathon")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
-                            collabSubTab === "hackathon"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "hackathon"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           <Rocket className="h-3 w-3" /> Hackathons
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("project")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${
-                            collabSubTab === "project"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "project"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           <Users className="h-3 w-3" /> Projects
                         </button>
@@ -640,11 +645,10 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleStar("city_store")}
-                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors ${
-                                  starredProjects["city_store"]
-                                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/20"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
+                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors ${starredProjects["city_store"]
+                                  ? "bg-amber-500/15 text-amber-600 border border-amber-500/20"
+                                  : "bg-muted text-muted-foreground"
+                                  }`}
                               >
                                 <Star className={`h-3 w-3 ${starredProjects["city_store"] ? "fill-amber-500 text-amber-500" : ""}`} />
                                 <span>{starredProjects["city_store"] ? "54" : "53"}</span>
@@ -777,44 +781,40 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("open_source")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${
-                            myCollabSubTab === "open_source"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "open_source"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("requests")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${
-                            myCollabSubTab === "requests"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "requests"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           My Requests
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("active")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${
-                            myCollabSubTab === "active"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "active"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           Active
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("completed")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${
-                            myCollabSubTab === "completed"
-                              ? "bg-background text-primary shadow-xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "completed"
+                            ? "bg-background text-primary shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                         >
                           Done
                         </button>
@@ -1074,9 +1074,8 @@ const InteractiveFeatureShowcase = () => {
                         key={item.id}
                         type="button"
                         onClick={() => setActiveTab(item.id as any)}
-                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors ${
-                          isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors ${isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                          }`}
                       >
                         <Icon className={`h-4 w-4 transition-transform ${isActive ? "scale-110 stroke-[2.5]" : "stroke-[2]"}`} />
                         <span>{item.title}</span>

@@ -200,8 +200,8 @@ export default function CollabDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/collab")} className="gap-1.5 pl-0">
-            <ArrowLeft className="h-4 w-4" /> Back to Collab Hub
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 pl-0">
+            <ArrowLeft className="h-4 w-4" /> Back
           </Button>
         </div>
         <Card className="p-8 shadow-card flex flex-col items-center justify-center min-h-[360px] space-y-3">
@@ -215,8 +215,8 @@ export default function CollabDetailPage() {
   if (!team) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/collab")} className="gap-1.5 pl-0">
-          <ArrowLeft className="h-4 w-4" /> Back to Collab Hub
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 pl-0">
+          <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         <Card className="p-10 text-center shadow-card space-y-3">
           <Code2 className="h-10 w-10 text-muted-foreground/60 mx-auto" />
@@ -224,8 +224,8 @@ export default function CollabDetailPage() {
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             The collaboration project you are looking for does not exist or has been removed.
           </p>
-          <Button onClick={() => navigate("/collab")} size="sm" className="mt-2 text-xs">
-            Return to Collab Hub
+          <Button onClick={() => navigate(-1)} size="sm" className="mt-2 text-xs">
+            Back
           </Button>
         </Card>
       </div>
@@ -243,10 +243,10 @@ export default function CollabDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/collab")}
+          onClick={() => navigate(-1)}
           className="gap-1.5 text-xs text-muted-foreground hover:text-foreground pl-0"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Collab Hub
+          <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-1.5 text-xs h-8">
           <Share2 className="h-3.5 w-3.5" /> Share
@@ -390,18 +390,39 @@ export default function CollabDetailPage() {
           </div>
         </div>
 
-        {/* Required Expertise & Tech Stack */}
-        {allSkills.length > 0 && (
+        {/* Looking for Roles */}
+        {((team.requiredRoles && team.requiredRoles.length > 0) ||
+          (team.requiredExpertise && team.requiredExpertise.length > 0)) && (
           <div className="space-y-2.5 pt-2">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5 text-primary" /> {isOpenSource ? "Technologies & Tech Stack" : "Required Skills & Roles"}
+            <h2 className="text-sm font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" /> Looking for Roles
             </h2>
             <div className="flex flex-wrap gap-2">
-              {allSkills.map((skill: string, idx: number) => (
+              {(team.requiredRoles || team.requiredExpertise || []).map((role: string, idx: number) => (
+                <Badge
+                  key={`${role}-${idx}`}
+                  variant="secondary"
+                  className="px-3 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors shadow-2xs"
+                >
+                  {role}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Required Skills & Tech Stack */}
+        {team.skills && team.skills.length > 0 && (
+          <div className="space-y-2.5 pt-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Code2 className="h-3.5 w-3.5 text-primary" /> {isOpenSource ? "Technologies & Tech Stack" : "Required Skills"}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {team.skills.map((skill: string, idx: number) => (
                 <Badge
                   key={`${skill}-${idx}`}
-                  variant="secondary"
-                  className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
+                  variant="outline"
+                  className="px-3 py-1 text-xs font-medium bg-muted/40 hover:bg-muted transition-colors"
                 >
                   {skill}
                 </Badge>
@@ -601,20 +622,25 @@ export default function CollabDetailPage() {
                   <SelectValue placeholder="Select your preferred role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[
-                    "Frontend Developer",
-                    "Backend Developer",
-                    "Full Stack Developer",
-                    "UI/UX Designer",
-                    "Mobile App Developer",
-                    "Machine Learning / AI Engineer",
-                    "Data Scientist",
-                    "DevOps / Cloud Engineer",
-                    "Product / Project Manager",
-                    "Cybersecurity Analyst",
-                  ].map((role) => (
+                  {Array.from(
+                    new Set([
+                      ...(team?.requiredRoles || team?.requiredExpertise || []),
+                      "Frontend Developer",
+                      "Backend Developer",
+                      "Full Stack Developer",
+                      "UI/UX Designer",
+                      "Mobile App Developer",
+                      "Machine Learning / AI Engineer",
+                      "Data Scientist",
+                      "DevOps / Cloud Engineer",
+                      "Product / Project Manager",
+                      "Cybersecurity Analyst",
+                    ])
+                  ).map((role) => (
                     <SelectItem key={role} value={role} className="text-xs">
-                      {role}
+                      {(team?.requiredRoles || team?.requiredExpertise || []).includes(role)
+                        ? `⭐ ${role} (Requested by Team)`
+                        : role}
                     </SelectItem>
                   ))}
                 </SelectContent>

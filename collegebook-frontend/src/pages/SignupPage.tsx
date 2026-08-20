@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 import { 
-  getColleges, getCoursesByCollege, sendOtp, verifyOtp, signup, 
-  submitCollegeRequest, formatApiError, checkHandleAvailability 
+  getColleges, getCoursesByCollege, getDepartmentsByCourse, sendOtp, verifyOtp, signup, 
+  submitCollegeRequest, formatApiError, checkHandleAvailability, type Course, type Department 
 } from "@/lib/api";
 
 const defaultColleges: { name: string; short: string; domain: string; uuid?: string }[] = [
@@ -150,7 +150,9 @@ const SignupPage = () => {
   const [signupLoading, setSignupLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [colleges, setColleges] = useState(() => shuffleArray(defaultColleges));
-  const [coursesList, setCoursesList] = useState<{ id: string; name: string; shortName: string; durationYears: number }[]>([]);
+  const [coursesList, setCoursesList] = useState<Course[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
 
   // Request College Dialog State
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -164,7 +166,10 @@ const SignupPage = () => {
 
   const [form, setForm] = useState({
     collegeUuid: "", college: "", collegeShort: "", collegeDomain: "",
-    fullName: "", handle: "", email: "", courseUuid: "", course: "", year: "1", gender: "Male", password: "",
+    fullName: "", handle: "", email: "", 
+    courseUuid: "", course: "", 
+    departmentUuid: "", department: "",
+    year: "1", gender: "Male", password: "",
   });
 
   const [handleStatus, setHandleStatus] = useState<"idle" | "checking" | "available" | "unavailable" | "invalid">("idle");
@@ -248,14 +253,27 @@ const SignupPage = () => {
   useEffect(() => {
     if (form.collegeUuid) {
       getCoursesByCollege(form.collegeUuid)
-        .then((cList) => {
+        .then(async (cList) => {
           if (cList && cList.length > 0) {
             setCoursesList(cList);
-            setForm((f) => ({
-              ...f,
-              courseUuid: f.courseUuid || cList[0].id,
-              course: f.course || cList[0].name,
-            }));
+            const initialCourse = cList[0];
+            try {
+              const dList = await getDepartmentsByCourse(initialCourse.id);
+              setDepartmentsList(dList);
+              setForm((f) => ({
+                ...f,
+                courseUuid: initialCourse.id,
+                course: initialCourse.name,
+                departmentUuid: dList?.[0]?.id || "",
+                department: dList?.[0]?.name || "",
+              }));
+            } catch {
+              setForm((f) => ({
+                ...f,
+                courseUuid: initialCourse.id,
+                course: initialCourse.name,
+              }));
+            }
           }
         })
         .catch(() => {});
@@ -400,18 +418,42 @@ const SignupPage = () => {
     return getCourseDuration(form.course, found?.durationYears);
   }, [coursesList, form.courseUuid, form.course]);
 
-  const handleCourseChange = (courseValue: string) => {
-    const found = coursesList.find(c => c.name === courseValue || c.shortName === courseValue || c.id === courseValue);
-    const duration = getCourseDuration(courseValue, found?.durationYears);
+  const handleCourseChange = async (courseValue: string) => {
+    const found = coursesList.find(c => c.id === courseValue || c.name === courseValue || c.shortName === courseValue);
+    const duration = getCourseDuration(found?.name || courseValue, found?.durationYears);
     let newYear = form.year;
     if (parseInt(newYear) > duration) {
       newYear = "1";
     }
+
+    setLoadingDepartments(true);
+    let dList: Department[] = [];
+    if (found?.id) {
+      try {
+        dList = await getDepartmentsByCourse(found.id);
+        setDepartmentsList(dList);
+      } catch (err) {
+        dList = [];
+      }
+    }
+    setLoadingDepartments(false);
+
     setForm(prev => ({
       ...prev,
       course: found ? found.name : courseValue,
       courseUuid: found ? found.id : prev.courseUuid,
+      department: dList[0]?.name || "",
+      departmentUuid: dList[0]?.id || "",
       year: newYear,
+    }));
+  };
+
+  const handleDepartmentChange = (deptValue: string) => {
+    const found = departmentsList.find(d => d.id === deptValue || d.name === deptValue);
+    setForm(prev => ({
+      ...prev,
+      department: found ? found.name : deptValue,
+      departmentUuid: found ? found.id : deptValue,
     }));
   };
 
@@ -428,6 +470,7 @@ const SignupPage = () => {
     try {
       let resolvedCollegeUuid = form.collegeUuid;
       let resolvedCourseUuid = form.courseUuid;
+      let resolvedDepartmentUuid = form.departmentUuid;
 
       // Auto-resolve collegeUuid from API if empty
       if (!resolvedCollegeUuid) {
@@ -455,6 +498,16 @@ const SignupPage = () => {
         } catch (e) {}
       }
 
+      // Auto-resolve departmentUuid from departments API if empty
+      if (!resolvedDepartmentUuid && resolvedCourseUuid) {
+        try {
+          const dList = await getDepartmentsByCourse(resolvedCourseUuid);
+          if (dList && dList.length > 0) {
+            resolvedDepartmentUuid = dList[0].id;
+          }
+        } catch (e) {}
+      }
+
       if (!form.handle.trim()) {
         setError("Please choose a unique username handle");
         setSignupLoading(false);
@@ -474,10 +527,12 @@ const SignupPage = () => {
         password: form.password,
         collegeId: resolvedCollegeUuid || undefined,
         courseId: resolvedCourseUuid || undefined,
+        departmentId: resolvedDepartmentUuid || undefined,
         currentYear: parseInt(form.year) || 1,
         gender: form.gender,
         college: form.college,
         course: form.course,
+        department: form.department,
       });
 
       localStorage.setItem("cb_user", JSON.stringify({
@@ -488,6 +543,7 @@ const SignupPage = () => {
         college: user.college,
         collegeShort: user.collegeShort,
         course: user.course,
+        department: user.department,
         currentYear: user.currentYear,
         defaultBio: user.defaultBio,
         initials: user.initials,
@@ -822,30 +878,50 @@ const SignupPage = () => {
                     </Select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Course & Branch</Label>
+                  <div className="space-y-2">
+                    <Label>Course</Label>
+                    <Select
+                      value={form.courseUuid || form.course}
+                      onValueChange={handleCourseChange}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        {coursesList.length > 0
+                          ? coursesList.map(c => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.shortName ? `${c.shortName} (${c.name})` : c.name}
+                              </SelectItem>
+                            ))
+                          : defaultCourses.map(c => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Department</Label>
                       <Select
-                        value={form.course}
-                        onValueChange={handleCourseChange}
+                        value={form.departmentUuid || form.department}
+                        onValueChange={handleDepartmentChange}
+                        disabled={departmentsList.length === 0}
                       >
-                        <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select department"} />
+                        </SelectTrigger>
                         <SelectContent className="max-h-56">
-                          {coursesList.length > 0
-                            ? coursesList.map(c => (
-                                <SelectItem key={c.id} value={c.name}>
-                                  {c.name || c.shortName}
-                                </SelectItem>
-                              ))
-                            : defaultCourses.map(c => (
-                                <SelectItem key={c} value={c}>
-                                  {c}
-                                </SelectItem>
-                              ))}
+                          {departmentsList.map(d => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.shortName ? `${d.name} (${d.shortName})` : d.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-1">
                       <Label>Year</Label>
                       <Select value={form.year} onValueChange={(v) => setForm({ ...form, year: v })}>
                         <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>

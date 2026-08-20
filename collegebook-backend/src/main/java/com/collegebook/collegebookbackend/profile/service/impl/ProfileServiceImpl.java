@@ -3,6 +3,10 @@ package com.collegebook.collegebookbackend.profile.service.impl;
 import com.collegebook.collegebookbackend.auth.entity.EmailOtp;
 import com.collegebook.collegebookbackend.auth.repository.EmailOtpRepository;
 import com.collegebook.collegebookbackend.auth.service.EmailService;
+import com.collegebook.collegebookbackend.college.entity.Course;
+import com.collegebook.collegebookbackend.college.entity.Department;
+import com.collegebook.collegebookbackend.college.repository.CourseRepository;
+import com.collegebook.collegebookbackend.college.repository.DepartmentRepository;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.profile.dto.ProfileDto;
@@ -36,17 +40,23 @@ public class ProfileServiceImpl implements ProfileService {
     private final EmailOtpRepository emailOtpRepository;
     private final EmailService emailService;
     private final StorageService storageService;
+    private final CourseRepository courseRepository;
+    private final DepartmentRepository departmentRepository;
 
     public ProfileServiceImpl(
             ProfileRepository profileRepository,
             EmailOtpRepository emailOtpRepository,
             EmailService emailService,
-            StorageService storageService
+            StorageService storageService,
+            CourseRepository courseRepository,
+            DepartmentRepository departmentRepository
     ) {
         this.profileRepository = profileRepository;
         this.emailOtpRepository = emailOtpRepository;
         this.emailService = emailService;
         this.storageService = storageService;
+        this.courseRepository = courseRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     @Override
@@ -69,9 +79,36 @@ public class ProfileServiceImpl implements ProfileService {
         if (updateDto.getFullName() != null && !updateDto.getFullName().isBlank()) {
             profile.setFullName(updateDto.getFullName().trim());
         }
-        if (updateDto.getDefaultBio() != null) {
+        
+        boolean academicChanged = false;
+        if (updateDto.getCourseId() != null) {
+            Course course = courseRepository.findById(updateDto.getCourseId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Course not found"));
+            profile.setCourse(course);
+            academicChanged = true;
+        }
+        if (updateDto.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(updateDto.getDepartmentId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Department not found"));
+            profile.setDepartment(department);
+            academicChanged = true;
+        }
+        if (updateDto.getCurrentYear() != null) {
+            profile.setCurrentYear(updateDto.getCurrentYear());
+            academicChanged = true;
+        }
+
+        if (academicChanged || updateDto.getDefaultBio() == null || updateDto.getDefaultBio().isBlank()) {
+            String courseDisplay = profile.getCourse() != null
+                    ? (profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName())
+                    : "B.Tech";
+            String deptDisplay = profile.getDepartment() != null ? profile.getDepartment().getName() : "";
+            String recomputedBio = deptDisplay.isBlank() ? courseDisplay : courseDisplay + " " + deptDisplay;
+            profile.setDefaultBio(recomputedBio);
+        } else {
             profile.setDefaultBio(updateDto.getDefaultBio().trim());
         }
+
         if (updateDto.getBioExtra() != null) {
             profile.setBioExtra(updateDto.getBioExtra());
         }
@@ -297,7 +334,14 @@ public class ProfileServiceImpl implements ProfileService {
         dto.setHandle(profile.getHandle());
         dto.setFullName(profile.getFullName());
         dto.setInitials(profile.getInitials());
-        dto.setCourseName(profile.getCourse() != null ? profile.getCourse().getName() : null);
+        if (profile.getCourse() != null) {
+            dto.setCourseName(profile.getCourse().getName());
+            dto.setCourseShortName(profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName());
+        }
+        if (profile.getDepartment() != null) {
+            dto.setDepartmentName(profile.getDepartment().getName());
+            dto.setDepartmentShortName(profile.getDepartment().getShortName());
+        }
         if (profile.getUser() != null && profile.getUser().getCollege() != null) {
             dto.setCollegeName(profile.getUser().getCollege().getName());
             dto.setCollegeShortName(profile.getUser().getCollege().getShortName());
@@ -305,11 +349,10 @@ public class ProfileServiceImpl implements ProfileService {
         }
         dto.setCurrentYear(profile.getCurrentYear());
         String defaultBio = profile.getDefaultBio();
-        if (profile.getCurrentYear() != null && profile.getCourse() != null) {
+        if (profile.getCourse() != null) {
             String cName = profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName();
-            int y = profile.getCurrentYear();
-            String ySuffix = y == 1 ? "st" : y == 2 ? "nd" : y == 3 ? "rd" : "th";
-            defaultBio = cName + " • " + y + ySuffix + " Year";
+            String dName = profile.getDepartment() != null ? profile.getDepartment().getName() : "";
+            defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
         dto.setDefaultBio(defaultBio);
         dto.setBioExtra(profile.getBioExtra());
@@ -352,14 +395,19 @@ public class ProfileServiceImpl implements ProfileService {
         if (p.getCourse() != null) {
             dto.setCourseId(p.getCourse().getId());
             dto.setCourseName(p.getCourse().getName());
+            dto.setCourseShortName(p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName());
+        }
+        if (p.getDepartment() != null) {
+            dto.setDepartmentId(p.getDepartment().getId());
+            dto.setDepartmentName(p.getDepartment().getName());
+            dto.setDepartmentShortName(p.getDepartment().getShortName());
         }
         dto.setCurrentYear(p.getCurrentYear() != null ? (int) p.getCurrentYear() : null);
         String defaultBio = p.getDefaultBio();
-        if (p.getCurrentYear() != null && p.getCourse() != null) {
+        if (p.getCourse() != null) {
             String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
-            int y = p.getCurrentYear();
-            String ySuffix = y == 1 ? "st" : y == 2 ? "nd" : y == 3 ? "rd" : "th";
-            defaultBio = cName + " • " + y + ySuffix + " Year";
+            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
         dto.setDefaultBio(defaultBio);
         dto.setBioExtra(p.getBioExtra());

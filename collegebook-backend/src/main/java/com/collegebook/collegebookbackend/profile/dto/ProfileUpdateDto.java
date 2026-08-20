@@ -1,9 +1,14 @@
 package com.collegebook.collegebookbackend.profile.dto;
 
+import java.util.UUID;
+
 public class ProfileUpdateDto {
 
     private String fullName;
     private String defaultBio;
+    private UUID courseId;
+    private UUID departmentId;
+    private Short currentYear;
     private String bioExtra;
     private String avatarUrl;
     private String githubUrl;
@@ -94,5 +99,29 @@ public class ProfileUpdateDto {
 
     public void setIsPublic(Boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    public UUID getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(UUID courseId) {
+        this.courseId = courseId;
+    }
+
+    public UUID getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(UUID departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public Short getCurrentYear() {
+        return currentYear;
+    }
+
+    public void setCurrentYear(Short currentYear) {
+        this.currentYear = currentYear;
     }
 }

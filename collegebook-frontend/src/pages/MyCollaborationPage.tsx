@@ -136,8 +136,10 @@ export default function MyCollaborationPage() {
     hackathon: "",
     githubLink: "",
   });
-  const [expertiseTags, setExpertiseTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [roleTags, setRoleTags] = useState<string[]>([]);
+  const [roleTagInput, setRoleTagInput] = useState("");
+  const [skillTags, setSkillTags] = useState<string[]>([]);
+  const [skillTagInput, setSkillTagInput] = useState("");
   const [memberEntries, setMemberEntries] = useState<MemberEntry[]>([]);
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("Frontend Dev");
@@ -152,6 +154,8 @@ export default function MyCollaborationPage() {
     title: "",
     description: "",
     githubLink: "",
+    requiredRoles: [] as string[],
+    roleInput: "",
     skills: [] as string[],
     skillInput: "",
     maxMembers: 4,
@@ -247,30 +251,57 @@ export default function MyCollaborationPage() {
     setCreateOpen(true);
   };
 
-  // Tag Handlers
-  const addTag = (tag: string) => {
-    const clean = tag.trim();
+  // Role Tag Handlers
+  const addRoleTag = (role: string) => {
+    const clean = role.trim();
     if (!clean) return;
-    if (expertiseTags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
-      toast.info(`"${clean}" is already added.`);
+    if (roleTags.some((r) => r.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Role "${clean}" is already added.`);
       return;
     }
-    if (expertiseTags.length >= 10) {
-      toast.error("Maximum 10 tags allowed.");
+    if (roleTags.length >= 8) {
+      toast.error("Maximum 8 required roles allowed.");
       return;
     }
-    setExpertiseTags([...expertiseTags, clean]);
-    setTagInput("");
+    setRoleTags([...roleTags, clean]);
+    setRoleTagInput("");
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setExpertiseTags(expertiseTags.filter((t) => t !== tagToRemove));
+  const removeRoleTag = (roleToRemove: string) => {
+    setRoleTags(roleTags.filter((r) => r !== roleToRemove));
   };
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleRoleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      addTag(tagInput);
+      addRoleTag(roleTagInput);
+    }
+  };
+
+  // Skill Tag Handlers
+  const addSkillTag = (skill: string) => {
+    const clean = skill.trim();
+    if (!clean) return;
+    if (skillTags.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Skill "${clean}" is already added.`);
+      return;
+    }
+    if (skillTags.length >= 12) {
+      toast.error("Maximum 12 skill tags allowed.");
+      return;
+    }
+    setSkillTags([...skillTags, clean]);
+    setSkillTagInput("");
+  };
+
+  const removeSkillTag = (skillToRemove: string) => {
+    setSkillTags(skillTags.filter((s) => s !== skillToRemove));
+  };
+
+  const handleSkillTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addSkillTag(skillTagInput);
     }
   };
 
@@ -373,8 +404,10 @@ export default function MyCollaborationPage() {
       hackathon: "",
       githubLink: "",
     });
-    setExpertiseTags([]);
-    setTagInput("");
+    setRoleTags([]);
+    setRoleTagInput("");
+    setSkillTags([]);
+    setSkillTagInput("");
     setMemberEntries([]);
     setNewMemberName("");
     setNewMemberRole("Frontend Dev");
@@ -420,8 +453,9 @@ export default function MyCollaborationPage() {
         type: createType,
         description: finalDescription,
         githubLink: createForm.githubLink.trim() ? normalizeUrl(createForm.githubLink.trim()) : "",
-        skills: memberEntries.map((m) => m.role),
-        requiredExpertise: expertiseTags,
+        skills: skillTags,
+        requiredRoles: roleTags,
+        requiredExpertise: roleTags,
         memberHandles: memberEntries.map((m) => (m.handle || m.name).trim().replace(/^@/, "")),
         maxMembers: maxM,
       });
@@ -492,10 +526,54 @@ export default function MyCollaborationPage() {
       title: project.title || "",
       description: project.description || "",
       githubLink: project.githubLink || "",
+      requiredRoles: [...(project.requiredRoles || project.requiredExpertise || [])],
+      roleInput: "",
       skills: [...(project.skills || [])],
       skillInput: "",
       maxMembers: project.maxMembers || 4,
     });
+  };
+
+  const addEditRole = (role: string) => {
+    const clean = role.trim();
+    if (!clean) return;
+    if (editForm.requiredRoles.some((r) => r.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Role "${clean}" already added.`);
+      return;
+    }
+    setEditForm((prev) => ({
+      ...prev,
+      requiredRoles: [...prev.requiredRoles, clean],
+      roleInput: "",
+    }));
+  };
+
+  const removeEditRole = (roleToRemove: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      requiredRoles: prev.requiredRoles.filter((r) => r !== roleToRemove),
+    }));
+  };
+
+  const addEditSkill = (skill: string) => {
+    const clean = skill.trim();
+    if (!clean) return;
+    if (editForm.skills.some((s) => s.toLowerCase() === clean.toLowerCase())) {
+      toast.info(`Skill "${clean}" already added.`);
+      return;
+    }
+    setEditForm((prev) => ({
+      ...prev,
+      skills: [...prev.skills, clean],
+      skillInput: "",
+    }));
+  };
+
+  const removeEditSkill = (skillToRemove: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((s) => s !== skillToRemove),
+    }));
   };
 
   const handleSaveTeamEdit = async () => {
@@ -512,6 +590,8 @@ export default function MyCollaborationPage() {
         title: editForm.title.trim(),
         description: editForm.description.trim(),
         githubLink: editForm.githubLink.trim() ? normalizeUrl(editForm.githubLink.trim()) : undefined,
+        requiredRoles: editForm.requiredRoles,
+        requiredExpertise: editForm.requiredRoles,
         skills: editForm.skills,
         maxMembers: editForm.maxMembers,
       });
@@ -745,23 +825,48 @@ export default function MyCollaborationPage() {
                           </div>
                         )}
 
-                        {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
-                          (project.skills && project.skills.length > 0)) && (
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {(project.requiredExpertise && project.requiredExpertise.length > 0
-                              ? project.requiredExpertise
-                              : project.skills || []
-                            ).map((tech: string, idx: number) => (
-                              <Badge
-                                key={`${project.id}-os-tech-${tech}-${idx}`}
-                                variant="secondary"
-                                className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                        <div className="space-y-2 pt-1">
+                          {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                            (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                <Users className="h-3 w-3" /> Looking for roles:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(project.requiredRoles || project.requiredExpertise || []).map(
+                                  (role: string, idx: number) => (
+                                    <Badge
+                                      key={`${project.id}-os-role-${role}-${idx}`}
+                                      variant="secondary"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {role}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {project.skills && project.skills.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                <Code2 className="h-3 w-3" /> Tech Stack:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {project.skills.map((tech: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-os-tech-${tech}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {tech}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-2 shrink-0">
@@ -1014,23 +1119,48 @@ export default function MyCollaborationPage() {
                             </div>
                           )}
 
-                          {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
-                            (project.skills && project.skills.length > 0)) && (
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {(project.requiredExpertise && project.requiredExpertise.length > 0
-                                ? project.requiredExpertise
-                                : project.skills || []
-                              ).map((tech: string, idx: number) => (
-                                <Badge
-                                  key={`${project.id}-active-tech-${tech}-${idx}`}
-                                  variant="secondary"
-                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                >
-                                  {tech}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          <div className="space-y-2 pt-1">
+                            {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                              (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                  <Users className="h-3 w-3" /> Looking for roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(project.requiredRoles || project.requiredExpertise || []).map(
+                                    (role: string, idx: number) => (
+                                      <Badge
+                                        key={`${project.id}-act-role-${role}-${idx}`}
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                      >
+                                        {role}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {project.skills && project.skills.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                  <Code2 className="h-3 w-3" /> Tech Stack:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {project.skills.map((tech: string, idx: number) => (
+                                    <Badge
+                                      key={`${project.id}-act-tech-${tech}-${idx}`}
+                                      variant="outline"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                                    >
+                                      {tech}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Actions Block */}
@@ -1438,29 +1568,109 @@ export default function MyCollaborationPage() {
               </div>
             )}
 
-            {/* Interactive Tag-Based Required Expertise / Tech Stack */}
-            <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+            {/* 1. Required Roles (Looking for Roles) */}
+            <div className="space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Code2 className="h-3.5 w-3.5 text-primary" />
-                  {createType === "open_source" ? "Technologies & Tech Stack" : "Required Expertise & Skills"}
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                  <Users className="h-3.5 w-3.5" />
+                  Required Roles (Looking for)
                 </Label>
-                <span className="text-[11px] text-muted-foreground">{expertiseTags.length} added</span>
+                <span className="text-[11px] text-muted-foreground">{roleTags.length} added</span>
               </div>
 
-              {/* Tag Pills */}
-              {expertiseTags.length > 0 ? (
+              {/* Role Tag Pills */}
+              {roleTags.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
-                  {expertiseTags.map((tag) => (
+                  {roleTags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="gap-1 px-2.5 py-1 text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-all"
+                      className="gap-1 px-2.5 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
                     >
                       {tag}
                       <button
                         type="button"
-                        onClick={() => removeTag(tag)}
+                        onClick={() => removeRoleTag(tag)}
+                        className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none ml-0.5"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  Add the roles you need in this team (e.g. Frontend Dev, ML Engineer).
+                </p>
+              )}
+
+              {/* Role Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type role and press Enter (e.g. Frontend Dev, UI/UX Designer)..."
+                  value={roleTagInput}
+                  onChange={(e) => setRoleTagInput(e.target.value)}
+                  onKeyDown={handleRoleTagKeyDown}
+                  className="h-8 text-xs bg-background"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs shrink-0 gap-1"
+                  onClick={() => addRoleTag(roleTagInput)}
+                  disabled={!roleTagInput.trim()}
+                >
+                  <Plus className="h-3 w-3" /> Add Role
+                </Button>
+              </div>
+
+              {/* Quick Role Suggestions */}
+              <div className="space-y-1 pt-1">
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  Quick role suggestions:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {roleOptions
+                    .filter((s) => !roleTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                    .slice(0, 8)
+                    .map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => addRoleTag(suggestion)}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-foreground border border-border/60 transition-colors"
+                      >
+                        + {suggestion}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Technologies & Required Skills */}
+            <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Code2 className="h-3.5 w-3.5 text-primary" />
+                  Required Skills & Tech Stack
+                </Label>
+                <span className="text-[11px] text-muted-foreground">{skillTags.length} added</span>
+              </div>
+
+              {/* Skill Tag Pills */}
+              {skillTags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {skillTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="gap-1 px-2.5 py-1 text-xs bg-muted text-foreground border border-border hover:bg-muted/80 transition-all"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeSkillTag(tag)}
                         className="text-muted-foreground hover:text-destructive focus:outline-none ml-0.5"
                       >
                         <XIcon className="h-3 w-3" />
@@ -1470,17 +1680,17 @@ export default function MyCollaborationPage() {
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground italic">
-                  No tags added yet. Type below or click popular suggestions.
+                  Add tech stack tools and frameworks (e.g. React, Python, Docker).
                 </p>
               )}
 
-              {/* Tag Input */}
+              {/* Skill Input */}
               <div className="flex gap-2">
                 <Input
                   placeholder="Type skill/tech and press Enter (e.g. React, Docker, Python)..."
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
+                  value={skillTagInput}
+                  onChange={(e) => setSkillTagInput(e.target.value)}
+                  onKeyDown={handleSkillTagKeyDown}
                   className="h-8 text-xs bg-background"
                 />
                 <Button
@@ -1488,27 +1698,27 @@ export default function MyCollaborationPage() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs shrink-0 gap-1"
-                  onClick={() => addTag(tagInput)}
-                  disabled={!tagInput.trim()}
+                  onClick={() => addSkillTag(skillTagInput)}
+                  disabled={!skillTagInput.trim()}
                 >
-                  <Plus className="h-3 w-3" /> Add
+                  <Plus className="h-3 w-3" /> Add Skill
                 </Button>
               </div>
 
               {/* Popular Quick Suggestions */}
               <div className="space-y-1 pt-1">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  Quick suggestions:
+                  Quick skill suggestions:
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {commonTechSuggestions
-                    .filter((s) => !expertiseTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                    .filter((s) => !skillTags.some((t) => t.toLowerCase() === s.toLowerCase()))
                     .slice(0, 8)
                     .map((suggestion) => (
                       <button
                         key={suggestion}
                         type="button"
-                        onClick={() => addTag(suggestion)}
+                        onClick={() => addSkillTag(suggestion)}
                         className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors"
                       >
                         + {suggestion}
@@ -1844,6 +2054,166 @@ export default function MyCollaborationPage() {
                 className="h-9 text-xs"
                 placeholder="https://github.com/username/repository"
               />
+            </div>
+
+            {/* 1. Edit Required Roles */}
+            <div className="space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                  <Users className="h-3.5 w-3.5" />
+                  Required Roles (Looking for)
+                </Label>
+                <span className="text-[11px] text-muted-foreground">{editForm.requiredRoles.length} added</span>
+              </div>
+
+              {/* Pills */}
+              {editForm.requiredRoles.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {editForm.requiredRoles.map((role) => (
+                    <Badge
+                      key={role}
+                      variant="secondary"
+                      className="gap-1 px-2.5 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+                    >
+                      {role}
+                      <button
+                        type="button"
+                        onClick={() => removeEditRole(role)}
+                        className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none ml-0.5"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No roles specified.
+                </p>
+              )}
+
+              {/* Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type role and press Enter..."
+                  value={editForm.roleInput}
+                  onChange={(e) => setEditForm({ ...editForm, roleInput: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      addEditRole(editForm.roleInput);
+                    }
+                  }}
+                  className="h-8 text-xs bg-background"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs shrink-0 gap-1"
+                  onClick={() => addEditRole(editForm.roleInput)}
+                  disabled={!editForm.roleInput.trim()}
+                >
+                  <Plus className="h-3 w-3" /> Add
+                </Button>
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap gap-1 pt-1">
+                {roleOptions
+                  .filter((s) => !editForm.requiredRoles.some((t) => t.toLowerCase() === s.toLowerCase()))
+                  .slice(0, 6)
+                  .map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => addEditRole(sug)}
+                      className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-foreground border border-border/60 transition-colors"
+                    >
+                      + {sug}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            {/* 2. Edit Tech Stack / Skills */}
+            <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Code2 className="h-3.5 w-3.5 text-primary" />
+                  Tech Stack & Skills
+                </Label>
+                <span className="text-[11px] text-muted-foreground">{editForm.skills.length} added</span>
+              </div>
+
+              {/* Pills */}
+              {editForm.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {editForm.skills.map((skill) => (
+                    <Badge
+                      key={skill}
+                      variant="secondary"
+                      className="gap-1 px-2.5 py-1 text-xs bg-muted text-foreground border border-border hover:bg-muted/80 transition-all"
+                    >
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeEditSkill(skill)}
+                        className="text-muted-foreground hover:text-destructive focus:outline-none ml-0.5"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No skills specified.
+                </p>
+              )}
+
+              {/* Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type skill and press Enter..."
+                  value={editForm.skillInput}
+                  onChange={(e) => setEditForm({ ...editForm, skillInput: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      addEditSkill(editForm.skillInput);
+                    }
+                  }}
+                  className="h-8 text-xs bg-background"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs shrink-0 gap-1"
+                  onClick={() => addEditSkill(editForm.skillInput)}
+                  disabled={!editForm.skillInput.trim()}
+                >
+                  <Plus className="h-3 w-3" /> Add
+                </Button>
+              </div>
+
+              {/* Quick suggestions */}
+              <div className="flex flex-wrap gap-1 pt-1">
+                {commonTechSuggestions
+                  .filter((s) => !editForm.skills.some((t) => t.toLowerCase() === s.toLowerCase()))
+                  .slice(0, 6)
+                  .map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => addEditSkill(sug)}
+                      className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors"
+                    >
+                      + {sug}
+                    </button>
+                  ))}
+              </div>
             </div>
 
             {editTeamModal?.type !== "OPEN_SOURCE" &&

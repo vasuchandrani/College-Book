@@ -111,7 +111,12 @@ import {
   sendMemoryBookOtp,
   verifyMemoryBookEmail,
   removeMemoryBookEmail,
+  getCoursesByCollege,
+  getDepartmentsByCourse,
+  normalizeCourseShort,
   type PublicStudentProfile,
+  type Course,
+  type Department,
 } from "@/lib/api";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
@@ -256,20 +261,38 @@ const ProfilePage = () => {
   const userYearStr = user.currentYear
     ? `${user.currentYear}${user.currentYear === 1 ? "st" : user.currentYear === 2 ? "nd" : user.currentYear === 3 ? "rd" : "th"} Year`
     : user.year || "";
-  const defaultBio =
+  const initialCourseShort = normalizeCourseShort(user.course);
+  let defaultBio =
     user.defaultBio ||
-    (user.course
-      ? `${user.course}${userYearStr ? ` • ${userYearStr}` : ""}`
+    (initialCourseShort
+      ? user.department
+        ? `${initialCourseShort} ${user.department}`
+        : initialCourseShort
       : "Student");
+  if (defaultBio.includes("Bachelor of Technology")) {
+    defaultBio = defaultBio.replace(/Bachelor of Technology/g, "B.Tech");
+  }
+  if (defaultBio.includes("Master of Technology")) {
+    defaultBio = defaultBio.replace(/Master of Technology/g, "M.Tech");
+  }
+  if (defaultBio.includes("•")) {
+    defaultBio = defaultBio.split("•")[0].trim();
+  }
 
   const [profile, setProfile] = useState({
     name: user.name || "Student",
     handle: user.handle || "",
     bio: defaultBio,
-    customBio: "",
+    customBio: user.bioExtra || "",
     college: user.college || "Dharmsinh Desai University",
+    collegeId: user.collegeId || "",
+    courseId: user.courseId || "",
+    courseName: user.course || "",
+    departmentId: user.departmentId || "",
+    departmentName: user.department || "",
     email: user.email || "",
-    year: userYearStr || "2023 – 2027",
+    year: userYearStr || "4th Year",
+    yearNum: user.currentYear || 4,
     avatarUrl: "",
     githubUrl: "",
     websiteUrl: "",
@@ -279,10 +302,20 @@ const ProfilePage = () => {
     customLinks: [] as CustomLink[],
   });
 
+  const [collegeCourses, setCollegeCourses] = useState<Course[]>([]);
+  const [courseDepartments, setCourseDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
   const [editForm, setEditForm] = useState({
     name: profile.name,
     customBio: profile.customBio,
     college: profile.college,
+    collegeId: profile.collegeId,
+    courseId: profile.courseId,
+    courseName: profile.courseName,
+    departmentId: profile.departmentId,
+    departmentName: profile.departmentName,
+    year: String(profile.yearNum || 1),
     avatarUrl: profile.avatarUrl,
   });
 
@@ -358,25 +391,44 @@ const ProfilePage = () => {
               } catch (e) { }
             }
 
-            const loadedYear = p.currentYear
-              ? `${p.currentYear}${p.currentYear === 1 ? "st" : p.currentYear === 2 ? "nd" : p.currentYear === 3 ? "rd" : "th"} Year`
-              : userYearStr || "4th Year";
-            const loadedBio =
-              p.defaultBio ||
-              (p.courseName
-                ? `${p.courseName} • ${loadedYear}`
-                : defaultBio);
+            const yearNum = p.currentYear || user.currentYear || 4;
+            const yearSuffix = yearNum === 1 ? "st" : yearNum === 2 ? "nd" : yearNum === 3 ? "rd" : "th";
+            const loadedYear = `${yearNum}${yearSuffix} Year`;
+
+            const rawCourse = p.courseShortName || p.courseName || user.course || "";
+            const cName = normalizeCourseShort(rawCourse);
+            const dName = p.departmentName || user.department || "";
+            let cleanBio = cName;
+            if (dName && !cleanBio.toLowerCase().includes(dName.toLowerCase())) {
+              cleanBio = `${cleanBio} ${dName}`.trim();
+            }
+            if (!cleanBio) {
+              cleanBio = p.defaultBio ? p.defaultBio.split("•")[0].trim() : defaultBio;
+            }
+            if (cleanBio.includes("Bachelor of Technology")) {
+              cleanBio = cleanBio.replace(/Bachelor of Technology/g, "B.Tech");
+            }
+            if (cleanBio.includes("Master of Technology")) {
+              cleanBio = cleanBio.replace(/Master of Technology/g, "M.Tech");
+            }
 
             const loaded = {
-              name: p.name || p.fullName || user.name || "Student",
+              name: p.fullName || p.name || user.name || "Student",
               handle: p.handle || user.handle || "",
-              bio: loadedBio,
+              bio: cleanBio,
               customBio: p.bioExtra || "",
               college: loadedCollege,
+              collegeId: p.collegeId || user.collegeId || "",
+              courseId: p.courseId || user.courseId || "",
+              courseName: cName,
+              departmentId: p.departmentId || user.departmentId || "",
+              departmentName: dName,
               email: user.email || "",
               year: loadedYear,
+              yearNum: yearNum,
               avatarUrl: p.avatarUrl || "",
               githubUrl: p.githubUrl || "",
+              linkedinUrl: p.linkedinUrl || "",
               websiteUrl: p.websiteUrl || "",
               authorNote: p.bioExtra || "",
               contactDetails: savedContacts,
@@ -389,8 +441,26 @@ const ProfilePage = () => {
               name: loaded.name,
               customBio: loaded.customBio,
               college: loaded.college,
+              collegeId: loaded.collegeId,
+              courseId: loaded.courseId,
+              courseName: loaded.courseName,
+              departmentId: loaded.departmentId,
+              departmentName: loaded.departmentName,
+              year: String(loaded.yearNum),
               avatarUrl: loaded.avatarUrl,
             });
+
+            if (loaded.collegeId) {
+              getCoursesByCollege(loaded.collegeId).then((cList) => {
+                if (alive && cList) setCollegeCourses(cList);
+              }).catch(() => {});
+            }
+            if (loaded.courseId) {
+              getDepartmentsByCourse(loaded.courseId).then((dList) => {
+                if (alive && dList) setCourseDepartments(dList);
+              }).catch(() => {});
+            }
+
             setEditAboutForm({
               authorNote: loaded.authorNote,
               websiteUrl: loaded.websiteUrl,
@@ -404,10 +474,15 @@ const ProfilePage = () => {
               name: loaded.name,
               handle: loaded.handle,
               college: loadedCollege,
+              collegeId: loaded.collegeId,
               collegeShort: loadedCollegeShort,
-              course: p.courseName || user.course || "Student",
-              currentYear: p.currentYear || user.currentYear,
-              defaultBio: p.defaultBio || user.defaultBio,
+              course: cName || user.course || "Student",
+              courseId: loaded.courseId,
+              department: dName || user.department,
+              departmentId: loaded.departmentId,
+              currentYear: yearNum,
+              defaultBio: cleanBio,
+              bioExtra: loaded.customBio,
             };
             localStorage.setItem("cb_user", JSON.stringify(updatedUser));
           }
@@ -432,6 +507,43 @@ const ProfilePage = () => {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
+  const handleEditCourseChange = async (courseId: string) => {
+    const found = collegeCourses.find((c) => c.id === courseId || c.name === courseId);
+    const maxYears = found?.durationYears || 4;
+    let nextYear = editForm.year;
+    if (parseInt(nextYear) > maxYears) {
+      nextYear = "1";
+    }
+    setLoadingDepartments(true);
+    let depts: Department[] = [];
+    if (found?.id) {
+      try {
+        depts = await getDepartmentsByCourse(found.id);
+        setCourseDepartments(depts);
+      } catch {
+        depts = [];
+      }
+    }
+    setLoadingDepartments(false);
+    setEditForm((prev) => ({
+      ...prev,
+      courseId: found ? found.id : courseId,
+      courseName: found ? found.name : courseId,
+      departmentId: depts[0]?.id || "",
+      departmentName: depts[0]?.name || "",
+      year: nextYear,
+    }));
+  };
+
+  const handleEditDepartmentChange = (deptId: string) => {
+    const found = courseDepartments.find((d) => d.id === deptId || d.name === deptId);
+    setEditForm((prev) => ({
+      ...prev,
+      departmentId: found ? found.id : deptId,
+      departmentName: found ? found.name : deptId,
+    }));
+  };
+
   const handleSaveProfile = async () => {
     try {
       setSavingProfile(true);
@@ -442,19 +554,57 @@ const ProfilePage = () => {
         finalAvatarUrl = uploadRes.publicUrl || uploadRes.url || uploadRes.objectKey;
       }
 
-      await updateProfile({
+      const updatedRes = await updateProfile({
         fullName: editForm.name,
-        defaultBio: editForm.customBio.slice(0, 250),
+        courseId: editForm.courseId || undefined,
+        departmentId: editForm.departmentId || undefined,
+        currentYear: parseInt(editForm.year) || undefined,
+        bioExtra: editForm.customBio.slice(0, 250),
         avatarUrl: finalAvatarUrl,
       });
+
+      const selCourse = collegeCourses.find((c) => c.id === editForm.courseId);
+      const selDept = courseDepartments.find((d) => d.id === editForm.departmentId);
+      const cName = selCourse?.shortName || selCourse?.name || editForm.courseName || profile.courseName;
+      const dName = selDept?.name || editForm.departmentName || profile.departmentName;
+      const yNum = parseInt(editForm.year) || profile.yearNum || 1;
+      const ySuf = yNum === 1 ? "st" : yNum === 2 ? "nd" : yNum === 3 ? "rd" : "th";
+      const yStr = `${yNum}${ySuf} Year`;
+
+      let bioUpdated = cName;
+      if (dName && !bioUpdated.toLowerCase().includes(dName.toLowerCase())) {
+        bioUpdated = `${bioUpdated} ${dName}`.trim();
+      }
 
       const updated = {
         ...profile,
         name: editForm.name,
+        bio: bioUpdated || profile.bio,
         customBio: editForm.customBio.slice(0, 250),
+        courseId: editForm.courseId,
+        courseName: cName,
+        departmentId: editForm.departmentId,
+        departmentName: dName,
+        year: yStr,
+        yearNum: yNum,
         avatarUrl: finalAvatarUrl,
       };
       setProfile(updated);
+
+      const updatedUser = {
+        ...user,
+        name: editForm.name,
+        collegeId: profile.collegeId,
+        course: cName,
+        courseId: editForm.courseId,
+        department: dName,
+        departmentId: editForm.departmentId,
+        currentYear: yNum,
+        defaultBio: bioUpdated,
+        bioExtra: editForm.customBio.slice(0, 250),
+      };
+      localStorage.setItem("cb_user", JSON.stringify(updatedUser));
+
       setAvatarFile(null);
       setEditOpen(false);
       toast.success("Profile updated successfully!");
@@ -1181,7 +1331,32 @@ const ProfilePage = () => {
                     <DropdownMenuItem
                       className="gap-2.5 cursor-pointer py-2 px-3 rounded-lg text-xs font-medium focus:bg-primary/10 focus:text-primary"
                       onClick={() => {
-                        setEditForm(profile);
+                        const cId = profile.courseId || editForm.courseId || "";
+                        const dId = profile.departmentId || editForm.departmentId || "";
+                        const yStr = String(profile.yearNum || editForm.year || "1");
+                        const clgId = profile.collegeId || editForm.collegeId || "";
+                        setEditForm({
+                          name: profile.name,
+                          customBio: profile.customBio || "",
+                          college: profile.college,
+                          collegeId: clgId,
+                          courseId: cId,
+                          courseName: profile.courseName || editForm.courseName || "",
+                          departmentId: dId,
+                          departmentName: profile.departmentName || editForm.departmentName || "",
+                          year: yStr,
+                          avatarUrl: profile.avatarUrl,
+                        });
+                        if (clgId) {
+                          getCoursesByCollege(clgId).then((cList) => {
+                            if (cList) setCollegeCourses(cList);
+                          }).catch(() => {});
+                        }
+                        if (cId) {
+                          getDepartmentsByCourse(cId).then((dList) => {
+                            if (dList) setCourseDepartments(dList);
+                          }).catch(() => {});
+                        }
                         setEditOpen(true);
                       }}
                     >
@@ -1199,7 +1374,7 @@ const ProfilePage = () => {
                 </DropdownMenu>
               </div>
 
-              {profile.customBio && profile.customBio !== profile.bio && (
+              {profile.customBio && profile.customBio !== profile.bio && !profile.customBio.includes("•") && (
                 <FormattedContent
                   content={profile.customBio}
                   className="text-sm text-muted-foreground mt-2 leading-relaxed"
@@ -1264,11 +1439,65 @@ const ProfilePage = () => {
               <p className="text-[11px] text-muted-foreground">Linked to your verified registration</p>
             </div>
 
-            {/* Default Bio (Non-editable) */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Default Bio</Label>
-              <Input value={profile.bio} disabled className="h-9 opacity-70 bg-muted/50 cursor-not-allowed text-xs" />
-              <p className="text-[11px] text-muted-foreground">Auto-generated from your enrolled course and program</p>
+            {/* Course / Degree Program */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Course / Degree</Label>
+              <Select value={editForm.courseId} onValueChange={handleEditCourseChange}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select course (e.g. B.Tech, M.Tech, BCA)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  {collegeCourses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.shortName ? `${c.shortName} (${c.name})` : c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Department & Year of Study */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold">Department</Label>
+                <Select
+                  value={editForm.departmentId}
+                  onValueChange={handleEditDepartmentChange}
+                  disabled={courseDepartments.length === 0}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select department"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    {courseDepartments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-1">
+                <Label className="text-xs font-semibold">Year of Study</Label>
+                <Select value={editForm.year} onValueChange={(v) => setEditForm((prev) => ({ ...prev, year: v }))}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(
+                      {
+                        length:
+                          collegeCourses.find((c) => c.id === editForm.courseId)?.durationYears || 4,
+                      },
+                      (_, i) => i + 1
+                    ).map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}{["st", "nd", "rd"][y - 1] || "th"} Year
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Custom Bio with 250 Character Limit */}
