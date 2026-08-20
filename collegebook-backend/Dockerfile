@@ -25,5 +25,5 @@ COPY --from=build /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE ${PORT}
 
-# JVM container-aware tuning: use up to 75% of container memory
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar app.jar"]
+# JVM container-aware tuning for Render 512MB RAM environment
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xms128m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar app.jar"]

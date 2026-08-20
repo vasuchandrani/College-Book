@@ -12,6 +12,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import ImageCarousel from "@/components/ImageCarousel";
 import { getAdminStats, adminCreateAd, adminDeleteAd, type AdminStatsResponse } from "@/lib/api";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 import { toast } from "sonner";
 
 interface Ad {
@@ -76,11 +77,25 @@ const AdminDashboard = () => {
   };
 
   const createAd = async () => {
-    const images = newAd.imageUrls.split("\n").map(u => u.trim()).filter(Boolean);
-    if (!newAd.brand || !newAd.title || images.length === 0) {
+    const rawImages = newAd.imageUrls.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!newAd.brand || !newAd.title || rawImages.length === 0) {
       toast.error("Please fill in Brand, Title, and at least one image URL");
       return;
     }
+
+    for (let i = 0; i < rawImages.length; i++) {
+      if (!isValidHttpUrl(rawImages[i])) {
+        toast.error(`Image URL #${i + 1} is not a valid web URL`);
+        return;
+      }
+    }
+
+    if (newAd.ctaLink.trim() && !isValidHttpUrl(newAd.ctaLink.trim())) {
+      toast.error("Please provide a valid URL for the Button Link (e.g. https://brand.com/offer)");
+      return;
+    }
+
+    const images = rawImages.map(normalizeUrl);
 
     try {
       setLoading(true);
@@ -90,7 +105,7 @@ const AdminDashboard = () => {
         description: newAd.description,
         imageUrls: images,
         ctaText: newAd.ctaText || "Shop Now",
-        ctaLink: newAd.ctaLink || "#",
+        ctaLink: newAd.ctaLink.trim() ? normalizeUrl(newAd.ctaLink.trim()) : "#",
         discount: newAd.discount,
         commentsEnabled: newAd.commentsEnabled,
       });

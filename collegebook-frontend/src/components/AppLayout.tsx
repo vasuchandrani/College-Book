@@ -22,7 +22,7 @@ const AppLayout = () => {
       }
     } catch { }
     return "";
-  }, []);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("cb_token");

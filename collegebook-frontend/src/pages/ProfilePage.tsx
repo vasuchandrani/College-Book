@@ -34,6 +34,10 @@ import {
   AlertCircle,
   Clock,
   XCircle,
+  Copy,
+  Phone,
+  MessageSquare,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -109,6 +113,19 @@ import {
   removeMemoryBookEmail,
   type PublicStudentProfile,
 } from "@/lib/api";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
+
+export interface CustomLink {
+  id?: string;
+  label: string;
+  url: string;
+}
+
+export interface ContactDetail {
+  id?: string;
+  label: string;
+  value: string;
+}
 
 const commonTechSuggestions = [
   "React",
@@ -257,7 +274,7 @@ const ProfilePage = () => {
     githubUrl: "",
     websiteUrl: "",
     authorNote: "",
-    contactInfo: "",
+    contactDetails: [] as ContactDetail[],
     memoryBookEmail: "",
     customLinks: [] as CustomLink[],
   });
@@ -273,7 +290,7 @@ const ProfilePage = () => {
     authorNote: "",
     websiteUrl: "",
     githubUrl: "",
-    contactInfo: "",
+    contactDetails: [] as ContactDetail[],
     customLinks: [] as CustomLink[],
   });
 
@@ -299,15 +316,47 @@ const ProfilePage = () => {
                 : loadedCollege.split(" ").map((w: string) => w[0]).join(""));
 
             let savedLinks: CustomLink[] = [];
-            try {
-              const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || user.name));
-              if (raw) savedLinks = JSON.parse(raw);
-            } catch (e) { }
+            if (p.customLinks) {
+              try {
+                const parsed = typeof p.customLinks === "string" ? JSON.parse(p.customLinks) : p.customLinks;
+                if (Array.isArray(parsed)) savedLinks = parsed;
+              } catch (e) { }
+            }
+            if (savedLinks.length === 0) {
+              try {
+                const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || user.name));
+                if (raw) savedLinks = JSON.parse(raw);
+              } catch (e) { }
+            }
 
-            let savedContact = "";
-            try {
-              savedContact = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || user.name)) || "";
-            } catch (e) { }
+            let savedContacts: ContactDetail[] = [];
+            if (p.contactDetails) {
+              try {
+                const parsed = typeof p.contactDetails === "string" ? JSON.parse(p.contactDetails) : p.contactDetails;
+                if (Array.isArray(parsed)) {
+                  savedContacts = parsed;
+                } else if (typeof parsed === "object" && parsed !== null) {
+                  savedContacts = Object.entries(parsed).map(([label, value]) => ({ label, value: String(value) }));
+                }
+              } catch (e) {
+                if (typeof p.contactDetails === "string" && p.contactDetails.trim()) {
+                  savedContacts = [{ id: "c1", label: "Contact", value: p.contactDetails.trim() }];
+                }
+              }
+            }
+            if (savedContacts.length === 0) {
+              try {
+                const raw = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || user.name));
+                if (raw) {
+                  try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) savedContacts = parsed;
+                  } catch {
+                    if (raw.trim()) savedContacts = [{ id: "c1", label: "Contact", value: raw.trim() }];
+                  }
+                }
+              } catch (e) { }
+            }
 
             const loadedYear = p.currentYear
               ? `${p.currentYear}${p.currentYear === 1 ? "st" : p.currentYear === 2 ? "nd" : p.currentYear === 3 ? "rd" : "th"} Year`
@@ -330,7 +379,7 @@ const ProfilePage = () => {
               githubUrl: p.githubUrl || "",
               websiteUrl: p.websiteUrl || "",
               authorNote: p.bioExtra || "",
-              contactInfo: savedContact,
+              contactDetails: savedContacts,
               memoryBookEmail: p.memoryBookEmail || "",
               customLinks: savedLinks,
             };
@@ -346,7 +395,7 @@ const ProfilePage = () => {
               authorNote: loaded.authorNote,
               websiteUrl: loaded.websiteUrl,
               githubUrl: loaded.githubUrl,
-              contactInfo: loaded.contactInfo,
+              contactDetails: loaded.contactDetails,
               customLinks: loaded.customLinks,
             });
 
@@ -420,31 +469,91 @@ const ProfilePage = () => {
     try {
       setSavingAbout(true);
       const cleanedAuthorNote = editAboutForm.authorNote.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-      const cleanedContactInfo = editAboutForm.contactInfo.replace(/\r\n/g, "\n").replace(/\n{2,}/g, "\n").trim();
+
+      // Validate Website URL if provided
+      if (editAboutForm.websiteUrl.trim() && !isValidHttpUrl(editAboutForm.websiteUrl.trim())) {
+        toast.error("Please enter a valid Website / Portfolio link (e.g. https://portfolio.com or mywebsite.dev)");
+        setSavingAbout(false);
+        return;
+      }
+
+      // Validate GitHub URL if provided
+      if (editAboutForm.githubUrl.trim() && !isValidHttpUrl(editAboutForm.githubUrl.trim())) {
+        toast.error("Please enter a valid GitHub profile link (e.g. https://github.com/username)");
+        setSavingAbout(false);
+        return;
+      }
+
+      // Validate Custom Links
+      for (let i = 0; i < editAboutForm.customLinks.length; i++) {
+        const link = editAboutForm.customLinks[i];
+        if (link.label.trim() || link.url.trim()) {
+          if (!link.label.trim()) {
+            toast.error(`Please provide a label for link #${i + 1}`);
+            setSavingAbout(false);
+            return;
+          }
+          if (!link.url.trim() || !isValidHttpUrl(link.url.trim())) {
+            toast.error(`Please provide a valid web link for "${link.label || `link #${i + 1}`}" (e.g. https://leetcode.com/user)`);
+            setSavingAbout(false);
+            return;
+          }
+        }
+      }
+
+      // Validate Contact Details
+      for (let i = 0; i < editAboutForm.contactDetails.length; i++) {
+        const contact = editAboutForm.contactDetails[i];
+        if (contact.label.trim() || contact.value.trim()) {
+          if (!contact.label.trim()) {
+            toast.error(`Please provide a label for contact detail #${i + 1} (e.g. Discord, Telegram)`);
+            setSavingAbout(false);
+            return;
+          }
+          if (!contact.value.trim()) {
+            toast.error(`Please provide a value for "${contact.label}"`);
+            setSavingAbout(false);
+            return;
+          }
+        }
+      }
+
+      const validLinks = editAboutForm.customLinks
+        .filter((l) => l.label.trim() && l.url.trim())
+        .map((l) => ({ id: l.id || Date.now().toString(), label: l.label.trim(), url: normalizeUrl(l.url) }));
+
+      const validContacts = editAboutForm.contactDetails
+        .filter((c) => c.label.trim() && c.value.trim())
+        .map((c) => ({ id: c.id || Date.now().toString(), label: c.label.trim(), value: c.value.trim() }));
+
+      const normalizedWebsite = editAboutForm.websiteUrl.trim() ? normalizeUrl(editAboutForm.websiteUrl) : "";
+      const normalizedGithub = editAboutForm.githubUrl.trim() ? normalizeUrl(editAboutForm.githubUrl) : "";
 
       await updateProfile({
         bioExtra: cleanedAuthorNote,
-        websiteUrl: editAboutForm.websiteUrl,
-        githubUrl: editAboutForm.githubUrl,
+        websiteUrl: normalizedWebsite,
+        githubUrl: normalizedGithub,
+        customLinks: JSON.stringify(validLinks),
+        contactDetails: JSON.stringify(validContacts),
       });
 
       const linkKey = "cb_custom_links_" + (profile.name || user.name);
-      localStorage.setItem(linkKey, JSON.stringify(editAboutForm.customLinks));
+      localStorage.setItem(linkKey, JSON.stringify(validLinks));
 
       const contactKey = "cb_contact_info_" + (profile.name || user.name);
-      localStorage.setItem(contactKey, cleanedContactInfo);
+      localStorage.setItem(contactKey, JSON.stringify(validContacts));
 
       setProfile((prev) => ({
         ...prev,
         authorNote: cleanedAuthorNote,
-        websiteUrl: editAboutForm.websiteUrl,
-        githubUrl: editAboutForm.githubUrl,
-        contactInfo: cleanedContactInfo,
-        customLinks: editAboutForm.customLinks,
+        websiteUrl: normalizedWebsite,
+        githubUrl: normalizedGithub,
+        contactDetails: validContacts,
+        customLinks: validLinks,
       }));
 
       setEditAboutOpen(false);
-      toast.success("About & links updated successfully!");
+      toast.success("About, contact & links updated successfully!");
     } catch (e: any) {
       toast.error(e.message || "Failed to update About details");
     } finally {
@@ -918,6 +1027,10 @@ const ProfilePage = () => {
       toast.error("GitHub repository URL is required for open-source projects");
       return;
     }
+    if (editTeamForm.githubLink.trim() && !isValidHttpUrl(editTeamForm.githubLink.trim())) {
+      toast.error("Please provide a valid repository or project web link (e.g. https://github.com/username/repo)");
+      return;
+    }
 
     try {
       setSavingTeam(true);
@@ -941,7 +1054,7 @@ const ProfilePage = () => {
         title: editTeamForm.title.trim(),
         type: mappedType,
         description: finalDescription,
-        githubLink: editCategory === "hackathon" ? "" : editTeamForm.githubLink.trim(),
+        githubLink: editCategory === "hackathon" ? "" : normalizeUrl(editTeamForm.githubLink.trim()),
         skills: editTags,
         requiredExpertise: editTags,
         maxMembers: editCategory === "open_source" ? 0 : parseInt(editTeamForm.maxMembers) || 4,
@@ -1279,21 +1392,77 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Contact Info */}
-            <div className="space-y-1.5 pt-2 border-t border-border/50">
-              <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-primary" /> Contact Information
-              </Label>
-              <div className="p-0.5">
-                <Textarea
-                  placeholder="Add your contact details (e.g. Email, Discord, Phone)... (links are auto-clickable)"
-                  value={editAboutForm.contactInfo}
-                  onChange={(e) =>
-                    setEditAboutForm({ ...editAboutForm, contactInfo: e.target.value.replace(/\n{2,}/g, "\n") })
+            {/* Contact Details (Key-Value Pairs) */}
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 rounded-lg"
+                  onClick={() =>
+                    setEditAboutForm({
+                      ...editAboutForm,
+                      contactDetails: [
+                        ...editAboutForm.contactDetails,
+                        { id: Date.now().toString(), label: "", value: "" },
+                      ],
+                    })
                   }
-                  className="min-h-[75px] w-full text-sm leading-relaxed p-3 rounded-xl border border-input bg-background/50 focus:bg-background focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary transition-all resize-y"
-                />
+                >
+                  <Plus className="h-3 w-3" /> Add Contact
+                </Button>
               </div>
+
+              {editAboutForm.contactDetails.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic bg-muted/30 p-3 rounded-lg border border-dashed border-border/60">
+                  No contact details yet. Click "+ Add Contact" to add Discord, Telegram, alternate email, phone number, etc.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {editAboutForm.contactDetails.map((contact, idx) => (
+                    <div key={contact.id || idx} className="flex items-center gap-2 p-0.5">
+                      <Input
+                        placeholder="Label (e.g. Discord, Telegram, Phone)"
+                        value={contact.label}
+                        onChange={(e) => {
+                          const updated = [...editAboutForm.contactDetails];
+                          updated[idx].label = e.target.value;
+                          setEditAboutForm({ ...editAboutForm, contactDetails: updated });
+                        }}
+                        className="w-1/3 h-8 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                      <Input
+                        placeholder="Value (e.g. alex#1234, @alex_dev, +1234567890)"
+                        value={contact.value}
+                        onChange={(e) => {
+                          const updated = [...editAboutForm.contactDetails];
+                          updated[idx].value = e.target.value;
+                          setEditAboutForm({ ...editAboutForm, contactDetails: updated });
+                        }}
+                        className="flex-1 h-8 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                        onClick={() => {
+                          setEditAboutForm({
+                            ...editAboutForm,
+                            contactDetails: editAboutForm.contactDetails.filter((_, j) => j !== idx),
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Additional Custom Links */}
@@ -1340,7 +1509,7 @@ const ProfilePage = () => {
                         className="w-1/3 h-8 text-xs rounded-lg focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 focus-visible:border-primary"
                       />
                       <Input
-                        placeholder="URL (https://...)"
+                        placeholder="URL (e.g. https://leetcode.com/user)"
                         value={link.url}
                         onChange={(e) => {
                           const updated = [...editAboutForm.customLinks];
@@ -1779,7 +1948,7 @@ const ProfilePage = () => {
                     authorNote: profile.authorNote || "",
                     websiteUrl: profile.websiteUrl || "",
                     githubUrl: profile.githubUrl || "",
-                    contactInfo: profile.contactInfo || "",
+                    contactDetails: [...(profile.contactDetails || [])],
                     customLinks: [...(profile.customLinks || [])],
                   });
                   setEditAboutOpen(true);
@@ -1808,15 +1977,82 @@ const ProfilePage = () => {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
               </h3>
-              {profile.contactInfo ? (
-                <FormattedContent
-                  content={profile.contactInfo}
-                  maxEnters={1}
-                  className="text-sm text-foreground/90 leading-relaxed"
-                />
+              {profile.contactDetails && profile.contactDetails.length > 0 ? (
+                <div className="space-y-2">
+                  {profile.contactDetails.map((contact, idx) => {
+                    const l = (contact.label || "").toLowerCase();
+                    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((contact.value || "").trim());
+                    const isPhone = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test((contact.value || "").trim().replace(/\s/g, ""));
+                    
+                    return (
+                      <div
+                        key={contact.id || idx}
+                        className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            {l.includes("mail") || l.includes("gmail") || l.includes("email") ? (
+                              <Mail className="h-3.5 w-3.5" />
+                            ) : l.includes("discord") || l.includes("telegram") || l.includes("slack") || l.includes("chat") ? (
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            ) : l.includes("phone") || l.includes("call") || l.includes("tel") || l.includes("mobile") || l.includes("whatsapp") ? (
+                              <Phone className="h-3.5 w-3.5" />
+                            ) : l.includes("github") ? (
+                              <Github className="h-3.5 w-3.5" />
+                            ) : l.includes("web") || l.includes("site") || l.includes("portfolio") ? (
+                              <Globe className="h-3.5 w-3.5" />
+                            ) : (
+                              <User className="h-3.5 w-3.5" />
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-foreground capitalize truncate max-w-[90px]">
+                            {contact.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 min-w-0 max-w-[65%] justify-end">
+                          {isEmail ? (
+                            <a
+                              href={`mailto:${contact.value}`}
+                              className="text-xs text-primary hover:underline font-medium truncate"
+                              title={contact.value}
+                            >
+                              {contact.value}
+                            </a>
+                          ) : isPhone ? (
+                            <a
+                              href={`tel:${contact.value}`}
+                              className="text-xs text-primary hover:underline font-medium truncate"
+                              title={contact.value}
+                            >
+                              {contact.value}
+                            </a>
+                          ) : (
+                            <span
+                              className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate"
+                              title={contact.value}
+                            >
+                              {contact.value}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(contact.value);
+                              toast.success(`Copied ${contact.label} to clipboard!`);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
+                            title="Copy to clipboard"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground italic">
-                  No contact information added yet. Click "Edit About" to add your contact details.
+                  No contact details added yet. Click "Edit About" to add your contact details.
                 </p>
               )}
             </Card>
@@ -1826,13 +2062,15 @@ const ProfilePage = () => {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <LinkIcon className="h-3.5 w-3.5 text-primary" /> Links & Portfolios
               </h3>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {/* Portfolio */}
                 {profile.websiteUrl ? (
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Globe className="h-4 w-4 text-primary" />
-                      <span>Portfolio</span>
+                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <Globe className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">Portfolio</span>
                     </div>
                     <a
                       href={
@@ -1842,9 +2080,9 @@ const ProfilePage = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
                     >
-                      {profile.websiteUrl.replace(/^https?:\/\//, "")}
+                      <span className="truncate">{profile.websiteUrl.replace(/^https?:\/\//, "")}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </div>
@@ -1852,10 +2090,12 @@ const ProfilePage = () => {
 
                 {/* GitHub */}
                 {profile.githubUrl ? (
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Github className="h-4 w-4 text-primary" />
-                      <span>GitHub</span>
+                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <Github className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">GitHub</span>
                     </div>
                     <a
                       href={
@@ -1865,9 +2105,9 @@ const ProfilePage = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
                     >
-                      {profile.githubUrl.replace(/^https?:\/\//, "")}
+                      <span className="truncate">{profile.githubUrl.replace(/^https?:\/\//, "")}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </div>
@@ -1879,18 +2119,20 @@ const ProfilePage = () => {
                     if (!link.label || !link.url) return null;
                     const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
                     return (
-                      <div key={link.id} className="flex items-center justify-between gap-2 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <LinkIcon className="h-4 w-4 text-primary" />
-                          <span className="truncate max-w-[100px]">{link.label}</span>
+                      <div key={link.id} className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <LinkIcon className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">{link.label}</span>
                         </div>
                         <a
                           href={fullUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
                         >
-                          {link.url.replace(/^https?:\/\//, "")}
+                          <span className="truncate">{link.url.replace(/^https?:\/\//, "")}</span>
                           <ExternalLink className="h-3 w-3 shrink-0" />
                         </a>
                       </div>

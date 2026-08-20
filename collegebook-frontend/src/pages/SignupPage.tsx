@@ -494,7 +494,7 @@ const SignupPage = () => {
       }));
 
       toast.success("Welcome to CollegeBook!");
-      navigate("/feed");
+      window.location.replace("/feed");
     } catch (e: any) {
       setError(formatApiError(e, "Registration failed. Please check your details."));
     } finally {

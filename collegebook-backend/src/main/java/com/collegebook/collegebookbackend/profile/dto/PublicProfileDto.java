@@ -31,4 +31,6 @@ public class PublicProfileDto {
     private String githubUrl;
     private String linkedinUrl;
     private String websiteUrl;
+    private String customLinks;
+    private String contactDetails;
 }

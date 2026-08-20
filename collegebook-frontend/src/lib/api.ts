@@ -1268,6 +1268,8 @@ export interface UserProfileData {
   linkedinUrl?: string;
   websiteUrl?: string;
   memoryBookEmail?: string;
+  customLinks?: string;
+  contactDetails?: string;
   isPublic?: boolean;
 }
 
@@ -1290,6 +1292,8 @@ export interface PublicStudentProfile {
   githubUrl?: string;
   linkedinUrl?: string;
   websiteUrl?: string;
+  customLinks?: string;
+  contactDetails?: string;
 }
 
 export const getProfile = async (): Promise<UserProfileData> => {
@@ -1318,6 +1322,8 @@ export const getProfile = async (): Promise<UserProfileData> => {
     linkedinUrl: p.linkedinUrl,
     websiteUrl: p.websiteUrl,
     memoryBookEmail: p.memoryBookEmail || "",
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
     isPublic: p.public,
   };
 };
@@ -1333,6 +1339,8 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
       githubUrl: data.githubUrl,
       linkedinUrl: data.linkedinUrl,
       websiteUrl: data.websiteUrl,
+      customLinks: data.customLinks,
+      contactDetails: data.contactDetails,
       isPublic: data.isPublic,
     }),
   });
@@ -1360,6 +1368,8 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     linkedinUrl: p.linkedinUrl,
     websiteUrl: p.websiteUrl,
     memoryBookEmail: p.memoryBookEmail || "",
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
     isPublic: p.public,
   };
 };
@@ -1413,6 +1423,8 @@ export const verifyMemoryBookEmail = async (email: string, otp: string): Promise
     linkedinUrl: p.linkedinUrl,
     websiteUrl: p.websiteUrl,
     memoryBookEmail: p.memoryBookEmail || "",
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
     isPublic: p.public,
   };
 };
@@ -1445,6 +1457,8 @@ export const removeMemoryBookEmail = async (): Promise<UserProfileData> => {
     linkedinUrl: p.linkedinUrl,
     websiteUrl: p.websiteUrl,
     memoryBookEmail: p.memoryBookEmail || "",
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
     isPublic: p.public,
   };
 };
@@ -1470,6 +1484,8 @@ export const getStudentBySlug = async (slug: string): Promise<PublicStudentProfi
     githubUrl: p.githubUrl,
     linkedinUrl: p.linkedinUrl,
     websiteUrl: p.websiteUrl,
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
   };
 };
 

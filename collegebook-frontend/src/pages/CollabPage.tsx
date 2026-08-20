@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { getCollabTeams, getMyJoinedRequests, createTeam, starProject, sendJoinRequest, lookupStudent } from "@/lib/api";
 import { ThemedLoader } from "@/components/ThemedLoader";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
 const commonTechSuggestions = [
   "React",
@@ -304,6 +305,11 @@ const CollabPage = () => {
       return;
     }
 
+    if (createForm.githubLink.trim() && !isValidHttpUrl(createForm.githubLink.trim())) {
+      toast.error("Please provide a valid GitHub repository or project web link (e.g. https://github.com/username/repo)");
+      return;
+    }
+
     const maxM = createType === "open_source" ? 0 : parseInt(createForm.maxMembers) || 4;
     setCreating(true);
 
@@ -321,7 +327,7 @@ const CollabPage = () => {
         title: createForm.name.trim(),
         type: createType,
         description: finalDescription,
-        githubLink: createForm.githubLink.trim(),
+        githubLink: createForm.githubLink.trim() ? normalizeUrl(createForm.githubLink.trim()) : "",
         skills: memberEntries.map((m) => m.role),
         requiredExpertise: expertiseTags,
         memberHandles: memberEntries.map((m) => m.name.trim().replace(/^@/, "")),

@@ -71,6 +71,7 @@ import {
   markHiringComplete,
   toggleStarTeam,
 } from "@/lib/api";
+import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
 const commonTechSuggestions = [
   "React",
@@ -395,6 +396,11 @@ export default function MyCollaborationPage() {
       return;
     }
 
+    if (createForm.githubLink.trim() && !isValidHttpUrl(createForm.githubLink.trim())) {
+      toast.error("Please provide a valid GitHub repository or project web link (e.g. https://github.com/username/repo)");
+      return;
+    }
+
     const maxM =
       createType === "open_source" ? 0 : parseInt(createForm.maxMembers, 10) || 4;
 
@@ -413,7 +419,7 @@ export default function MyCollaborationPage() {
         title: createForm.name.trim(),
         type: createType,
         description: finalDescription,
-        githubLink: createForm.githubLink.trim(),
+        githubLink: createForm.githubLink.trim() ? normalizeUrl(createForm.githubLink.trim()) : "",
         skills: memberEntries.map((m) => m.role),
         requiredExpertise: expertiseTags,
         memberHandles: memberEntries.map((m) => (m.handle || m.name).trim().replace(/^@/, "")),
@@ -494,12 +500,18 @@ export default function MyCollaborationPage() {
 
   const handleSaveTeamEdit = async () => {
     if (!editTeamModal || !editForm.title.trim()) return;
+
+    if (editForm.githubLink.trim() && !isValidHttpUrl(editForm.githubLink.trim())) {
+      toast.error("Please provide a valid GitHub repository or project web link (e.g. https://github.com/username/repo)");
+      return;
+    }
+
     try {
       setSavingEdit(true);
       const updated = await updateTeam(editTeamModal.id, {
         title: editForm.title.trim(),
         description: editForm.description.trim(),
-        githubLink: editForm.githubLink.trim() || undefined,
+        githubLink: editForm.githubLink.trim() ? normalizeUrl(editForm.githubLink.trim()) : undefined,
         skills: editForm.skills,
         maxMembers: editForm.maxMembers,
       });

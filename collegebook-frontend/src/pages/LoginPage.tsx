@@ -52,7 +52,7 @@ const LoginPage = () => {
         })
       );
       toast.success(`Welcome back, ${user.name}!`);
-      navigate("/feed");
+      window.location.replace("/feed");
     } catch (e: any) {
       setError(formatApiError(e, "Invalid email or password. Please try again."));
     } finally {

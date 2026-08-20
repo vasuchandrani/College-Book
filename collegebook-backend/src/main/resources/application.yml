@@ -10,10 +10,11 @@ spring:
     password: ${DB_PASSWORD:npg_sTDYl67hcznI}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${HIKARI_MAX_POOL:10}
-      minimum-idle: 2
+      maximum-pool-size: ${HIKARI_MAX_POOL:5}
+      minimum-idle: 1
       idle-timeout: 30000
       connection-timeout: 20000
+      max-lifetime: 45000
 
   jpa:
     open-in-view: false
@@ -33,6 +34,8 @@ spring:
 
   data:
     redis:
+      repositories:
+        enabled: false
       host: ${REDIS_HOST:exact-thrush-140580.upstash.io}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASS:gQAAAAAAAiUkAAIgcDJlYzU4ZTA5MDdmNjY0NDczODY2ZmRlZDUxNWUzZDI4OA}
@@ -101,3 +104,7 @@ springdoc:
 
 server:
   port: ${PORT:8080}
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2

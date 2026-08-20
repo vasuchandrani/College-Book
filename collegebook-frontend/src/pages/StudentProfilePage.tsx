@@ -21,6 +21,10 @@ import {
   Eye,
   CheckCircle2,
   Crown,
+  Copy,
+  Phone,
+  MessageSquare,
+  User,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -397,33 +401,108 @@ const StudentProfilePage = () => {
 
           {/* Details & Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Academic & Campus Info */}
+            {/* Contact Details */}
             <Card className="p-5 shadow-card space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <BookOpen className="h-3.5 w-3.5 text-primary" /> Academic Info
+                <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
               </h3>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-xs text-muted-foreground block">Campus</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {student?.collegeName || "Dharmsinh Desai University"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground block">Course / Program</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {student?.courseName || "Undergraduate"}
-                  </span>
-                </div>
-                {student?.currentYear && (
-                  <div>
-                    <span className="text-xs text-muted-foreground block">Current Academic Year</span>
-                    <span className="text-sm font-medium text-foreground">
-                      {student.currentYear}{student.currentYear === 1 ? 'st' : student.currentYear === 2 ? 'nd' : student.currentYear === 3 ? 'rd' : 'th'} Year
-                    </span>
+              {(() => {
+                let contacts: { label: string; value: string }[] = [];
+                if (student?.contactDetails) {
+                  try {
+                    const parsed = typeof student.contactDetails === "string" ? JSON.parse(student.contactDetails) : student.contactDetails;
+                    if (Array.isArray(parsed)) contacts = parsed;
+                    else if (typeof parsed === "object" && parsed !== null) {
+                      contacts = Object.entries(parsed).map(([label, value]) => ({ label, value: String(value) }));
+                    }
+                  } catch {
+                    if (typeof student.contactDetails === "string" && student.contactDetails.trim()) {
+                      contacts = [{ label: "Contact", value: student.contactDetails.trim() }];
+                    }
+                  }
+                }
+                if (contacts.length === 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground italic">
+                      No contact details shared yet.
+                    </p>
+                  );
+                }
+                return (
+                  <div className="space-y-2">
+                    {contacts.map((contact, idx) => {
+                      const l = (contact.label || "").toLowerCase();
+                      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((contact.value || "").trim());
+                      const isPhone = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test((contact.value || "").trim().replace(/\s/g, ""));
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              {l.includes("mail") || l.includes("gmail") || l.includes("email") ? (
+                                <Mail className="h-3.5 w-3.5" />
+                              ) : l.includes("discord") || l.includes("telegram") || l.includes("slack") || l.includes("chat") ? (
+                                <MessageSquare className="h-3.5 w-3.5" />
+                              ) : l.includes("phone") || l.includes("call") || l.includes("tel") || l.includes("mobile") || l.includes("whatsapp") ? (
+                                <Phone className="h-3.5 w-3.5" />
+                              ) : l.includes("github") ? (
+                                <Github className="h-3.5 w-3.5" />
+                              ) : l.includes("web") || l.includes("site") || l.includes("portfolio") ? (
+                                <Globe className="h-3.5 w-3.5" />
+                              ) : (
+                                <User className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-foreground capitalize truncate max-w-[90px]">
+                              {contact.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 min-w-0 max-w-[65%] justify-end">
+                            {isEmail ? (
+                              <a
+                                href={`mailto:${contact.value}`}
+                                className="text-xs text-primary hover:underline font-medium truncate"
+                                title={contact.value}
+                              >
+                                {contact.value}
+                              </a>
+                            ) : isPhone ? (
+                              <a
+                                href={`tel:${contact.value}`}
+                                className="text-xs text-primary hover:underline font-medium truncate"
+                                title={contact.value}
+                              >
+                                {contact.value}
+                              </a>
+                            ) : (
+                              <span
+                                className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate"
+                                title={contact.value}
+                              >
+                                {contact.value}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(contact.value);
+                                toast.success(`Copied ${contact.label} to clipboard!`);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
+                              title="Copy to clipboard"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </Card>
 
             {/* Social & Portfolio Links */}
@@ -431,12 +510,14 @@ const StudentProfilePage = () => {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <LinkIcon className="h-3.5 w-3.5 text-primary" /> Links & Profiles
               </h3>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {student?.websiteUrl && (
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Globe className="h-4 w-4 text-primary" />
-                      <span>Portfolio</span>
+                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <Globe className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">Portfolio</span>
                     </div>
                     <a
                       href={
@@ -446,18 +527,21 @@ const StudentProfilePage = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
                     >
-                      {student.websiteUrl.replace(/^https?:\/\//, "")}
+                      <span className="truncate">{student.websiteUrl.replace(/^https?:\/\//, "")}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </div>
                 )}
 
                 {student?.githubUrl && (
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Github className="h-4 w-4 text-primary" />
-                      <span>GitHub</span>
+                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <Github className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">GitHub</span>
                     </div>
                     <a
                       href={
@@ -467,14 +551,49 @@ const StudentProfilePage = () => {
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[180px]"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
                     >
-                      {student.githubUrl.replace(/^https?:\/\/github\.com\//, "")}
+                      <span className="truncate">{student.githubUrl.replace(/^https?:\/\/github\.com\//, "")}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </div>
                 )}
 
-                {!student?.websiteUrl && !student?.githubUrl && (
+                {/* Custom Links */}
+                {(() => {
+                  let customLinks: { label: string; url: string }[] = [];
+                  if (student?.customLinks) {
+                    try {
+                      const parsed = typeof student.customLinks === "string" ? JSON.parse(student.customLinks) : student.customLinks;
+                      if (Array.isArray(parsed)) customLinks = parsed;
+                    } catch {}
+                  }
+                  return customLinks.map((link, idx) => {
+                    if (!link.label || !link.url) return null;
+                    const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
+                    return (
+                      <div key={idx} className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <LinkIcon className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">{link.label}</span>
+                        </div>
+                        <a
+                          href={fullUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
+                        >
+                          <span className="truncate">{link.url.replace(/^https?:\/\//, "")}</span>
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {!student?.websiteUrl && !student?.githubUrl && !student?.customLinks && (
                   <p className="text-xs text-muted-foreground italic">No external links shared yet.</p>
                 )}
               </div>

@@ -9,6 +9,8 @@ public class ProfileUpdateDto {
     private String githubUrl;
     private String linkedinUrl;
     private String websiteUrl;
+    private String customLinks;
+    private String contactDetails;
     private Boolean isPublic;
 
     public ProfileUpdateDto() {
@@ -68,6 +70,22 @@ public class ProfileUpdateDto {
 
     public void setWebsiteUrl(String websiteUrl) {
         this.websiteUrl = websiteUrl;
+    }
+
+    public String getCustomLinks() {
+        return customLinks;
+    }
+
+    public void setCustomLinks(String customLinks) {
+        this.customLinks = customLinks;
+    }
+
+    public String getContactDetails() {
+        return contactDetails;
+    }
+
+    public void setContactDetails(String contactDetails) {
+        this.contactDetails = contactDetails;
     }
 
     public Boolean getIsPublic() {

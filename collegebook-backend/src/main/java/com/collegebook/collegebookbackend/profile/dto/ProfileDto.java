@@ -34,5 +34,7 @@ public class ProfileDto {
     private String linkedinUrl;
     private String websiteUrl;
     private String memoryBookEmail;
+    private String customLinks;
+    private String contactDetails;
     private boolean isPublic;
 }

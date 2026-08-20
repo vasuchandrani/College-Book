@@ -87,6 +87,12 @@ public class ProfileServiceImpl implements ProfileService {
         if (updateDto.getWebsiteUrl() != null) {
             profile.setWebsiteUrl(updateDto.getWebsiteUrl());
         }
+        if (updateDto.getCustomLinks() != null) {
+            profile.setCustomLinks(updateDto.getCustomLinks());
+        }
+        if (updateDto.getContactDetails() != null) {
+            profile.setContactDetails(updateDto.getContactDetails());
+        }
         if (updateDto.getIsPublic() != null) {
             profile.setPublic(updateDto.getIsPublic());
         }
@@ -311,6 +317,8 @@ public class ProfileServiceImpl implements ProfileService {
         dto.setGithubUrl(profile.getGithubUrl());
         dto.setLinkedinUrl(profile.getLinkedinUrl());
         dto.setWebsiteUrl(profile.getWebsiteUrl());
+        dto.setCustomLinks(profile.getCustomLinks());
+        dto.setContactDetails(profile.getContactDetails());
         return dto;
     }
 
@@ -360,6 +368,8 @@ public class ProfileServiceImpl implements ProfileService {
         dto.setLinkedinUrl(p.getLinkedinUrl());
         dto.setWebsiteUrl(p.getWebsiteUrl());
         dto.setMemoryBookEmail(p.getMemoryBookEmail());
+        dto.setCustomLinks(p.getCustomLinks());
+        dto.setContactDetails(p.getContactDetails());
         dto.setPublic(p.isPublic());
         return dto;
     }

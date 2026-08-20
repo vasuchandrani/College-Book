@@ -74,6 +74,12 @@ public class Profile {
     @Column(name = "memory_book_email")
     private String memoryBookEmail;
 
+    @Column(name = "custom_links", columnDefinition = "text")
+    private String customLinks;
+
+    @Column(name = "contact_details", columnDefinition = "text")
+    private String contactDetails;
+
     @Column(name = "is_public", nullable = false)
     private boolean isPublic = true;
 
@@ -220,6 +226,22 @@ public class Profile {
 
     public void setMemoryBookEmail(String memoryBookEmail) {
         this.memoryBookEmail = memoryBookEmail;
+    }
+
+    public String getCustomLinks() {
+        return customLinks;
+    }
+
+    public void setCustomLinks(String customLinks) {
+        this.customLinks = customLinks;
+    }
+
+    public String getContactDetails() {
+        return contactDetails;
+    }
+
+    public void setContactDetails(String contactDetails) {
+        this.contactDetails = contactDetails;
     }
 
     public boolean isPublic() {
