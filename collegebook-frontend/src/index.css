@@ -87,10 +87,17 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 }
@@ -102,20 +109,59 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .bg-gradient-hero {
     background: var(--gradient-hero);
   }
+
   .bg-gradient-accent {
     background: var(--gradient-accent);
   }
+
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
+
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    /* IE and Edge */
+    scrollbar-width: none !important;
+    /* Firefox */
+  }
+
+  @media (max-width: 767px) {
+    .mobile-scrollbar::-webkit-scrollbar {
+      display: block !important;
+      height: 4px !important;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar-thumb {
+      background: hsl(var(--primary) / 0.3) !important;
+      border-radius: 99px !important;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar-track {
+      background: hsl(var(--muted) / 0.15) !important;
+      border-radius: 99px !important;
+    }
+
+    .mobile-scrollbar {
+      -ms-overflow-style: auto !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: hsl(var(--primary) / 0.3) hsl(var(--muted) / 0.15) !important;
+    }
   }
 }
 

@@ -101,7 +101,7 @@ const HowItWorksSection = () => {
                   {idx + 1}
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-4.5 shadow-card space-y-2.5">
+                <div className="bg-card border border-border rounded-2xl p-5 shadow-card space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">

@@ -81,8 +81,8 @@ const InteractiveFeatureShowcase = () => {
           </p>
         </div>
 
-        {/* Tab Navigation Buttons (Horizontal scroll on mobile) */}
-        <div className="flex items-center justify-start md:justify-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-3 mb-6 sm:mb-10 -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* Tab Navigation Buttons (Horizontal scroll with clean scrollbar on mobile, wrap on desktop) */}
+        <div className="flex md:flex-wrap items-center justify-start md:justify-center gap-2 sm:gap-3 overflow-x-auto md:overflow-x-visible no-scrollbar mobile-scrollbar pb-3 mb-6 sm:mb-10 -mx-4 px-4 sm:mx-0 sm:px-0">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -91,20 +91,18 @@ const InteractiveFeatureShowcase = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all duration-200 border shrink-0 whitespace-nowrap ${
-                  isActive
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs scale-102"
-                    : "bg-card hover:bg-muted text-muted-foreground hover:text-foreground border-border"
-                }`}
+                className={`flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all duration-200 border shrink-0 whitespace-nowrap ${isActive
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs scale-102"
+                  : "bg-card hover:bg-muted text-muted-foreground hover:text-foreground border-border"
+                  }`}
               >
                 <Icon className={`h-4 w-4 ${isActive ? "text-accent" : ""}`} />
                 <span className="font-semibold">{tab.title}</span>
                 <span
-                  className={`hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full ${
-                    isActive
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                  className={`hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full ${isActive
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                    }`}
                 >
                   {tab.badge}
                 </span>
@@ -123,7 +121,7 @@ const InteractiveFeatureShowcase = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.3 }}
-                className="grid md:grid-cols-12 gap-6 sm:gap-8 items-center bg-card border border-border rounded-2xl p-4.5 sm:p-8 shadow-card"
+                className="grid md:grid-cols-12 gap-8 items-center bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-card"
               >
                 <div className="md:col-span-6 space-y-3 sm:space-y-4">
                   <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
