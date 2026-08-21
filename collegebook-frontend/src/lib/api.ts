@@ -542,12 +542,12 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
   };
 };
 
-export const likePost = async (postId: number | string) => {
-  return await request<{ id: string; liked: boolean }>("/posts/" + postId + "/like", { method: "POST" });
+export const likePost = async (postId: number | string, signal?: AbortSignal) => {
+  return await request<{ id: string; liked: boolean; likesCount: number }>("/posts/" + postId + "/like", { method: "POST", signal });
 };
 
-export const savePost = async (postId: number | string) => {
-  return await request<{ id: string; saved: boolean }>("/posts/" + postId + "/save", { method: "POST" });
+export const savePost = async (postId: number | string, signal?: AbortSignal) => {
+  return await request<{ id: string; saved: boolean; savesCount: number }>("/posts/" + postId + "/save", { method: "POST", signal });
 };
 
 export const getPostById = async (postId: number | string): Promise<FeedPost> => {
@@ -702,9 +702,10 @@ export const getStarredProjects = async (): Promise<any[]> => {
   }
 };
 
-export const unstarProject = async (projectId: number | string) => {
+export const unstarProject = async (projectId: number | string, signal?: AbortSignal) => {
   return await request<any>(`/teams/${projectId}/star`, {
     method: "POST",
+    signal,
   });
 };
 
@@ -796,15 +797,17 @@ export const markProjectComplete = async (projectId: number | string) => {
   });
 };
 
-export const starProject = async (projectId: number | string) => {
+export const starProject = async (projectId: number | string, signal?: AbortSignal) => {
   return await request<{ id: string; starred: boolean; starsCount: number }>("/teams/" + projectId + "/star", {
     method: "POST",
+    signal,
   });
 };
 
-export const toggleStarTeam = async (projectId: number | string) => {
+export const toggleStarTeam = async (projectId: number | string, signal?: AbortSignal) => {
   return await request<{ id: string; starred: boolean; starsCount: number }>("/teams/" + projectId + "/star", {
     method: "POST",
+    signal,
   });
 };
 

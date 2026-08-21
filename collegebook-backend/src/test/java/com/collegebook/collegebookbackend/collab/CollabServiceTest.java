@@ -57,6 +57,8 @@ public class CollabServiceTest {
     private UserRepository userRepository;
     @Mock
     private ProfileRepository profileRepository;
+    @Mock
+    private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
     private CollabServiceImpl collabService;
 
@@ -68,7 +70,8 @@ public class CollabServiceTest {
                 joinRequestRepository,
                 teamStarRepository,
                 userRepository,
-                profileRepository
+                profileRepository,
+                socialInteractionService
         );
     }
 
@@ -371,13 +374,27 @@ public class CollabServiceTest {
         team.setOwner(owner);
 
         when(teamRepository.findStarredTeams(userId)).thenReturn(List.of(team));
-        when(teamStarRepository.existsByIdTeamIdAndIdUserId(teamId, userId)).thenReturn(true);
+        when(socialInteractionService.isTeamStarredByUser(teamId, userId)).thenReturn(true);
 
         List<TeamResponseDto> starred = collabService.getStarredTeams(userId);
         assertNotNull(starred);
         assertEquals(1, starred.size());
         assertEquals("Starred Project", starred.get(0).getTitle());
         assertTrue(starred.get(0).isStarred());
+    }
+
+    @Test
+    void testToggleStarSuccess() {
+        UUID userId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+
+        when(socialInteractionService.toggleTeamStar(userId, teamId))
+                .thenReturn(Map.of("id", teamId, "starred", true, "starsCount", 1));
+
+        Map<String, Object> result = collabService.toggleStar(userId, teamId);
+
+        assertTrue((Boolean) result.get("starred"));
+        assertEquals(1, result.get("starsCount"));
     }
 
     @Test

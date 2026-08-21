@@ -55,6 +55,7 @@ import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getStudentBySlug,
   getStudentPosts,
@@ -94,6 +95,7 @@ const StudentProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);
+  const { triggerToggle } = useDebouncedToggle(400);
 
   // Join Dialog
   const [joinOpen, setJoinOpen] = useState(false);
@@ -173,45 +175,82 @@ const StudentProfilePage = () => {
   }, [decodedName]);
 
   const toggleLike = (id: string | number) => {
-    setStudentPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              liked: !p.liked,
-              likes: p.liked ? p.likes - 1 : p.likes + 1,
-            }
-          : p
-      )
+    const post = studentPosts.find((p) => p.id === id);
+    if (!post) return;
+    const currentLiked = !!post.liked;
+
+    triggerToggle(
+      id,
+      currentLiked,
+      (newLiked) => {
+        setStudentPosts((prev) =>
+          prev.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  liked: newLiked,
+                  likes: newLiked
+                    ? p.liked
+                      ? p.likes
+                      : p.likes + 1
+                    : p.liked
+                    ? Math.max(0, p.likes - 1)
+                    : p.likes,
+                }
+              : p
+          )
+        );
+      },
+      (signal) => apiLikePost(id, signal)
     );
-    apiLikePost(id);
   };
 
   const toggleSave = (id: string | number) => {
-    setStudentPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p))
+    const post = studentPosts.find((p) => p.id === id);
+    if (!post) return;
+    const currentSaved = !!post.saved;
+
+    triggerToggle(
+      id,
+      currentSaved,
+      (newSaved) => {
+        setStudentPosts((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, saved: newSaved } : p))
+        );
+      },
+      (signal) => apiSavePost(id, signal)
     );
-    apiSavePost(id);
   };
 
-  const handleToggleStar = async (teamId: string | number) => {
-    try {
-      const res = await starProject(teamId);
-      setStudentTeams((prev) =>
-        prev.map((t) =>
-          t.id === teamId
-            ? {
-                ...t,
-                starred: res.starred,
-                starsCount: res.starred ? (t.starsCount || 0) + 1 : Math.max(0, (t.starsCount || 0) - 1),
-              }
-            : t
-        )
-      );
-      toast.success(res.starred ? "Starred project!" : "Unstarred project");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to star project");
-    }
+  const handleToggleStar = (teamId: string | number) => {
+    const team = studentTeams.find((t) => t.id === teamId);
+    if (!team) return;
+    const currentStarred = !!team.starred;
+
+    triggerToggle(
+      teamId,
+      currentStarred,
+      (newStarred) => {
+        setStudentTeams((prev) =>
+          prev.map((t) =>
+            t.id === teamId
+              ? {
+                  ...t,
+                  starred: newStarred,
+                  starsCount: newStarred
+                    ? t.starred
+                      ? t.starsCount
+                      : (t.starsCount || 0) + 1
+                    : t.starred
+                    ? Math.max(0, (t.starsCount || 0) - 1)
+                    : t.starsCount || 0,
+                }
+              : t
+          )
+        );
+      },
+      (signal) => starProject(teamId, signal)
+    );
   };
 
   const isUserLeadOf = (t: any) => {

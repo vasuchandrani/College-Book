@@ -4,9 +4,16 @@ import com.collegebook.collegebookbackend.post.entity.PostLike;
 import com.collegebook.collegebookbackend.post.entity.PostLikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 import java.util.UUID;
 
 public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> {
     boolean existsByIdPostIdAndIdUserId(UUID postId, UUID userId);
     void deleteByIdPostIdAndIdUserId(UUID postId, UUID userId);
+
+    @Query("SELECT pl.id.userId FROM PostLike pl WHERE pl.id.postId = :postId")
+    List<UUID> findUserIdsByPostId(@Param("postId") UUID postId);
 }

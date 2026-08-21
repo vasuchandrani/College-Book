@@ -16,6 +16,7 @@ import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getPostById,
   likePost as apiLikePost,
@@ -27,6 +28,7 @@ import {
 const PostPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { triggerToggle } = useDebouncedToggle(400);
 
   const [post, setPost] = useState<FeedPost | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,29 +72,51 @@ const PostPage = () => {
 
   const toggleLike = () => {
     if (!post) return;
-    setPost((prev) =>
-      prev
-        ? {
-            ...prev,
-            liked: !prev.liked,
-            likes: prev.liked ? prev.likes - 1 : prev.likes + 1,
-          }
-        : null
+    const currentLiked = !!post.liked;
+
+    triggerToggle(
+      post.id,
+      currentLiked,
+      (newLiked) => {
+        setPost((prev) =>
+          prev
+            ? {
+                ...prev,
+                liked: newLiked,
+                likes: newLiked
+                  ? prev.liked
+                    ? prev.likes
+                    : prev.likes + 1
+                  : prev.liked
+                  ? Math.max(0, prev.likes - 1)
+                  : prev.likes,
+              }
+            : null
+        );
+      },
+      (signal) => apiLikePost(post.id, signal)
     );
-    apiLikePost(post.id).catch(() => {});
   };
 
   const toggleSave = () => {
     if (!post) return;
-    setPost((prev) =>
-      prev
-        ? {
-            ...prev,
-            saved: !prev.saved,
-          }
-        : null
+    const currentSaved = !!post.saved;
+
+    triggerToggle(
+      post.id,
+      currentSaved,
+      (newSaved) => {
+        setPost((prev) =>
+          prev
+            ? {
+                ...prev,
+                saved: newSaved,
+              }
+            : null
+        );
+      },
+      (signal) => apiSavePost(post.id, signal)
     );
-    apiSavePost(post.id).catch(() => {});
   };
 
   const handleShare = async () => {

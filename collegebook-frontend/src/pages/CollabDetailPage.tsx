@@ -40,10 +40,12 @@ import { toast } from "sonner";
 import { getTeamById, starProject, sendJoinRequest, getMyJoinedRequests } from "@/lib/api";
 import { FormattedContent } from "@/components/FormattedContent";
 import { ThemedLoader } from "@/components/ThemedLoader";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 
 export default function CollabDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { triggerToggle } = useDebouncedToggle(400);
 
   const [team, setTeam] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -88,22 +90,32 @@ export default function CollabDetailPage() {
     };
   }, [id]);
 
-  const handleToggleStar = async () => {
+  const handleToggleStar = () => {
     if (!team) return;
-    setStarring(true);
-    try {
-      const res = await starProject(team.id);
-      setTeam((prev: any) => ({
-        ...prev,
-        starred: res.starred,
-        starsCount: res.starred ? (prev.starsCount || 0) + 1 : Math.max(0, (prev.starsCount || 0) - 1),
-      }));
-      toast.success(res.starred ? "Starred project!" : "Unstarred project");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to star project");
-    } finally {
-      setStarring(false);
-    }
+    const currentStarred = !!team.starred;
+
+    triggerToggle(
+      team.id,
+      currentStarred,
+      (newStarred) => {
+        setTeam((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                starred: newStarred,
+                starsCount: newStarred
+                  ? prev.starred
+                    ? prev.starsCount
+                    : (prev.starsCount || 0) + 1
+                  : prev.starred
+                  ? Math.max(0, (prev.starsCount || 0) - 1)
+                  : prev.starsCount || 0,
+              }
+            : prev
+        );
+      },
+      (signal) => starProject(team.id, signal)
+    );
   };
 
   const handleCopyLink = () => {

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface TeamStarRepository extends JpaRepository<TeamStar, TeamStarId> {
@@ -16,4 +17,7 @@ public interface TeamStarRepository extends JpaRepository<TeamStar, TeamStarId> 
     @Modifying
     @Query("DELETE FROM TeamStar ts WHERE ts.id.teamId = :teamId")
     void deleteByIdTeamId(@Param("teamId") UUID teamId);
+
+    @Query("SELECT ts.id.userId FROM TeamStar ts WHERE ts.id.teamId = :teamId")
+    List<UUID> findUserIdsByTeamId(@Param("teamId") UUID teamId);
 }

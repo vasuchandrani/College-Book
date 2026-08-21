@@ -30,6 +30,8 @@ import com.collegebook.collegebookbackend.storage.dto.MediaDto;
 import com.collegebook.collegebookbackend.storage.dto.MediaKeyDto;
 import com.collegebook.collegebookbackend.storage.service.MediaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -60,9 +62,14 @@ public class PostServiceImpl implements PostService {
     private final ProfileRepository profileRepository;
     private final PostMediaRepository postMediaRepository;
     private final MediaService mediaService;
+    private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "feed",
+            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#collegeId != null ? #collegeId.toString() : 'global') + ':' + (#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
+    )
     public PageResponse<PostResponseDto> getFeed(UUID userId, UUID collegeId, String tag, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postsPage;
@@ -86,6 +93,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "explore",
+            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
+    )
     public PageResponse<PostResponseDto> getExplore(UUID userId, String tag, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postsPage;
@@ -154,6 +165,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"feed", "explore"}, allEntries = true)
     public PostResponseDto createPost(UUID userId, CreatePostRequest request) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -247,6 +259,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"feed", "explore"}, allEntries = true)
     public void deletePost(UUID userId, UUID postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
@@ -257,54 +270,17 @@ public class PostServiceImpl implements PostService {
 
         mediaService.deleteAllMediaForEntity("POST", postId);
         postRepository.delete(post);
+        socialInteractionService.evictPost(postId);
     }
 
     @Override
-    @Transactional
     public Map<String, Object> toggleLike(UUID userId, UUID postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-
-        boolean liked;
-        if (postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId)) {
-            postLikeRepository.deleteByIdPostIdAndIdUserId(postId, userId);
-            post.setLikesCount(Math.max(0, post.getLikesCount() - 1));
-            liked = false;
-        } else {
-            postLikeRepository.save(new PostLike(post, user));
-            post.setLikesCount(post.getLikesCount() + 1);
-            liked = true;
-        }
-        postRepository.save(post);
-
-        return Map.of("id", postId, "liked", liked, "likesCount", post.getLikesCount());
+        return socialInteractionService.togglePostLike(userId, postId);
     }
 
     @Override
-    @Transactional
     public Map<String, Object> toggleSave(UUID userId, UUID postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-
-        boolean saved;
-        if (postSaveRepository.existsByIdPostIdAndIdUserId(postId, userId)) {
-            postSaveRepository.deleteByIdPostIdAndIdUserId(postId, userId);
-            post.setSavesCount(Math.max(0, post.getSavesCount() - 1));
-            saved = false;
-        } else {
-            postSaveRepository.save(new PostSave(post, user));
-            post.setSavesCount(post.getSavesCount() + 1);
-            saved = true;
-        }
-        postRepository.save(post);
-
-        return Map.of("id", postId, "saved", saved, "savesCount", post.getSavesCount());
+        return socialInteractionService.togglePostSave(userId, postId);
     }
 
     @Override
@@ -410,12 +386,13 @@ public class PostServiceImpl implements PostService {
         }
 
         dto.setMedia(mediaDtos);
-        dto.setLikes(post.getLikesCount());
+        int effectiveLikes = (int) socialInteractionService.getPostLikesCount(post.getId(), post.getLikesCount());
+        dto.setLikes(effectiveLikes);
         dto.setCommentsCount(post.getCommentsCount());
 
         if (userId != null) {
-            dto.setLiked(postLikeRepository.existsByIdPostIdAndIdUserId(post.getId(), userId));
-            dto.setSaved(postSaveRepository.existsByIdPostIdAndIdUserId(post.getId(), userId));
+            dto.setLiked(socialInteractionService.isPostLikedByUser(post.getId(), userId));
+            dto.setSaved(socialInteractionService.isPostSavedByUser(post.getId(), userId));
         }
 
         if (post.getTags() != null) {

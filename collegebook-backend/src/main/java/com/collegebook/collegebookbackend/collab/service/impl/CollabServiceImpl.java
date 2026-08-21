@@ -26,6 +26,8 @@ import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +51,7 @@ public class CollabServiceImpl implements CollabService {
     private final TeamStarRepository teamStarRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
+    private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
     public CollabServiceImpl(
             TeamRepository teamRepository,
@@ -56,7 +59,8 @@ public class CollabServiceImpl implements CollabService {
             JoinRequestRepository joinRequestRepository,
             TeamStarRepository teamStarRepository,
             UserRepository userRepository,
-            ProfileRepository profileRepository
+            ProfileRepository profileRepository,
+            com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService
     ) {
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
@@ -64,10 +68,15 @@ public class CollabServiceImpl implements CollabService {
         this.teamStarRepository = teamStarRepository;
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.socialInteractionService = socialInteractionService;
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "collab_teams",
+            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#collegeId != null ? #collegeId.toString() : 'all') + ':' + (#type != null ? #type.name() : 'all') + ':' + #page + ':' + #size"
+    )
     public PageResponse<TeamResponseDto> getTeams(UUID userId, UUID collegeId, TeamType type, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Team> teamsPage;
@@ -173,6 +182,7 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "collab_teams", allEntries = true)
     public TeamResponseDto createTeam(UUID userId, CreateTeamRequest request) {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -242,6 +252,7 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "collab_teams", allEntries = true)
     public TeamResponseDto updateTeam(UUID userId, UUID teamId, UpdateTeamRequest request) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team/Project not found"));
@@ -358,27 +369,8 @@ public class CollabServiceImpl implements CollabService {
     }
 
     @Override
-    @Transactional
     public Map<String, Object> toggleStar(UUID userId, UUID teamId) {
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team not found"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-
-        boolean starred;
-        if (teamStarRepository.existsByIdTeamIdAndIdUserId(teamId, userId)) {
-            teamStarRepository.deleteByIdTeamIdAndIdUserId(teamId, userId);
-            team.setStarsCount(Math.max(0, team.getStarsCount() - 1));
-            starred = false;
-        } else {
-            teamStarRepository.save(new TeamStar(team, user));
-            team.setStarsCount(team.getStarsCount() + 1);
-            starred = true;
-        }
-        teamRepository.save(team);
-
-        return Map.of("id", teamId, "starred", starred, "starsCount", team.getStarsCount());
+        return socialInteractionService.toggleTeamStar(userId, teamId);
     }
 
     @Override
@@ -400,6 +392,7 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "collab_teams", allEntries = true)
     public TeamResponseDto markComplete(UUID ownerId, UUID teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team not found"));
@@ -415,6 +408,7 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "collab_teams", allEntries = true)
     public void deleteTeam(UUID ownerId, UUID teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team/Project not found"));
@@ -438,6 +432,9 @@ public class CollabServiceImpl implements CollabService {
 
         // 4. Delete the team itself
         teamRepository.delete(team);
+
+        // 5. Evict Redis star keys
+        socialInteractionService.evictTeam(teamId);
     }
 
     @Override
@@ -553,7 +550,8 @@ public class CollabServiceImpl implements CollabService {
         dto.setMaxMembers(team.getMaxMembers());
         dto.setCurrentMembersCount(team.getCurrentMembersCount());
         dto.setCompleted(team.isCompleted());
-        dto.setStarsCount(team.getStarsCount());
+        int effectiveStars = (int) socialInteractionService.getTeamStarsCount(team.getId(), team.getStarsCount());
+        dto.setStarsCount(effectiveStars);
         dto.setOwnerCollegeName(team.getOwnerCollegeName());
 
         // Map team members
@@ -579,7 +577,7 @@ public class CollabServiceImpl implements CollabService {
         }
 
         if (userId != null) {
-            dto.setStarred(teamStarRepository.existsByIdTeamIdAndIdUserId(team.getId(), userId));
+            dto.setStarred(socialInteractionService.isTeamStarredByUser(team.getId(), userId));
         }
 
         dto.setCreatedAt(team.getCreatedAt());

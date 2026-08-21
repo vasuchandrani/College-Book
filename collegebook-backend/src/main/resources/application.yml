@@ -45,8 +45,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp-relay.brevo.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USER:8f2a3d001@smtp-brevo.com}
-    password: ${MAIL_PASS:YOUR_BREVO_API_KEY}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASS:}
     properties:
       mail:
         smtp:
@@ -95,6 +95,11 @@ app:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:8080,http://localhost:8081,http://localhost:5173,http://localhost:3000,https://*.vercel.app}
   ads:
     every-n-posts: 5
+  social:
+    sync-interval-ms: ${SOCIAL_SYNC_INTERVAL_MS:15000}
+    feed-cache-ttl-seconds: ${FEED_CACHE_TTL_SECONDS:30}
+    collab-cache-ttl-seconds: ${COLLAB_CACHE_TTL_SECONDS:60}
+    interaction-ttl-hours: ${INTERACTION_TTL_HOURS:168}
 
 springdoc:
   api-docs:

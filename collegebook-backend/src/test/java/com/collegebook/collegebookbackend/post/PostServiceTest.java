@@ -58,6 +58,8 @@ public class PostServiceTest {
     private PostMediaRepository postMediaRepository;
     @Mock
     private MediaService mediaService;
+    @Mock
+    private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
     private PostServiceImpl postService;
 
@@ -72,7 +74,8 @@ public class PostServiceTest {
                 userRepository,
                 profileRepository,
                 postMediaRepository,
-                mediaService
+                mediaService,
+                socialInteractionService
         );
     }
 
@@ -85,18 +88,26 @@ public class PostServiceTest {
         college.setId(UUID.randomUUID());
         author.setCollege(college);
 
+        CreatePostRequest req = CreatePostRequest.builder()
+                .content("Hello CollegeBook!")
+                .isGlobal(true)
+                .tags(List.of("tech"))
+                .mediaKeys(List.of())
+                .images(List.of())
+                .build();
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(author));
-        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
-            Post p = invocation.getArgument(0);
+        when(postRepository.save(any(Post.class))).thenAnswer(i -> {
+            Post p = i.getArgument(0);
             p.setId(UUID.randomUUID());
             return p;
         });
 
-        CreatePostRequest req = new CreatePostRequest("Hello CollegeBook!", List.of(), List.of("general"));
-        PostResponseDto resp = postService.createPost(userId, req);
+        PostResponseDto dto = postService.createPost(userId, req);
 
-        assertNotNull(resp);
-        assertEquals("Hello CollegeBook!", resp.getContent());
+        assertNotNull(dto);
+        assertEquals("Hello CollegeBook!", dto.getContent());
+        verify(postRepository).save(any(Post.class));
     }
 
     @Test
@@ -189,15 +200,9 @@ public class PostServiceTest {
     void testToggleLikeNew() {
         UUID userId = UUID.randomUUID();
         UUID postId = UUID.randomUUID();
-        Post post = new Post();
-        post.setId(postId);
-        post.setLikesCount(0);
-        User user = new User();
-        user.setId(userId);
 
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId)).thenReturn(false);
+        when(socialInteractionService.togglePostLike(userId, postId))
+                .thenReturn(Map.of("id", postId, "liked", true, "likesCount", 1));
 
         Map<String, Object> result = postService.toggleLike(userId, postId);
 

@@ -27,6 +27,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { toast } from "sonner";
 import {
   getFeedPosts,
@@ -79,6 +80,7 @@ const FeedPage = () => {
   const tagInputRef = useRef<HTMLInputElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const { triggerToggle } = useDebouncedToggle(400);
 
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("cb_user");
@@ -228,25 +230,51 @@ const FeedPage = () => {
   }, [posts]);
 
   const toggleLike = (id: string | number) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              liked: !p.liked,
-              likes: p.liked ? p.likes - 1 : p.likes + 1,
-            }
-          : p
-      )
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    const currentLiked = !!post.liked;
+
+    triggerToggle(
+      id,
+      currentLiked,
+      (newLiked) => {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  liked: newLiked,
+                  likes: newLiked
+                    ? p.liked
+                      ? p.likes
+                      : p.likes + 1
+                    : p.liked
+                    ? Math.max(0, p.likes - 1)
+                    : p.likes,
+                }
+              : p
+          )
+        );
+      },
+      (signal) => apiLikePost(id, signal)
     );
-    apiLikePost(id);
   };
 
   const toggleSave = (id: string | number) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p))
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+    const currentSaved = !!post.saved;
+
+    triggerToggle(
+      id,
+      currentSaved,
+      (newSaved) => {
+        setPosts((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, saved: newSaved } : p))
+        );
+      },
+      (signal) => apiSavePost(id, signal)
     );
-    apiSavePost(id);
   };
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

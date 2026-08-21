@@ -79,6 +79,7 @@ import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getProfile,
   updateProfile,
@@ -204,6 +205,7 @@ const ProfilePage = () => {
     return () => clearInterval(timer);
   }, [passwordOtpCooldown, memoryOtpCooldown]);
   const [removingMemoryEmail, setRemovingMemoryEmail] = useState(false);
+  const { triggerToggle } = useDebouncedToggle(400);
 
   const [activityPosts, setActivityPosts] = useState<any[]>([]);
   const [createdProjects, setCreatedProjects] = useState<any[]>([]);
@@ -1244,24 +1246,35 @@ const ProfilePage = () => {
     }
   };
 
-  const handleToggleStar = async (teamId: string | number) => {
-    try {
-      const res = await starProject(teamId);
-      setCreatedProjects((prev) =>
-        prev.map((t) =>
-          t.id === teamId
-            ? {
-                ...t,
-                starred: res.starred,
-                starsCount: res.starred ? (t.starsCount || 0) + 1 : Math.max(0, (t.starsCount || 0) - 1),
-              }
-            : t
-        )
-      );
-      toast.success(res.starred ? "Project starred!" : "Project unstarred");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update star");
-    }
+  const handleToggleStar = (teamId: string | number) => {
+    const team = createdProjects.find((t) => t.id === teamId);
+    if (!team) return;
+    const currentStarred = !!team.starred;
+
+    triggerToggle(
+      teamId,
+      currentStarred,
+      (newStarred) => {
+        setCreatedProjects((prev) =>
+          prev.map((t) =>
+            t.id === teamId
+              ? {
+                  ...t,
+                  starred: newStarred,
+                  starsCount: newStarred
+                    ? t.starred
+                      ? t.starsCount
+                      : (t.starsCount || 0) + 1
+                    : t.starred
+                    ? Math.max(0, (t.starsCount || 0) - 1)
+                    : t.starsCount || 0,
+                }
+              : t
+          )
+        );
+      },
+      (signal) => starProject(teamId, signal)
+    );
   };
 
   const myOpenSourceProjects = createdProjects.filter(

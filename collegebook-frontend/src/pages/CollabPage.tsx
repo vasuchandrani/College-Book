@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { getCollabTeams, getMyJoinedRequests, createTeam, starProject, sendJoinRequest, lookupStudent } from "@/lib/api";
 import { ThemedLoader } from "@/components/ThemedLoader";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
 const commonTechSuggestions = [
@@ -97,6 +98,7 @@ const CollabPage = () => {
   const [search, setSearch] = useState("");
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const { triggerToggle } = useDebouncedToggle(400);
 
   // 3 Filters (No Sort By)
   const [selectedTech, setSelectedTech] = useState<string>("ALL");
@@ -163,24 +165,35 @@ const CollabPage = () => {
     };
   }, []);
 
-  const handleToggleStar = async (teamId: string | number) => {
-    try {
-      const res = await starProject(teamId);
-      setTeams((prev) =>
-        prev.map((t) =>
-          t.id === teamId
-            ? {
-                ...t,
-                starred: res.starred,
-                starsCount: res.starred ? (t.starsCount || 0) + 1 : Math.max(0, (t.starsCount || 0) - 1),
-              }
-            : t
-        )
-      );
-      toast.success(res.starred ? "Starred project!" : "Unstarred project");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to star project");
-    }
+  const handleToggleStar = (teamId: string | number) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return;
+    const currentStarred = !!team.starred;
+
+    triggerToggle(
+      teamId,
+      currentStarred,
+      (newStarred) => {
+        setTeams((prev) =>
+          prev.map((t) =>
+            t.id === teamId
+              ? {
+                  ...t,
+                  starred: newStarred,
+                  starsCount: newStarred
+                    ? t.starred
+                      ? t.starsCount
+                      : (t.starsCount || 0) + 1
+                    : t.starred
+                    ? Math.max(0, (t.starsCount || 0) - 1)
+                    : t.starsCount || 0,
+                }
+              : t
+          )
+        );
+      },
+      (signal) => starProject(teamId, signal)
+    );
   };
 
   const addRoleTag = (role: string) => {
