@@ -10,11 +10,21 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "project_stars")
+@Table(name = "team_stars")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TeamStar {
 
     @EmbeddedId
@@ -33,9 +43,6 @@ public class TeamStar {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public TeamStar() {
-    }
-
     public TeamStar(Team team, User user) {
         this.id = new TeamStarId(team.getId(), user.getId());
         this.team = team;
@@ -47,37 +54,5 @@ public class TeamStar {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
-    }
-
-    public TeamStarId getId() {
-        return id;
-    }
-
-    public void setId(TeamStarId id) {
-        this.id = id;
-    }
-
-    public Team getTeam() {
-        return team;
-    }
-
-    public void setTeam(Team team) {
-        this.team = team;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }

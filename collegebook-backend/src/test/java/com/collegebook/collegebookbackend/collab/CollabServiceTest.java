@@ -629,4 +629,47 @@ public class CollabServiceTest {
         AppException ex = assertThrows(AppException.class, () -> collabService.deleteJoinRequest(otherUserId, requestId));
         assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
     }
+
+    @Test
+    void testGetTeamsWithStarPersonalizationOverlay() {
+        UUID collegeId = UUID.randomUUID();
+        UUID userA = UUID.randomUUID();
+        UUID userB = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+
+        User owner = new User();
+        owner.setId(UUID.randomUUID());
+        owner.setEmail("lead@ddu.ac.in");
+
+        Team team = new Team();
+        team.setId(teamId);
+        team.setOwner(owner);
+        team.setTitle("AI Research Group");
+        team.setType(TeamType.PROJECT);
+        team.setStarsCount(5);
+
+        org.springframework.data.domain.Page<Team> page = new org.springframework.data.domain.PageImpl<>(
+                List.of(team),
+                org.springframework.data.domain.PageRequest.of(0, 10),
+                1
+        );
+
+        when(teamRepository.findByCollegeIdAndCompletedFalse(any(), any())).thenReturn(page);
+        when(socialInteractionService.getTeamStarsCount(teamId, 5)).thenReturn(5L);
+
+        // User A starred the project, User B has not
+        when(socialInteractionService.isTeamStarredByUser(teamId, userA)).thenReturn(true);
+        when(socialInteractionService.isTeamStarredByUser(teamId, userB)).thenReturn(false);
+
+        com.collegebook.collegebookbackend.common.PageResponse<TeamResponseDto> respA = collabService.getTeams(userA, collegeId, null, 0, 10);
+        com.collegebook.collegebookbackend.common.PageResponse<TeamResponseDto> respB = collabService.getTeams(userB, collegeId, null, 0, 10);
+
+        assertNotNull(respA);
+        assertEquals(1, respA.getItems().size());
+        assertTrue(respA.getItems().get(0).isStarred());
+
+        assertNotNull(respB);
+        assertEquals(1, respB.getItems().size());
+        org.junit.jupiter.api.Assertions.assertFalse(respB.getItems().get(0).isStarred());
+    }
 }

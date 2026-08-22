@@ -4,6 +4,7 @@ import com.collegebook.collegebookbackend.ad.dto.AdResponseDto;
 import com.collegebook.collegebookbackend.admin.dto.CreateAdRequest;
 import com.collegebook.collegebookbackend.admin.service.AdminService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,13 +19,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final AdminService adminService;
-
-    public AdminController(AdminService adminService) {
-        this.adminService = adminService;
-    }
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getAdminStats() {

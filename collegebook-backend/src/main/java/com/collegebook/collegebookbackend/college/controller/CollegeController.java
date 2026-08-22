@@ -4,6 +4,7 @@ import com.collegebook.collegebookbackend.college.dto.CollegeDto;
 import com.collegebook.collegebookbackend.college.dto.CourseDto;
 import com.collegebook.collegebookbackend.college.dto.DepartmentDto;
 import com.collegebook.collegebookbackend.college.service.CollegeService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,13 +16,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/colleges")
+@RequiredArgsConstructor
 public class CollegeController {
 
     private final CollegeService collegeService;
-
-    public CollegeController(CollegeService collegeService) {
-        this.collegeService = collegeService;
-    }
 
     @GetMapping
     public ResponseEntity<List<CollegeDto>> getAllColleges() {

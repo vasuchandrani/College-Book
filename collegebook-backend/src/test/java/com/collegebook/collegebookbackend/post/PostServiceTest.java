@@ -211,6 +211,54 @@ public class PostServiceTest {
     }
 
     @Test
+    void testGetFeedWithPersonalizationOverlay() {
+        UUID collegeId = UUID.randomUUID();
+        UUID userA = UUID.randomUUID();
+        UUID userB = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(UUID.randomUUID());
+        author.setEmail("author@ddu.ac.in");
+
+        Post post = new Post();
+        post.setId(postId);
+        post.setAuthor(author);
+        post.setContent("Shared College Post");
+        post.setLikesCount(10);
+
+        org.springframework.data.domain.Page<Post> page = new org.springframework.data.domain.PageImpl<>(
+                List.of(post),
+                org.springframework.data.domain.PageRequest.of(0, 10),
+                1
+        );
+
+        when(postRepository.findByCollegeId(any(), any())).thenReturn(page);
+        when(socialInteractionService.getPostLikesCount(postId, 10)).thenReturn(10L);
+
+        // User A liked the post
+        when(socialInteractionService.isPostLikedByUser(postId, userA)).thenReturn(true);
+        when(socialInteractionService.isPostSavedByUser(postId, userA)).thenReturn(false);
+
+        // User B has not liked the post, but saved it
+        when(socialInteractionService.isPostLikedByUser(postId, userB)).thenReturn(false);
+        when(socialInteractionService.isPostSavedByUser(postId, userB)).thenReturn(true);
+
+        com.collegebook.collegebookbackend.common.PageResponse<PostResponseDto> respA = postService.getFeed(userA, collegeId, null, 0, 10);
+        com.collegebook.collegebookbackend.common.PageResponse<PostResponseDto> respB = postService.getFeed(userB, collegeId, null, 0, 10);
+
+        assertNotNull(respA);
+        assertEquals(1, respA.getItems().size());
+        assertTrue(respA.getItems().get(0).isLiked());
+        org.junit.jupiter.api.Assertions.assertFalse(respA.getItems().get(0).isSaved());
+
+        assertNotNull(respB);
+        assertEquals(1, respB.getItems().size());
+        org.junit.jupiter.api.Assertions.assertFalse(respB.getItems().get(0).isLiked());
+        assertTrue(respB.getItems().get(0).isSaved());
+    }
+
+    @Test
     void testDeletePostUnauthorized() {
         UUID authorId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();

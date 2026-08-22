@@ -13,12 +13,22 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "join_requests")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class JoinRequest {
 
     @Id
@@ -42,6 +52,7 @@ public class JoinRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private JoinRequestStatus status = JoinRequestStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -49,9 +60,6 @@ public class JoinRequest {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public JoinRequest() {
-    }
 
     @PrePersist
     protected void onCreate() {
@@ -67,69 +75,5 @@ public class JoinRequest {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public Team getTeam() {
-        return team;
-    }
-
-    public void setTeam(Team team) {
-        this.team = team;
-    }
-
-    public User getApplicant() {
-        return applicant;
-    }
-
-    public void setApplicant(User applicant) {
-        this.applicant = applicant;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public JoinRequestStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(JoinRequestStatus status) {
-        this.status = status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

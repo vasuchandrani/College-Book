@@ -17,6 +17,7 @@ import com.collegebook.collegebookbackend.post.dto.CommentResponseDto;
 import com.collegebook.collegebookbackend.post.dto.CreateCommentRequest;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AdServiceImpl implements AdService {
 
     private final AdRepository adRepository;
@@ -40,20 +42,6 @@ public class AdServiceImpl implements AdService {
     private final AdCommentRepository adCommentRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
-
-    public AdServiceImpl(
-            AdRepository adRepository,
-            AdLikeRepository adLikeRepository,
-            AdCommentRepository adCommentRepository,
-            UserRepository userRepository,
-            ProfileRepository profileRepository
-    ) {
-        this.adRepository = adRepository;
-        this.adLikeRepository = adLikeRepository;
-        this.adCommentRepository = adCommentRepository;
-        this.userRepository = userRepository;
-        this.profileRepository = profileRepository;
-    }
 
     @Override
     @Transactional(readOnly = true)

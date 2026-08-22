@@ -10,11 +10,21 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "post_saves")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PostSave {
 
     @EmbeddedId
@@ -33,9 +43,6 @@ public class PostSave {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public PostSave() {
-    }
-
     public PostSave(Post post, User user) {
         this.id = new PostSaveId(post.getId(), user.getId());
         this.post = post;
@@ -47,37 +54,5 @@ public class PostSave {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
-    }
-
-    public PostSaveId getId() {
-        return id;
-    }
-
-    public void setId(PostSaveId id) {
-        this.id = id;
-    }
-
-    public Post getPost() {
-        return post;
-    }
-
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }

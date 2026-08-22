@@ -15,6 +15,7 @@ import com.collegebook.collegebookbackend.auth.UserPrincipal;
 import com.collegebook.collegebookbackend.common.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,13 +28,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
 
     @PostMapping("/otp/send")
     public ResponseEntity<com.collegebook.collegebookbackend.auth.dto.SendOtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {

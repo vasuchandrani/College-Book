@@ -12,11 +12,21 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "team_members")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TeamMember {
 
     @EmbeddedId
@@ -34,13 +44,11 @@ public class TeamMember {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
+    @Builder.Default
     private TeamMemberRole role = TeamMemberRole.MEMBER;
 
     @Column(name = "joined_at", nullable = false, updatable = false)
     private Instant joinedAt;
-
-    public TeamMember() {
-    }
 
     public TeamMember(Team team, User user, TeamMemberRole role) {
         this.id = new TeamMemberId(team.getId(), user.getId());
@@ -54,45 +62,5 @@ public class TeamMember {
         if (this.joinedAt == null) {
             this.joinedAt = Instant.now();
         }
-    }
-
-    public TeamMemberId getId() {
-        return id;
-    }
-
-    public void setId(TeamMemberId id) {
-        this.id = id;
-    }
-
-    public Team getTeam() {
-        return team;
-    }
-
-    public void setTeam(Team team) {
-        this.team = team;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public TeamMemberRole getRole() {
-        return role;
-    }
-
-    public void setRole(TeamMemberRole role) {
-        this.role = role;
-    }
-
-    public Instant getJoinedAt() {
-        return joinedAt;
-    }
-
-    public void setJoinedAt(Instant joinedAt) {
-        this.joinedAt = joinedAt;
     }
 }

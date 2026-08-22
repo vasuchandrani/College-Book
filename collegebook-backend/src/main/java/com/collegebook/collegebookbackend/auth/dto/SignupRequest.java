@@ -2,11 +2,18 @@ package com.collegebook.collegebookbackend.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SignupRequest {
 
     @NotBlank(message = "Email cannot be blank")
@@ -25,87 +32,11 @@ public class SignupRequest {
     private String handle;
 
     private UUID collegeId;
-
     private UUID courseId;
-
     private UUID departmentId;
 
+    @Builder.Default
     private Integer currentYear = 1;
 
     private String gender;
-
-    public SignupRequest() {
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getHandle() {
-        return handle;
-    }
-
-    public void setHandle(String handle) {
-        this.handle = handle;
-    }
-
-    public UUID getCollegeId() {
-        return collegeId;
-    }
-
-    public void setCollegeId(UUID collegeId) {
-        this.collegeId = collegeId;
-    }
-
-    public UUID getCourseId() {
-        return courseId;
-    }
-
-    public void setCourseId(UUID courseId) {
-        this.courseId = courseId;
-    }
-
-    public UUID getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(UUID departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public Integer getCurrentYear() {
-        return currentYear;
-    }
-
-    public void setCurrentYear(Integer currentYear) {
-        this.currentYear = currentYear;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
 }

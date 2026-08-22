@@ -5,9 +5,18 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateTeamRequest {
 
     @NotBlank(message = "Title cannot be blank")
@@ -19,86 +28,20 @@ public class CreateTeamRequest {
 
     private String description;
     private String githubLink;
-    private List<String> skills;
-    private List<String> requiredRoles;
-    private List<String> requiredExpertise;
-    private List<String> memberHandles;
+
+    @Builder.Default
+    private List<String> skills = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> requiredRoles = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> requiredExpertise = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> memberHandles = new ArrayList<>();
 
     @Min(value = 0, message = "Max members must be at least 0 (0 = unlimited for open source)")
+    @Builder.Default
     private int maxMembers = 4;
-
-    public CreateTeamRequest() {
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public TeamType getType() {
-        return type;
-    }
-
-    public void setType(TeamType type) {
-        this.type = type;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getGithubLink() {
-        return githubLink;
-    }
-
-    public void setGithubLink(String githubLink) {
-        this.githubLink = githubLink;
-    }
-
-    public List<String> getSkills() {
-        return skills;
-    }
-
-    public void setSkills(List<String> skills) {
-        this.skills = skills;
-    }
-
-    public List<String> getRequiredRoles() {
-        return requiredRoles;
-    }
-
-    public void setRequiredRoles(List<String> requiredRoles) {
-        this.requiredRoles = requiredRoles;
-    }
-
-    public List<String> getRequiredExpertise() {
-        return requiredExpertise;
-    }
-
-    public void setRequiredExpertise(List<String> requiredExpertise) {
-        this.requiredExpertise = requiredExpertise;
-    }
-
-    public List<String> getMemberHandles() {
-        return memberHandles;
-    }
-
-    public void setMemberHandles(List<String> memberHandles) {
-        this.memberHandles = memberHandles;
-    }
-
-    public int getMaxMembers() {
-        return maxMembers;
-    }
-
-    public void setMaxMembers(int maxMembers) {
-        this.maxMembers = maxMembers;
-    }
 }

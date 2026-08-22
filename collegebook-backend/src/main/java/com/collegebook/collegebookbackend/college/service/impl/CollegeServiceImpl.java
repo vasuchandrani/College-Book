@@ -12,6 +12,7 @@ import com.collegebook.collegebookbackend.college.repository.DepartmentRepositor
 import com.collegebook.collegebookbackend.college.service.CollegeService;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,23 +22,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CollegeServiceImpl implements CollegeService {
 
     private final CollegeRepository collegeRepository;
     private final CourseRepository courseRepository;
     private final DepartmentRepository departmentRepository;
     private final com.collegebook.collegebookbackend.college.repository.CollegeRequestRepository collegeRequestRepository;
-
-    public CollegeServiceImpl(
-            CollegeRepository collegeRepository,
-            CourseRepository courseRepository,
-            DepartmentRepository departmentRepository,
-            com.collegebook.collegebookbackend.college.repository.CollegeRequestRepository collegeRequestRepository) {
-        this.collegeRepository = collegeRepository;
-        this.courseRepository = courseRepository;
-        this.departmentRepository = departmentRepository;
-        this.collegeRequestRepository = collegeRequestRepository;
-    }
 
     @Override
     @Transactional(readOnly = true)

@@ -36,6 +36,7 @@ import com.collegebook.collegebookbackend.config.JwtService;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.dto.ProfileDto;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -68,36 +70,6 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final TokenService tokenService;
     private final EmailService emailService;
-
-    public AuthServiceImpl(
-            UserRepository userRepository,
-            UserRoleRepository userRoleRepository,
-            EmailOtpRepository emailOtpRepository,
-            PasswordResetRepository passwordResetRepository,
-            CollegeRepository collegeRepository,
-            CourseRepository courseRepository,
-            DepartmentRepository departmentRepository,
-            ProfileRepository profileRepository,
-            HandleBloomFilterService handleBloomFilterService,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            TokenService tokenService,
-            EmailService emailService
-    ) {
-        this.userRepository = userRepository;
-        this.userRoleRepository = userRoleRepository;
-        this.emailOtpRepository = emailOtpRepository;
-        this.passwordResetRepository = passwordResetRepository;
-        this.collegeRepository = collegeRepository;
-        this.courseRepository = courseRepository;
-        this.departmentRepository = departmentRepository;
-        this.profileRepository = profileRepository;
-        this.handleBloomFilterService = handleBloomFilterService;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.tokenService = tokenService;
-        this.emailService = emailService;
-    }
 
     @Override
     @Transactional

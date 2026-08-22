@@ -26,8 +26,11 @@ import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +46,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CollabServiceImpl implements CollabService {
 
     private final TeamRepository teamRepository;
@@ -53,31 +57,23 @@ public class CollabServiceImpl implements CollabService {
     private final ProfileRepository profileRepository;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
-    public CollabServiceImpl(
-            TeamRepository teamRepository,
-            TeamMemberRepository teamMemberRepository,
-            JoinRequestRepository joinRequestRepository,
-            TeamStarRepository teamStarRepository,
-            UserRepository userRepository,
-            ProfileRepository profileRepository,
-            com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService
-    ) {
-        this.teamRepository = teamRepository;
-        this.teamMemberRepository = teamMemberRepository;
-        this.joinRequestRepository = joinRequestRepository;
-        this.teamStarRepository = teamStarRepository;
-        this.userRepository = userRepository;
-        this.profileRepository = profileRepository;
-        this.socialInteractionService = socialInteractionService;
+    @Lazy
+    @Autowired
+    private CollabService self;
+
+    @Override
+    public PageResponse<TeamResponseDto> getTeams(UUID userId, UUID collegeId, TeamType type, int page, int size) {
+        PageResponse<TeamResponseDto> publicPage = (self != null ? self : this).getPublicTeams(collegeId, type, page, size);
+        return overlayUserTeamPersonalization(publicPage, userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(
             value = "collab_teams",
-            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#collegeId != null ? #collegeId.toString() : 'all') + ':' + (#type != null ? #type.name() : 'all') + ':' + #page + ':' + #size"
+            key = "(#collegeId != null ? #collegeId.toString() : 'all') + ':' + (#type != null ? #type.name() : 'all') + ':' + #page + ':' + #size"
     )
-    public PageResponse<TeamResponseDto> getTeams(UUID userId, UUID collegeId, TeamType type, int page, int size) {
+    public PageResponse<TeamResponseDto> getPublicTeams(UUID collegeId, TeamType type, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Team> teamsPage;
 
@@ -88,10 +84,33 @@ public class CollabServiceImpl implements CollabService {
         }
 
         List<TeamResponseDto> content = teamsPage.getContent().stream()
-                .map(t -> mapToTeamDto(t, userId))
+                .map(this::mapToPublicTeamDto)
                 .collect(Collectors.toList());
 
         return PageResponse.of(content, teamsPage.getNumber(), teamsPage.getSize(), teamsPage.getTotalElements());
+    }
+
+    private PageResponse<TeamResponseDto> overlayUserTeamPersonalization(PageResponse<TeamResponseDto> publicPage, UUID userId) {
+        if (publicPage == null || publicPage.getItems() == null) {
+            return publicPage;
+        }
+
+        List<TeamResponseDto> personalized = publicPage.getItems().stream()
+                .map(dto -> {
+                    int effectiveStars = (int) socialInteractionService.getTeamStarsCount(dto.getId(), dto.getStarsCount());
+                    boolean starred = userId != null && socialInteractionService.isTeamStarredByUser(dto.getId(), userId);
+                    return dto.toBuilder()
+                            .starsCount(effectiveStars)
+                            .starred(starred)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PageResponse.of(personalized, publicPage.getPage(), publicPage.getSize(), publicPage.getTotalItems());
+    }
+
+    private TeamResponseDto mapToPublicTeamDto(Team team) {
+        return mapToTeamDto(team, null);
     }
 
     @Override

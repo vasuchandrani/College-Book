@@ -7,6 +7,7 @@ import com.collegebook.collegebookbackend.profile.dto.ProfileUpdateDto;
 import com.collegebook.collegebookbackend.profile.dto.PublicProfileDto;
 import com.collegebook.collegebookbackend.profile.service.ProfileService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,13 +21,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
+@RequiredArgsConstructor
 public class ProfileController {
 
     private final ProfileService profileService;
-
-    public ProfileController(ProfileService profileService) {
-        this.profileService = profileService;
-    }
 
     @GetMapping("/profiles/me")
     public ResponseEntity<ProfileDto> getMyProfile(@CurrentUser UserPrincipal currentUser) {

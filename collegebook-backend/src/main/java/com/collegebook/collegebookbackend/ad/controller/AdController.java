@@ -8,6 +8,7 @@ import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.post.dto.CommentResponseDto;
 import com.collegebook.collegebookbackend.post.dto.CreateCommentRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,13 +24,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/ads")
+@RequiredArgsConstructor
 public class AdController {
 
     private final AdService adService;
-
-    public AdController(AdService adService) {
-        this.adService = adService;
-    }
 
     @GetMapping("/feed")
     public ResponseEntity<List<AdResponseDto>> getFeedAds(@CurrentUser UserPrincipal currentUser) {

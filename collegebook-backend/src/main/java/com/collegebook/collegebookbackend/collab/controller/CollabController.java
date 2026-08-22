@@ -13,6 +13,7 @@ import com.collegebook.collegebookbackend.collab.service.CollabService;
 import com.collegebook.collegebookbackend.common.CurrentUser;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,13 +33,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
+@RequiredArgsConstructor
 public class CollabController {
 
     private final CollabService collabService;
-
-    public CollabController(CollabService collabService) {
-        this.collabService = collabService;
-    }
 
     @GetMapping("/teams")
     public ResponseEntity<PageResponse<TeamResponseDto>> getTeams(

@@ -36,6 +36,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,13 +66,23 @@ public class PostServiceImpl implements PostService {
     private final MediaService mediaService;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
 
+    @Lazy
+    @Autowired
+    private PostService self;
+
+    @Override
+    public PageResponse<PostResponseDto> getFeed(UUID userId, UUID collegeId, String tag, int page, int size) {
+        PageResponse<PostResponseDto> publicPage = (self != null ? self : this).getPublicFeed(collegeId, tag, page, size);
+        return overlayUserPersonalization(publicPage, userId);
+    }
+
     @Override
     @Transactional(readOnly = true)
     @Cacheable(
             value = "feed",
-            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#collegeId != null ? #collegeId.toString() : 'global') + ':' + (#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
+            key = "(#collegeId != null ? #collegeId.toString() : 'global') + ':' + (#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
     )
-    public PageResponse<PostResponseDto> getFeed(UUID userId, UUID collegeId, String tag, int page, int size) {
+    public PageResponse<PostResponseDto> getPublicFeed(UUID collegeId, String tag, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postsPage;
 
@@ -88,16 +100,26 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        return mapPostPage(postsPage, userId);
+        List<PostResponseDto> content = postsPage.getContent().stream()
+                .map(this::mapToPublicDto)
+                .collect(Collectors.toList());
+
+        return PageResponse.of(content, postsPage.getNumber(), postsPage.getSize(), postsPage.getTotalElements());
+    }
+
+    @Override
+    public PageResponse<PostResponseDto> getExplore(UUID userId, String tag, int page, int size) {
+        PageResponse<PostResponseDto> publicPage = (self != null ? self : this).getPublicExplore(tag, page, size);
+        return overlayUserPersonalization(publicPage, userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(
             value = "explore",
-            key = "(#userId != null ? #userId.toString() : 'anon') + ':' + (#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
+            key = "(#tag != null && !#tag.isBlank() ? #tag.toLowerCase().trim() : 'all') + ':' + #page + ':' + #size"
     )
-    public PageResponse<PostResponseDto> getExplore(UUID userId, String tag, int page, int size) {
+    public PageResponse<PostResponseDto> getPublicExplore(String tag, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postsPage;
 
@@ -107,7 +129,32 @@ public class PostServiceImpl implements PostService {
             postsPage = postRepository.findByIsGlobalTrue(pageable);
         }
 
-        return mapPostPage(postsPage, userId);
+        List<PostResponseDto> content = postsPage.getContent().stream()
+                .map(this::mapToPublicDto)
+                .collect(Collectors.toList());
+
+        return PageResponse.of(content, postsPage.getNumber(), postsPage.getSize(), postsPage.getTotalElements());
+    }
+
+    private PageResponse<PostResponseDto> overlayUserPersonalization(PageResponse<PostResponseDto> publicPage, UUID userId) {
+        if (publicPage == null || publicPage.getItems() == null) {
+            return publicPage;
+        }
+
+        List<PostResponseDto> personalized = publicPage.getItems().stream()
+                .map(dto -> {
+                    int effectiveLikes = (int) socialInteractionService.getPostLikesCount(dto.getId(), dto.getLikes());
+                    boolean liked = userId != null && socialInteractionService.isPostLikedByUser(dto.getId(), userId);
+                    boolean saved = userId != null && socialInteractionService.isPostSavedByUser(dto.getId(), userId);
+                    return dto.toBuilder()
+                            .likes(effectiveLikes)
+                            .liked(liked)
+                            .saved(saved)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PageResponse.of(personalized, publicPage.getPage(), publicPage.getSize(), publicPage.getTotalItems());
     }
 
     @Override
@@ -333,6 +380,10 @@ public class PostServiceImpl implements PostService {
                 .collect(Collectors.toList());
 
         return PageResponse.of(content, postsPage.getNumber(), postsPage.getSize(), postsPage.getTotalElements());
+    }
+
+    private PostResponseDto mapToPublicDto(Post post) {
+        return mapToDto(post, null);
     }
 
     private PostResponseDto mapToDto(Post post, UUID userId) {

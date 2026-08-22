@@ -15,6 +15,7 @@ import com.collegebook.collegebookbackend.profile.dto.PublicProfileDto;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
 import com.collegebook.collegebookbackend.profile.service.ProfileService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ import java.util.UUID;
 import com.collegebook.collegebookbackend.storage.service.StorageService;
 
 @Service
+@RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
@@ -42,22 +44,6 @@ public class ProfileServiceImpl implements ProfileService {
     private final StorageService storageService;
     private final CourseRepository courseRepository;
     private final DepartmentRepository departmentRepository;
-
-    public ProfileServiceImpl(
-            ProfileRepository profileRepository,
-            EmailOtpRepository emailOtpRepository,
-            EmailService emailService,
-            StorageService storageService,
-            CourseRepository courseRepository,
-            DepartmentRepository departmentRepository
-    ) {
-        this.profileRepository = profileRepository;
-        this.emailOtpRepository = emailOtpRepository;
-        this.emailService = emailService;
-        this.storageService = storageService;
-        this.courseRepository = courseRepository;
-        this.departmentRepository = departmentRepository;
-    }
 
     @Override
     @Transactional(readOnly = true)

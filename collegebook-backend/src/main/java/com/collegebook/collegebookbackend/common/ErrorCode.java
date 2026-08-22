@@ -1,7 +1,11 @@
 package com.collegebook.collegebookbackend.common;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
+@Getter
+@RequiredArgsConstructor
 public enum ErrorCode {
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Invalid request parameters"),
     INVALID_CREDENTIALS(HttpStatus.BAD_REQUEST, "Incorrect email or password. Please verify your credentials."),
@@ -44,17 +48,4 @@ public enum ErrorCode {
 
     private final HttpStatus status;
     private final String defaultMessage;
-
-    ErrorCode(HttpStatus status, String defaultMessage) {
-        this.status = status;
-        this.defaultMessage = defaultMessage;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getDefaultMessage() {
-        return defaultMessage;
-    }
 }

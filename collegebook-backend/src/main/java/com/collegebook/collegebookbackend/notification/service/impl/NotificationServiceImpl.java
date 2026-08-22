@@ -7,6 +7,7 @@ import com.collegebook.collegebookbackend.notification.dto.NotificationDto;
 import com.collegebook.collegebookbackend.notification.entity.Notification;
 import com.collegebook.collegebookbackend.notification.repository.NotificationRepository;
 import com.collegebook.collegebookbackend.notification.service.NotificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,13 +19,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
-
-    public NotificationServiceImpl(NotificationRepository notificationRepository) {
-        this.notificationRepository = notificationRepository;
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -54,13 +52,13 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private NotificationDto mapToDto(Notification notif) {
-        NotificationDto dto = new NotificationDto();
-        dto.setId(notif.getId());
-        dto.setType(notif.getType());
-        dto.setTitle(notif.getTitle());
-        dto.setMessage(notif.getMessage());
-        dto.setRead(notif.isRead());
-        dto.setCreatedAt(notif.getCreatedAt());
-        return dto;
+        return NotificationDto.builder()
+                .id(notif.getId())
+                .type(notif.getType())
+                .title(notif.getTitle())
+                .message(notif.getMessage())
+                .isRead(notif.isRead())
+                .createdAt(notif.getCreatedAt())
+                .build();
     }
 }

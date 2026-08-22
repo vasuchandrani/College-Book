@@ -17,12 +17,22 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "profiles")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Profile {
 
     @Id
@@ -86,6 +96,7 @@ public class Profile {
     private String contactDetails;
 
     @Column(name = "is_public", nullable = false)
+    @Builder.Default
     private boolean isPublic = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -93,9 +104,6 @@ public class Profile {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public Profile() {
-    }
 
     @PrePersist
     protected void onCreate() {
@@ -111,174 +119,6 @@ public class Profile {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    public void setUserId(UUID userId) {
-        this.userId = userId;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getHandle() {
-        return handle;
-    }
-
-    public void setHandle(String handle) {
-        this.handle = handle;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getInitials() {
-        return initials;
-    }
-
-    public void setInitials(String initials) {
-        this.initials = initials;
-    }
-
-    public Gender getGender() {
-        return gender;
-    }
-
-    public void setGender(Gender gender) {
-        this.gender = gender;
-    }
-
-    public Course getCourse() {
-        return course;
-    }
-
-    public void setCourse(Course course) {
-        this.course = course;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
-    }
-
-    public Short getCurrentYear() {
-        return currentYear;
-    }
-
-    public void setCurrentYear(Short currentYear) {
-        this.currentYear = currentYear;
-    }
-
-    public String getDefaultBio() {
-        return defaultBio;
-    }
-
-    public void setDefaultBio(String defaultBio) {
-        this.defaultBio = defaultBio;
-    }
-
-    public String getBioExtra() {
-        return bioExtra;
-    }
-
-    public void setBioExtra(String bioExtra) {
-        this.bioExtra = bioExtra;
-    }
-
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public void setAvatarUrl(String avatarUrl) {
-        this.avatarUrl = avatarUrl;
-    }
-
-    public String getGithubUrl() {
-        return githubUrl;
-    }
-
-    public void setGithubUrl(String githubUrl) {
-        this.githubUrl = githubUrl;
-    }
-
-    public String getLinkedinUrl() {
-        return linkedinUrl;
-    }
-
-    public void setLinkedinUrl(String linkedinUrl) {
-        this.linkedinUrl = linkedinUrl;
-    }
-
-    public String getWebsiteUrl() {
-        return websiteUrl;
-    }
-
-    public void setWebsiteUrl(String websiteUrl) {
-        this.websiteUrl = websiteUrl;
-    }
-
-    public String getMemoryBookEmail() {
-        return memoryBookEmail;
-    }
-
-    public void setMemoryBookEmail(String memoryBookEmail) {
-        this.memoryBookEmail = memoryBookEmail;
-    }
-
-    public String getCustomLinks() {
-        return customLinks;
-    }
-
-    public void setCustomLinks(String customLinks) {
-        this.customLinks = customLinks;
-    }
-
-    public String getContactDetails() {
-        return contactDetails;
-    }
-
-    public void setContactDetails(String contactDetails) {
-        this.contactDetails = contactDetails;
-    }
-
-    public boolean isPublic() {
-        return isPublic;
-    }
-
-    public void setPublic(boolean aPublic) {
-        isPublic = aPublic;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public String getSlug() {

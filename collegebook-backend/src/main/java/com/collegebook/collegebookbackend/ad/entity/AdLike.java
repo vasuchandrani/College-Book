@@ -10,11 +10,21 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "ad_likes")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AdLike {
 
     @EmbeddedId
@@ -33,9 +43,6 @@ public class AdLike {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public AdLike() {
-    }
-
     public AdLike(Ad ad, User user) {
         this.id = new AdLikeId(ad.getId(), user.getId());
         this.ad = ad;
@@ -47,37 +54,5 @@ public class AdLike {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
-    }
-
-    public AdLikeId getId() {
-        return id;
-    }
-
-    public void setId(AdLikeId id) {
-        this.id = id;
-    }
-
-    public Ad getAd() {
-        return ad;
-    }
-
-    public void setAd(Ad ad) {
-        this.ad = ad;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }

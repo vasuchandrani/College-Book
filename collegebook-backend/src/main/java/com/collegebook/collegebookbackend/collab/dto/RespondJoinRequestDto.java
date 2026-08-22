@@ -1,21 +1,15 @@
 package com.collegebook.collegebookbackend.collab.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class RespondJoinRequestDto {
 
     private boolean accept;
-
-    public RespondJoinRequestDto() {
-    }
-
-    public RespondJoinRequestDto(boolean accept) {
-        this.accept = accept;
-    }
-
-    public boolean isAccept() {
-        return accept;
-    }
-
-    public void setAccept(boolean accept) {
-        this.accept = accept;
-    }
 }

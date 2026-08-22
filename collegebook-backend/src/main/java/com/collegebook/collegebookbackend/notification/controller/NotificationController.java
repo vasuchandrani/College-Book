@@ -5,6 +5,7 @@ import com.collegebook.collegebookbackend.common.CurrentUser;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.notification.dto.NotificationDto;
 import com.collegebook.collegebookbackend.notification.service.NotificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -17,13 +18,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
+@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationService notificationService;
-
-    public NotificationController(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
 
     @GetMapping
     public ResponseEntity<PageResponse<NotificationDto>> getMyNotifications(

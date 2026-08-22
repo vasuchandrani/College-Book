@@ -10,6 +10,7 @@ import com.collegebook.collegebookbackend.collab.repository.TeamRepository;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.post.repository.PostRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,24 +18,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final TeamRepository teamRepository;
     private final AdRepository adRepository;
-
-    public AdminServiceImpl(
-            UserRepository userRepository,
-            PostRepository postRepository,
-            TeamRepository teamRepository,
-            AdRepository adRepository
-    ) {
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-        this.teamRepository = teamRepository;
-        this.adRepository = adRepository;
-    }
 
     @Override
     @Transactional(readOnly = true)

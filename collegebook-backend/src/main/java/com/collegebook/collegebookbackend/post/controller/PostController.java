@@ -9,6 +9,7 @@ import com.collegebook.collegebookbackend.post.dto.CreatePostRequest;
 import com.collegebook.collegebookbackend.post.dto.PostResponseDto;
 import com.collegebook.collegebookbackend.post.service.PostService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,13 +26,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
+@RequiredArgsConstructor
 public class PostController {
 
     private final PostService postService;
-
-    public PostController(PostService postService) {
-        this.postService = postService;
-    }
 
     @GetMapping("/feed")
     public ResponseEntity<PageResponse<PostResponseDto>> getFeed(

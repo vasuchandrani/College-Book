@@ -16,6 +16,7 @@ import java.util.UUID;
 
 public interface CollabService {
     PageResponse<TeamResponseDto> getTeams(UUID userId, UUID collegeId, TeamType type, int page, int size);
+    PageResponse<TeamResponseDto> getPublicTeams(UUID collegeId, TeamType type, int page, int size);
     List<TeamResponseDto> getMyTeams(UUID userId);
     List<TeamResponseDto> getMyTeams(UUID userId, TeamType type);
     List<TeamResponseDto> getTeamsByUserId(UUID requesterId, UUID targetUserId);

@@ -14,7 +14,11 @@ import java.util.UUID;
 public interface PostService {
     PageResponse<PostResponseDto> getFeed(UUID userId, UUID collegeId, String tag, int page, int size);
 
+    PageResponse<PostResponseDto> getPublicFeed(UUID collegeId, String tag, int page, int size);
+
     PageResponse<PostResponseDto> getExplore(UUID userId, String tag, int page, int size);
+
+    PageResponse<PostResponseDto> getPublicExplore(String tag, int page, int size);
 
     PageResponse<PostResponseDto> getSavedPosts(UUID userId, int page, int size);
 

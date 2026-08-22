@@ -14,6 +14,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -24,6 +29,11 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "teams")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Team {
 
     @Id
@@ -54,26 +64,33 @@ public class Team {
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "skills", columnDefinition = "text[]")
+    @Builder.Default
     private List<String> skills = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "required_roles", columnDefinition = "text[]")
+    @Builder.Default
     private List<String> requiredRoles = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "required_expertise", columnDefinition = "text[]")
+    @Builder.Default
     private List<String> requiredExpertise = new ArrayList<>();
 
     @Column(name = "max_members", nullable = false)
+    @Builder.Default
     private int maxMembers = 4;
 
     @Column(name = "current_members_count", nullable = false)
+    @Builder.Default
     private int currentMembersCount = 1;
 
     @Column(name = "is_completed", nullable = false)
+    @Builder.Default
     private boolean completed = false;
 
     @Column(name = "stars_count", nullable = false)
+    @Builder.Default
     private int starsCount = 0;
 
     @Column(name = "owner_college_name")
@@ -84,9 +101,6 @@ public class Team {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public Team() {
-    }
 
     @PrePersist
     protected void onCreate() {
@@ -102,141 +116,5 @@ public class Team {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    public College getCollege() {
-        return college;
-    }
-
-    public void setCollege(College college) {
-        this.college = college;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public TeamType getType() {
-        return type;
-    }
-
-    public void setType(TeamType type) {
-        this.type = type;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getGithubLink() {
-        return githubLink;
-    }
-
-    public void setGithubLink(String githubLink) {
-        this.githubLink = githubLink;
-    }
-
-    public List<String> getSkills() {
-        return skills;
-    }
-
-    public void setSkills(List<String> skills) {
-        this.skills = skills;
-    }
-
-    public List<String> getRequiredRoles() {
-        return requiredRoles;
-    }
-
-    public void setRequiredRoles(List<String> requiredRoles) {
-        this.requiredRoles = requiredRoles;
-    }
-
-    public List<String> getRequiredExpertise() {
-        return requiredExpertise;
-    }
-
-    public void setRequiredExpertise(List<String> requiredExpertise) {
-        this.requiredExpertise = requiredExpertise;
-    }
-
-    public int getMaxMembers() {
-        return maxMembers;
-    }
-
-    public void setMaxMembers(int maxMembers) {
-        this.maxMembers = maxMembers;
-    }
-
-    public int getCurrentMembersCount() {
-        return currentMembersCount;
-    }
-
-    public void setCurrentMembersCount(int currentMembersCount) {
-        this.currentMembersCount = currentMembersCount;
-    }
-
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
-    public int getStarsCount() {
-        return starsCount;
-    }
-
-    public void setStarsCount(int starsCount) {
-        this.starsCount = starsCount;
-    }
-
-    public String getOwnerCollegeName() {
-        return ownerCollegeName;
-    }
-
-    public void setOwnerCollegeName(String ownerCollegeName) {
-        this.ownerCollegeName = ownerCollegeName;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }
