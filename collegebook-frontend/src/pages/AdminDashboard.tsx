@@ -33,10 +33,6 @@ interface Ad {
 
 const AdminDashboard = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
-  if (!token) {
-    return <Navigate to="/" replace />;
-  }
-
   const navigate = useNavigate();
   const [ads, setAds] = useState<Ad[]>([]);
   const [newAd, setNewAd] = useState({ brand: "", title: "", description: "", imageUrls: "", ctaText: "Shop Now", ctaLink: "", commentsEnabled: true, discount: "" });
@@ -50,6 +46,7 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
+    if (!token) return;
     let alive = true;
     getAdminStats()
       .then((data) => {
@@ -59,7 +56,7 @@ const AdminDashboard = () => {
         // graceful fallback if not logged in as admin
       });
     return () => { alive = false; };
-  }, []);
+  }, [token]);
 
   const toggleAd = (id: string | number) => setAds(ads.map(a => a.id === id ? { ...a, active: !a.active } : a));
   const toggleComments = (id: string | number) => setAds(ads.map(a => a.id === id ? { ...a, commentsEnabled: !a.commentsEnabled } : a));
@@ -143,6 +140,10 @@ const AdminDashboard = () => {
     localStorage.removeItem("cb_profile");
     navigate("/");
   };
+
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

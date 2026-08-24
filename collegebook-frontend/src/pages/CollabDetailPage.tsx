@@ -20,7 +20,6 @@ import {
   Layers,
   Clock,
   Trash2,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -680,7 +679,7 @@ export default function CollabDetailPage() {
               value={discussionBody}
               onChange={(e) => setDiscussionBody(e.target.value)}
               onKeyDown={handleDiscussionKeyDown}
-              placeholder="Ask a question, share ideas, or tag collaborators with @handle..."
+              placeholder="Ask a question, share ideas, or discuss with your team..."
               rows={2}
               maxLength={1000}
               className="min-h-[48px] max-h-[120px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs px-2 py-1 bg-transparent"
@@ -701,11 +700,7 @@ export default function CollabDetailPage() {
               )}
             </Button>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-            <span className="flex items-center gap-1 text-[10px]">
-              <Sparkles className="w-3 h-3 text-primary" />
-              Use <span className="font-semibold text-primary">@handle</span> to mention any student in your team
-            </span>
+          <div className="flex items-center justify-end text-[11px] text-muted-foreground px-1">
             <span className="text-[10px]">{discussionBody.length}/1000</span>
           </div>
         </form>
@@ -739,11 +734,11 @@ export default function CollabDetailPage() {
               return (
                 <div
                   key={d.id}
-                  className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors group"
+                  className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors group animate-in fade-in-50 duration-200"
                 >
                   <Link
                     to={d.authorHandle ? `/student/${d.authorHandle}` : "#"}
-                    className="shrink-0 transition-transform active:scale-95"
+                    className="shrink-0 transition-transform active:scale-95 mt-0.5"
                   >
                     <Avatar className="h-8 w-8 border border-border">
                       {d.avatarUrl ? (
@@ -756,7 +751,7 @@ export default function CollabDetailPage() {
                     </Avatar>
                   </Link>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="relative flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <Link
@@ -780,25 +775,24 @@ export default function CollabDetailPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] text-muted-foreground">{d.time}</span>
-                        {isAuthor && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDiscussion(d.id)}
-                            className="text-muted-foreground/50 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete comment"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">{d.time}</span>
                     </div>
 
                     <FormattedContent
                       content={d.body}
                       className="text-xs leading-relaxed text-foreground"
                     />
+
+                    {isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDiscussion(d.id)}
+                        className="absolute bottom-0 right-0 p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+                        title="Delete comment"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

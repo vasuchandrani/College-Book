@@ -21,14 +21,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
-import PostCommentsModal from "@/components/PostCommentsModal";
+import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { toast } from "sonner";
 import {
@@ -78,7 +78,7 @@ const FeedPage = () => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [isGlobal, setIsGlobal] = useState(true);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
-  const [activeCommentsPost, setActiveCommentsPost] = useState<FeedPost | null>(null);
+  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -577,8 +577,16 @@ const FeedPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setActiveCommentsPost(post)}
-                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        setExpandedCommentsPostId((prev) =>
+                          prev === post.id ? null : post.id
+                        )
+                      }
+                      className={`gap-1.5 text-xs transition-colors ${
+                        expandedCommentsPostId === post.id
+                          ? "text-primary bg-primary/10 font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>{post.commentsCount || 0}</span>
@@ -597,6 +605,25 @@ const FeedPage = () => {
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
                 </div>
+
+                {/* Inline Expandable Comments Stream */}
+                <AnimatePresence>
+                  {expandedCommentsPostId === post.id && (
+                    <InlineCommentsSection
+                      post={post}
+                      onCommentCountChange={(newCount) => {
+                        setPosts((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id
+                              ? { ...p, commentsCount: newCount }
+                              : p
+                          )
+                        );
+                      }}
+                      onClose={() => setExpandedCommentsPostId(null)}
+                    />
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </Card>
@@ -936,20 +963,6 @@ const FeedPage = () => {
           </p>
         </div>
       )}
-
-      {/* Post Comments Modal */}
-      <PostCommentsModal
-        post={activeCommentsPost}
-        isOpen={Boolean(activeCommentsPost)}
-        onClose={() => setActiveCommentsPost(null)}
-        onCommentAdded={(postId, newCount) => {
-          setPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId ? { ...p, commentsCount: newCount } : p
-            )
-          );
-        }}
-      />
     </div>
   );
 };

@@ -13,14 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
-import PostCommentsModal from "@/components/PostCommentsModal";
+import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { toast } from "sonner";
 import {
@@ -39,7 +39,7 @@ const ExplorePage = () => {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [posts, setPosts] = useState<ExplorePost[]>([]);
-  const [activeCommentsPost, setActiveCommentsPost] = useState<ExplorePost | null>(null);
+  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const [ads, setAds] = useState<AdData[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -371,8 +371,16 @@ const ExplorePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setActiveCommentsPost(post)}
-                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() =>
+                        setExpandedCommentsPostId((prev) =>
+                          prev === post.id ? null : post.id
+                        )
+                      }
+                      className={`gap-1.5 text-xs transition-colors ${
+                        expandedCommentsPostId === post.id
+                          ? "text-primary bg-primary/10 font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>{post.commentsCount || 0}</span>
@@ -391,6 +399,25 @@ const ExplorePage = () => {
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
                 </div>
+
+                {/* Inline Expandable Comments Stream */}
+                <AnimatePresence>
+                  {expandedCommentsPostId === post.id && (
+                    <InlineCommentsSection
+                      post={post}
+                      onCommentCountChange={(newCount) => {
+                        setPosts((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id
+                              ? { ...p, commentsCount: newCount }
+                              : p
+                          )
+                        );
+                      }}
+                      onClose={() => setExpandedCommentsPostId(null)}
+                    />
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </Card>
@@ -503,20 +530,6 @@ const ExplorePage = () => {
           </p>
         </div>
       )}
-
-      {/* Post Comments Modal */}
-      <PostCommentsModal
-        post={activeCommentsPost}
-        isOpen={Boolean(activeCommentsPost)}
-        onClose={() => setActiveCommentsPost(null)}
-        onCommentAdded={(postId, newCount) => {
-          setPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId ? { ...p, commentsCount: newCount } : p
-            )
-          );
-        }}
-      />
     </div>
   );
 };

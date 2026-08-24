@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Send,
   Lock,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -481,7 +480,7 @@ const PostPage = () => {
                 value={commentBody}
                 onChange={(e) => setCommentBody(e.target.value)}
                 onKeyDown={handleCommentKeyDown}
-                placeholder="Write a comment... (use @handle to mention a student)"
+                placeholder="Write a comment..."
                 rows={2}
                 maxLength={1000}
                 className="min-h-[48px] max-h-[120px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs px-2 py-1 bg-transparent"
@@ -496,11 +495,7 @@ const PostPage = () => {
                 <Send className="w-3.5 h-3.5" />
               </Button>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-              <span className="flex items-center gap-1 text-[10px]">
-                <Sparkles className="w-3 h-3 text-primary" />
-                Use <span className="font-semibold text-primary">@handle</span> to refer to any classmate
-              </span>
+            <div className="flex items-center justify-end text-[11px] text-muted-foreground px-1">
               <span className="text-[10px]">{commentBody.length}/1000</span>
             </div>
           </form>
@@ -544,7 +539,7 @@ const PostPage = () => {
                 <div key={comment.id} className="flex items-start gap-3 group animate-in fade-in-50 duration-200">
                   <Link
                     to={comment.authorHandle ? `/student/${comment.authorHandle}` : "#"}
-                    className="shrink-0 transition-transform active:scale-95"
+                    className="shrink-0 transition-transform active:scale-95 mt-0.5"
                   >
                     <Avatar className="h-8 w-8 border border-border">
                       {comment.avatarUrl ? (
@@ -557,7 +552,8 @@ const PostPage = () => {
                     </Avatar>
                   </Link>
 
-                  <div className="flex-1 min-w-0 bg-muted/40 hover:bg-muted/60 transition-colors rounded-2xl px-3.5 py-2.5 border border-border/40">
+                  <div className="relative flex-1 min-w-0 bg-muted/40 hover:bg-muted/60 transition-colors rounded-2xl px-3.5 py-2.5 border border-border/40">
+                    {/* Top Row: Author on Left, Time in Top-Right Corner */}
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <Link
@@ -581,27 +577,29 @@ const PostPage = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-muted-foreground">
-                          {comment.time}
-                        </span>
-                        {isAuthor && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-muted-foreground/50 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded"
-                            title="Delete comment"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
+                      {/* Time placed cleanly in the top-right corner */}
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">
+                        {comment.time}
+                      </span>
                     </div>
 
+                    {/* Content */}
                     <FormattedContent
                       content={comment.body}
                       className="text-xs leading-relaxed text-foreground"
                     />
+
+                    {/* Delete button positioned at the bottom-right corner */}
+                    {isAuthor && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="absolute bottom-2 right-2 p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+                        title="Delete comment"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

@@ -308,7 +308,7 @@ const SignupPage = () => {
   }, [colleges, collegeSearch, selectedCategory]);
 
   const selectCollege = async (name: string) => {
-    let college = colleges.find(c => c.name === name || c.short === name);
+    const college = colleges.find(c => c.name === name || c.short === name);
     let collegeUuid = college?.uuid || "";
     let collegeDomain = college?.domain || "ddu.ac.in";
     let collegeShort = college?.short || "DDU";
