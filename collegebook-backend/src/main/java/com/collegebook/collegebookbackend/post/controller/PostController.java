@@ -143,6 +143,17 @@ public class PostController {
         return ResponseEntity.ok(postService.addComment(userId, postId, request));
     }
 
+    @DeleteMapping("/posts/{postId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @CurrentUser UserPrincipal currentUser,
+            @PathVariable("postId") UUID postId,
+            @PathVariable("commentId") UUID commentId) {
+        if (currentUser != null) {
+            postService.deleteComment(currentUser.getId(), postId, commentId);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/tags/trending")
     public ResponseEntity<List<String>> getTrendingTags() {
         return ResponseEntity.ok(postService.getTrendingTags());

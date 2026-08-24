@@ -5,8 +5,8 @@
  * Signatures and return types are strictly preserved.
  */
 
-import type { FeedPost, ExplorePost, AdData } from "@/types";
-export type { FeedPost, ExplorePost, AdData };
+import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion } from "@/types";
+export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion };
 import { appConfig } from "@/config/app.config";
 
 // ---------------------------------------------------------------------------
@@ -378,17 +378,22 @@ export const getFeedPosts = async (
       id: post.id,
       author: post.authorName,
       authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
       initials: post.initials,
       course: post.courseName,
+      college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
-      likes: post.likes,
-      liked: post.liked,
-      saved: post.saved,
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
       videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
 
@@ -419,17 +424,21 @@ export const getExplorePosts = async (
       id: post.id,
       author: post.authorName,
       authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
       initials: post.initials,
       college: post.collegeName || "College",
       time: post.time || "Just now",
       content: post.content,
-      likes: post.likes,
-      liked: post.liked,
-      saved: post.saved,
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
       videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
 
@@ -461,17 +470,22 @@ export const getStudentPosts = async (
       id: post.id,
       author: post.authorName,
       authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
       initials: post.initials,
       course: post.courseName,
+      college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
-      likes: post.likes,
-      liked: post.liked,
-      saved: post.saved,
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
       videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
 
@@ -502,14 +516,15 @@ export interface MediaKeyPayload {
 }
 
 export interface CreatePostPayload {
-  author: string;
-  initials: string;
-  course: string;
+  author?: string;
+  initials?: string;
+  course?: string;
   content: string;
   images?: string[];
   mediaKeys?: MediaKeyPayload[];
   tags?: string[];
   isGlobal?: boolean;
+  commentsEnabled?: boolean;
 }
 
 export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> => {
@@ -521,6 +536,7 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
       mediaKeys: payload.mediaKeys || [],
       tags: payload.tags || [],
       isGlobal: payload.isGlobal !== undefined ? payload.isGlobal : true,
+      commentsEnabled: payload.commentsEnabled !== undefined ? payload.commentsEnabled : true,
     }),
   });
   const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
@@ -528,17 +544,22 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
     id: post.id,
     author: post.authorName,
     authorHandle: post.authorHandle,
+    avatarUrl: post.avatarUrl,
     initials: post.initials,
     course: post.courseName,
+    college: post.collegeName,
     time: post.time || "Just now",
     content: post.content,
-    likes: post.likes,
-    liked: post.liked,
-    saved: post.saved,
+    likes: post.likes || 0,
+    liked: post.liked || false,
+    commentsCount: post.commentsCount || 0,
+    commentsEnabled: post.commentsEnabled !== false,
+    saved: post.saved || false,
     tags: post.tags || [],
     images: post.images || [],
     media: post.media || [],
     videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+    isGlobal: post.global ?? post.isGlobal ?? true,
   };
 };
 
@@ -557,17 +578,22 @@ export const getPostById = async (postId: number | string): Promise<FeedPost> =>
     id: post.id,
     author: post.authorName,
     authorHandle: post.authorHandle,
+    avatarUrl: post.avatarUrl,
     initials: post.initials,
     course: post.courseName,
+    college: post.collegeName,
     time: post.time || "Just now",
     content: post.content,
-    likes: post.likes,
-    liked: post.liked,
-    saved: post.saved,
+    likes: post.likes || 0,
+    liked: post.liked || false,
+    commentsCount: post.commentsCount || 0,
+    commentsEnabled: post.commentsEnabled !== false,
+    saved: post.saved || false,
     tags: post.tags || [],
     images: post.images || [],
     media: post.media || [],
     videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+    isGlobal: post.global ?? post.isGlobal ?? true,
   };
 };
 
@@ -629,23 +655,115 @@ export const getExploreAds = async (): Promise<AdData[]> => {
 // Comments
 // ---------------------------------------------------------------------------
 
-export interface CommentPayload { postId: number | string; body: string; }
-export const getComments = async (postId: number | string) => {
-  const res = await request<PageResponse<{ id: string; authorName: string; body: string; time: string }>>("/posts/" + postId + "/comments");
-  return (res.items || []).map((c) => ({
+export interface CommentPayload {
+  postId: number | string;
+  body: string;
+}
+
+export const getComments = async (
+  postId: number | string,
+  page = 0,
+  size = 50
+): Promise<PostComment[]> => {
+  const res = await request<PageResponse<any>>(`/posts/${postId}/comments?page=${page}&size=${size}`);
+  return (res.items || []).map((c: any) => ({
     id: c.id,
+    postId,
     author: c.authorName,
+    authorHandle: c.authorHandle,
+    avatarUrl: c.avatarUrl,
+    initials: c.initials || "U",
+    collegeName: c.collegeName,
+    collegeShortName: c.collegeShortName,
     body: c.body,
-    time: c.time,
+    time: c.time || "Just now",
+    createdAt: c.createdAt,
   }));
 };
 
-export const addComment = async (payload: CommentPayload) => {
-  const c = await request<{ id: string; authorName: string; body: string; time: string }>("/posts/" + payload.postId + "/comments", {
+export const addComment = async (payload: CommentPayload): Promise<PostComment> => {
+  const c = await request<any>(`/posts/${payload.postId}/comments`, {
     method: "POST",
     body: JSON.stringify({ body: payload.body }),
   });
-  return { id: c.id, postId: payload.postId, author: c.authorName, body: c.body, time: c.time };
+  return {
+    id: c.id,
+    postId: payload.postId,
+    author: c.authorName,
+    authorHandle: c.authorHandle,
+    avatarUrl: c.avatarUrl,
+    initials: c.initials || "U",
+    collegeName: c.collegeName,
+    collegeShortName: c.collegeShortName,
+    body: c.body,
+    time: c.time || "Just now",
+    createdAt: c.createdAt,
+  };
+};
+
+export const deleteComment = async (postId: number | string, commentId: string): Promise<void> => {
+  await request<void>(`/posts/${postId}/comments/${commentId}`, {
+    method: "DELETE",
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Collab Hub Project Discussions
+// ---------------------------------------------------------------------------
+
+export const getTeamDiscussions = async (
+  teamId: string,
+  page = 0,
+  size = 50
+): Promise<TeamDiscussion[]> => {
+  const res = await request<PageResponse<any>>(`/teams/${teamId}/discussions?page=${page}&size=${size}`);
+  return (res.items || []).map((d: any) => ({
+    id: d.id,
+    teamId: d.teamId || teamId,
+    authorId: d.authorId,
+    authorName: d.authorName,
+    authorHandle: d.authorHandle,
+    avatarUrl: d.avatarUrl,
+    initials: d.initials || "U",
+    collegeName: d.collegeName,
+    collegeShortName: d.collegeShortName,
+    body: d.body,
+    time: d.time || "Just now",
+    createdAt: d.createdAt,
+  }));
+};
+
+export const addTeamDiscussion = async (
+  teamId: string,
+  body: string
+): Promise<TeamDiscussion> => {
+  const d = await request<any>(`/teams/${teamId}/discussions`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  return {
+    id: d.id,
+    teamId: d.teamId || teamId,
+    authorId: d.authorId,
+    authorName: d.authorName,
+    authorHandle: d.authorHandle,
+    avatarUrl: d.avatarUrl,
+    initials: d.initials || "U",
+    collegeName: d.collegeName,
+    collegeShortName: d.collegeShortName,
+    body: d.body,
+    time: d.time || "Just now",
+    createdAt: d.createdAt,
+  };
+};
+
+export const deleteTeamDiscussion = async (
+  teamId: string,
+  discussionId: string
+): Promise<{ message: string }> => {
+  return await request<{ message: string }>(`/teams/${teamId}/discussions/${discussionId}`, {
+    method: "DELETE",
+  });
 };
 
 export const getSavedPosts = async (): Promise<FeedPost[]> => {
@@ -656,17 +774,22 @@ export const getSavedPosts = async (): Promise<FeedPost[]> => {
       id: post.id,
       author: post.authorName,
       authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
       initials: post.initials,
       course: post.courseName,
+      college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
-      likes: post.likes,
-      liked: post.liked,
-      saved: post.saved,
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
       videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
 };
@@ -679,17 +802,22 @@ export const getMyPosts = async (): Promise<FeedPost[]> => {
       id: post.id,
       author: post.authorName,
       authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
       initials: post.initials,
       course: post.courseName,
+      college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
-      likes: post.likes,
-      liked: post.liked,
-      saved: post.saved,
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
       videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
 };
@@ -1606,6 +1734,7 @@ export const uploadImageFile = async (
   file: File,
   mediaContext = "POST"
 ): Promise<{ objectKey: string; publicUrl?: string; url?: string; storageProvider?: string }> => {
+  const cleanBaseUrl = (API_BASE_URL || "/api/v1").replace(/\/+$/, "");
   const formData = new FormData();
   formData.append("file", file);
   formData.append("mediaContext", mediaContext);
@@ -1616,8 +1745,9 @@ export const uploadImageFile = async (
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // 1. Attempt direct multipart upload endpoint first
   try {
-    const res = await fetch(`${API_BASE_URL}/storage/upload`, {
+    const res = await fetch(`${cleanBaseUrl}/storage/upload`, {
       method: "POST",
       headers,
       body: formData,
@@ -1632,11 +1762,11 @@ export const uploadImageFile = async (
         storageProvider: data.storageProvider || "CLOUDINARY",
       };
     }
-  } catch {
-    // Fallback silently
+  } catch (err) {
+    console.warn("Direct upload endpoint failed, falling back to presigned upload:", err);
   }
 
-  // Fallback to presign-upload if direct upload isn't available
+  // 2. Fallback to presign-upload if direct upload isn't available
   const presigned = await request<{
     uploadUrl: string;
     objectKey: string;
@@ -1653,16 +1783,16 @@ export const uploadImageFile = async (
   });
 
   if (presigned.uploadUrl) {
-    try {
-      await fetch(presigned.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "image/jpeg",
-        },
-        body: file,
-      });
-    } catch {
-      // Ignore binary upload fallback error
+    const putRes = await fetch(presigned.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "image/jpeg",
+      },
+      body: file,
+    });
+
+    if (!putRes.ok) {
+      throw new Error(`Media upload failed with status ${putRes.status}: ${putRes.statusText}`);
     }
   }
 

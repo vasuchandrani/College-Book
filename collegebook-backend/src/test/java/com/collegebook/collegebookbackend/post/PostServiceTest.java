@@ -275,4 +275,207 @@ public class PostServiceTest {
         AppException ex = assertThrows(AppException.class, () -> postService.deletePost(otherUserId, postId));
         assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
     }
+
+    @Test
+    void testAddCommentSuccess() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(userId);
+        author.setEmail("ronak@ddu.ac.in");
+
+        Post post = new Post();
+        post.setId(postId);
+        post.setCommentsEnabled(true);
+        post.setCommentsCount(0);
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(author));
+        when(commentRepository.save(any())).thenAnswer(i -> {
+            com.collegebook.collegebookbackend.post.entity.Comment c = i.getArgument(0);
+            c.setId(UUID.randomUUID());
+            c.setCreatedAt(java.time.Instant.now());
+            return c;
+        });
+
+        com.collegebook.collegebookbackend.profile.entity.Profile profile = new com.collegebook.collegebookbackend.profile.entity.Profile();
+        profile.setFullName("Ronak Gondaliya");
+        profile.setHandle("ronakgondaliya");
+        profile.setInitials("RG");
+        when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("@ronakgondaliya great idea!");
+        com.collegebook.collegebookbackend.post.dto.CommentResponseDto resp = postService.addComment(userId, postId, req);
+
+        assertNotNull(resp);
+        assertEquals("Ronak Gondaliya", resp.getAuthorName());
+        assertEquals("ronakgondaliya", resp.getAuthorHandle());
+        assertEquals("@ronakgondaliya great idea!", resp.getBody());
+        assertEquals(1, post.getCommentsCount());
+    }
+
+    @Test
+    void testAddCommentWhenCommentsDisabledThrowsException() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+
+        Post post = new Post();
+        post.setId(postId);
+        post.setCommentsEnabled(false);
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("Test comment");
+        AppException ex = assertThrows(AppException.class, () -> postService.addComment(userId, postId, req));
+        assertEquals(ErrorCode.COMMENTS_DISABLED, ex.getErrorCode());
+    }
+
+    @Test
+    void testDeleteCommentSuccess() {
+        UUID authorId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        UUID commentId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Post post = new Post();
+        post.setId(postId);
+        post.setCommentsCount(2);
+
+        com.collegebook.collegebookbackend.post.entity.Comment comment = new com.collegebook.collegebookbackend.post.entity.Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setPost(post);
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        postService.deleteComment(authorId, postId, commentId);
+
+        assertNotNull(comment.getDeletedAt());
+        assertEquals(1, post.getCommentsCount());
+        verify(commentRepository).save(comment);
+        verify(postRepository).save(post);
+    }
+
+    @Test
+    void testDeleteCommentForbiddenForNonAuthor() {
+        UUID authorId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        UUID commentId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Post post = new Post();
+        post.setId(postId);
+
+        com.collegebook.collegebookbackend.post.entity.Comment comment = new com.collegebook.collegebookbackend.post.entity.Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setPost(post);
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        AppException ex = assertThrows(AppException.class, () -> postService.deleteComment(otherUserId, postId, commentId));
+        assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
+    }
+
+    @Test
+    void testDeleteCommentAlreadyDeletedThrowsNotFound() {
+        UUID authorId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        UUID commentId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Post post = new Post();
+        post.setId(postId);
+
+        com.collegebook.collegebookbackend.post.entity.Comment comment = new com.collegebook.collegebookbackend.post.entity.Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setPost(post);
+        comment.setDeletedAt(java.time.Instant.now());
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        AppException ex = assertThrows(AppException.class, () -> postService.deleteComment(authorId, postId, commentId));
+        assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void testDeleteCommentFloorCountAtZero() {
+        UUID authorId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        UUID commentId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Post post = new Post();
+        post.setId(postId);
+        post.setCommentsCount(0);
+
+        com.collegebook.collegebookbackend.post.entity.Comment comment = new com.collegebook.collegebookbackend.post.entity.Comment();
+        comment.setId(commentId);
+        comment.setAuthor(author);
+        comment.setPost(post);
+
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+
+        postService.deleteComment(authorId, postId, commentId);
+
+        assertEquals(0, post.getCommentsCount());
+    }
+
+    @Test
+    void testAddCommentNonExistentPostThrowsNotFound() {
+        UUID userId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+
+        when(postRepository.findById(postId)).thenReturn(Optional.empty());
+
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("Hello");
+        AppException ex = assertThrows(AppException.class, () -> postService.addComment(userId, postId, req));
+        assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void testGetCommentsOnlyReturnsActiveComments() {
+        UUID postId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(UUID.randomUUID());
+        author.setEmail("alice@ddu.ac.in");
+
+        Post post = new Post();
+        post.setId(postId);
+
+        com.collegebook.collegebookbackend.post.entity.Comment activeComment = new com.collegebook.collegebookbackend.post.entity.Comment();
+        activeComment.setId(UUID.randomUUID());
+        activeComment.setPost(post);
+        activeComment.setAuthor(author);
+        activeComment.setContent("Active comment");
+        activeComment.setCreatedAt(java.time.Instant.now());
+
+        org.springframework.data.domain.Page<com.collegebook.collegebookbackend.post.entity.Comment> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(activeComment));
+
+        when(commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(any(), any())).thenReturn(page);
+
+        com.collegebook.collegebookbackend.common.PageResponse<com.collegebook.collegebookbackend.post.dto.CommentResponseDto> res =
+                postService.getComments(postId, 0, 10);
+
+        assertNotNull(res);
+        assertEquals(1, res.getItems().size());
+        assertEquals("Active comment", res.getItems().get(0).getBody());
+    }
 }

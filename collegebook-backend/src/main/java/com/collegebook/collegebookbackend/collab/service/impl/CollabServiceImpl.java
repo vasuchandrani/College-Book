@@ -16,7 +16,11 @@ import com.collegebook.collegebookbackend.collab.entity.TeamMember;
 import com.collegebook.collegebookbackend.collab.entity.TeamMemberRole;
 import com.collegebook.collegebookbackend.collab.entity.TeamStar;
 import com.collegebook.collegebookbackend.collab.entity.TeamType;
+import com.collegebook.collegebookbackend.collab.dto.CreateDiscussionRequest;
+import com.collegebook.collegebookbackend.collab.dto.TeamDiscussionResponseDto;
+import com.collegebook.collegebookbackend.collab.entity.TeamDiscussion;
 import com.collegebook.collegebookbackend.collab.repository.JoinRequestRepository;
+import com.collegebook.collegebookbackend.collab.repository.TeamDiscussionRepository;
 import com.collegebook.collegebookbackend.collab.repository.TeamMemberRepository;
 import com.collegebook.collegebookbackend.collab.repository.TeamRepository;
 import com.collegebook.collegebookbackend.collab.repository.TeamStarRepository;
@@ -38,6 +42,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +59,7 @@ public class CollabServiceImpl implements CollabService {
     private final TeamMemberRepository teamMemberRepository;
     private final JoinRequestRepository joinRequestRepository;
     private final TeamStarRepository teamStarRepository;
+    private final TeamDiscussionRepository teamDiscussionRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
@@ -601,6 +608,95 @@ public class CollabServiceImpl implements CollabService {
 
         dto.setCreatedAt(team.getCreatedAt());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "team_discussions", key = "#teamId.toString() + ':' + #page + ':' + #size")
+    public PageResponse<TeamDiscussionResponseDto> getDiscussions(UUID teamId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<TeamDiscussion> discussionPage = teamDiscussionRepository
+                .findByTeamIdAndDeletedAtIsNullOrderByCreatedAtAsc(teamId, pageable);
+
+        List<TeamDiscussionResponseDto> content = discussionPage.getContent().stream()
+                .map(this::mapDiscussionToDto)
+                .collect(Collectors.toList());
+
+        return PageResponse.of(content, discussionPage.getNumber(), discussionPage.getSize(), discussionPage.getTotalElements());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "team_discussions", allEntries = true)
+    public TeamDiscussionResponseDto addDiscussion(UUID userId, UUID teamId, CreateDiscussionRequest request) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team not found"));
+
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        TeamDiscussion discussion = TeamDiscussion.builder()
+                .team(team)
+                .author(author)
+                .body(request.getBody().trim())
+                .build();
+
+        TeamDiscussion saved = teamDiscussionRepository.save(discussion);
+        return mapDiscussionToDto(saved);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "team_discussions", allEntries = true)
+    public void deleteDiscussion(UUID userId, UUID teamId, UUID discussionId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team not found"));
+
+        TeamDiscussion discussion = teamDiscussionRepository.findById(discussionId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Discussion comment not found"));
+
+        if (discussion.getDeletedAt() != null) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Discussion comment not found or already deleted");
+        }
+
+        if (!discussion.getAuthor().getId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Only the author can delete this discussion comment");
+        }
+
+        discussion.setDeletedAt(Instant.now());
+        teamDiscussionRepository.save(discussion);
+    }
+
+    private TeamDiscussionResponseDto mapDiscussionToDto(TeamDiscussion d) {
+        Optional<Profile> profileOpt = profileRepository.findByUserId(d.getAuthor().getId());
+
+        return TeamDiscussionResponseDto.builder()
+                .id(d.getId())
+                .teamId(d.getTeam().getId())
+                .authorId(d.getAuthor().getId())
+                .authorName(profileOpt.map(Profile::getFullName).orElse(d.getAuthor().getEmail()))
+                .authorHandle(profileOpt.map(Profile::getHandle).orElse(null))
+                .avatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null))
+                .initials(profileOpt.map(Profile::getInitials).orElse("U"))
+                .collegeName(d.getAuthor().getCollege() != null ? d.getAuthor().getCollege().getName() : null)
+                .collegeShortName(d.getAuthor().getCollege() != null ? d.getAuthor().getCollege().getShortName() : null)
+                .body(d.getBody())
+                .time(formatRelativeTime(d.getCreatedAt()))
+                .createdAt(d.getCreatedAt())
+                .build();
+    }
+
+    private String formatRelativeTime(Instant instant) {
+        if (instant == null) return "Just now";
+        Duration duration = Duration.between(instant, Instant.now());
+        long seconds = duration.getSeconds();
+        if (seconds < 60) return "Just now";
+        long minutes = seconds / 60;
+        if (minutes < 60) return minutes + "m ago";
+        long hours = minutes / 60;
+        if (hours < 24) return hours + "h ago";
+        long days = hours / 24;
+        return days + "d ago";
     }
 
     private JoinRequestResponseDto mapToJoinRequestDto(JoinRequest req) {

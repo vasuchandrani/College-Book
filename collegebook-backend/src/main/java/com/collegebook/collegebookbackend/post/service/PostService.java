@@ -40,5 +40,7 @@ public interface PostService {
 
     CommentResponseDto addComment(UUID userId, UUID postId, CreateCommentRequest request);
 
+    void deleteComment(UUID userId, UUID postId, UUID commentId);
+
     List<String> getTrendingTags();
 }

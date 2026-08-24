@@ -25,6 +25,7 @@ import {
   Phone,
   MessageSquare,
   User,
+  UserX,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -93,6 +94,7 @@ const StudentProfilePage = () => {
   const [studentPosts, setStudentPosts] = useState<FeedPost[]>([]);
   const [studentTeams, setStudentTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [postsLoading, setPostsLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);
   const { triggerToggle } = useDebouncedToggle(400);
@@ -109,14 +111,20 @@ const StudentProfilePage = () => {
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setNotFound(false);
     setPostsLoading(true);
     setTeamsLoading(true);
 
     getStudentBySlug(decodedName)
       .then((data) => {
         if (alive) {
-          setStudent(data);
-          if (data?.userId) {
+          if (!data || !data.userId) {
+            setNotFound(true);
+            setStudent(null);
+            setTeamsLoading(false);
+          } else {
+            setNotFound(false);
+            setStudent(data);
             getStudentTeams(data.userId)
               .then((teams) => {
                 if (alive) setStudentTeams(teams || []);
@@ -125,33 +133,14 @@ const StudentProfilePage = () => {
               .finally(() => {
                 if (alive) setTeamsLoading(false);
               });
-          } else {
-            setTeamsLoading(false);
           }
         }
       })
       .catch(() => {
         if (alive) {
-          const fallbackHandle = decodedName.startsWith("@") ? decodedName.slice(1) : decodedName;
-          setStudent({
-            userId: "",
-            handle: fallbackHandle,
-            slug: fallbackHandle,
-            fullName: decodedName,
-            name: decodedName,
-            initials:
-              decodedName
-                .split(" ")
-                .map((p) => p[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase() || "ST",
-            courseName: "Student",
-            collegeName: "Dharmsinh Desai University",
-            collegeShortName: "DDU",
-            defaultBio: "Campus Student",
-            bioExtra: "",
-          });
+          setNotFound(true);
+          setStudent(null);
+          setTeamsLoading(false);
         }
       })
       .finally(() => {
@@ -363,6 +352,35 @@ const StudentProfilePage = () => {
     return (
       <div className="max-w-4xl mx-auto py-16 flex items-center justify-center">
         <ThemedLoader size="lg" />
+      </div>
+    );
+  }
+
+  if (notFound || !student) {
+    const handleDisplay = decodedName.startsWith("@") ? decodedName : `@${decodedName}`;
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="p-8 text-center shadow-card border-border/80 space-y-5 bg-card/80 backdrop-blur-sm">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-border">
+              <UserX className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">Student Not Found</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                No active student profile was found for <span className="font-semibold text-primary">{handleDisplay}</span>. The user handle may have changed or the profile does not exist.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button asChild variant="default" className="w-full sm:w-auto text-xs gap-1.5">
+                <Link to="/feed">Back to Campus Feed</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full sm:w-auto text-xs gap-1.5">
+                <Link to="/explore">Explore Colleges</Link>
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
       </div>
     );
   }

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import PostCommentsModal from "@/components/PostCommentsModal";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { toast } from "sonner";
 import {
@@ -37,6 +39,7 @@ const ExplorePage = () => {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [posts, setPosts] = useState<ExplorePost[]>([]);
+  const [activeCommentsPost, setActiveCommentsPost] = useState<ExplorePost | null>(null);
   const [ads, setAds] = useState<AdData[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -364,6 +367,17 @@ const ExplorePage = () => {
                     />{" "}
                     Save
                   </Button>
+                  {post.commentsEnabled !== false && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveCommentsPost(post)}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{post.commentsCount || 0}</span>
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -489,6 +503,20 @@ const ExplorePage = () => {
           </p>
         </div>
       )}
+
+      {/* Post Comments Modal */}
+      <PostCommentsModal
+        post={activeCommentsPost}
+        isOpen={Boolean(activeCommentsPost)}
+        onClose={() => setActiveCommentsPost(null)}
+        onCommentAdded={(postId, newCount) => {
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId ? { ...p, commentsCount: newCount } : p
+            )
+          );
+        }}
+      />
     </div>
   );
 };

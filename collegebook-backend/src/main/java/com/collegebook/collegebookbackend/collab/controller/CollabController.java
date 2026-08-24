@@ -1,13 +1,15 @@
 package com.collegebook.collegebookbackend.collab.controller;
 
 import com.collegebook.collegebookbackend.auth.UserPrincipal;
+import com.collegebook.collegebookbackend.collab.dto.CreateDiscussionRequest;
 import com.collegebook.collegebookbackend.collab.dto.CreateTeamRequest;
-import com.collegebook.collegebookbackend.collab.dto.UpdateJoinRequestDto;
-import com.collegebook.collegebookbackend.collab.dto.UpdateTeamRequest;
 import com.collegebook.collegebookbackend.collab.dto.JoinRequestResponseDto;
 import com.collegebook.collegebookbackend.collab.dto.RespondJoinRequestDto;
 import com.collegebook.collegebookbackend.collab.dto.SendJoinRequestDto;
+import com.collegebook.collegebookbackend.collab.dto.TeamDiscussionResponseDto;
 import com.collegebook.collegebookbackend.collab.dto.TeamResponseDto;
+import com.collegebook.collegebookbackend.collab.dto.UpdateJoinRequestDto;
+import com.collegebook.collegebookbackend.collab.dto.UpdateTeamRequest;
 import com.collegebook.collegebookbackend.collab.entity.TeamType;
 import com.collegebook.collegebookbackend.collab.service.CollabService;
 import com.collegebook.collegebookbackend.common.CurrentUser;
@@ -199,5 +201,32 @@ public class CollabController {
             @PathVariable("id") UUID teamId) {
         UUID userId = currentUser != null ? currentUser.getId() : null;
         return ResponseEntity.ok(collabService.markComplete(userId, teamId));
+    }
+
+    @GetMapping("/teams/{id}/discussions")
+    public ResponseEntity<PageResponse<TeamDiscussionResponseDto>> getDiscussions(
+            @PathVariable("id") UUID teamId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        return ResponseEntity.ok(collabService.getDiscussions(teamId, page, size));
+    }
+
+    @PostMapping("/teams/{id}/discussions")
+    public ResponseEntity<TeamDiscussionResponseDto> addDiscussion(
+            @CurrentUser UserPrincipal currentUser,
+            @PathVariable("id") UUID teamId,
+            @Valid @RequestBody CreateDiscussionRequest request) {
+        UUID userId = currentUser != null ? currentUser.getId() : null;
+        return ResponseEntity.ok(collabService.addDiscussion(userId, teamId, request));
+    }
+
+    @DeleteMapping("/teams/{id}/discussions/{discussionId}")
+    public ResponseEntity<Map<String, String>> deleteDiscussion(
+            @CurrentUser UserPrincipal currentUser,
+            @PathVariable("id") UUID teamId,
+            @PathVariable("discussionId") UUID discussionId) {
+        UUID userId = currentUser != null ? currentUser.getId() : null;
+        collabService.deleteDiscussion(userId, teamId, discussionId);
+        return ResponseEntity.ok(Map.of("message", "Discussion comment deleted successfully"));
     }
 }

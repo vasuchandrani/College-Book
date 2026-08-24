@@ -21,34 +21,43 @@ export interface FeedPost {
   id: string | number;
   author: string;
   authorHandle?: string;
+  avatarUrl?: string;
   initials: string;
   course: string;
+  college?: string;
   time: string;
   content: string;
   likes: number;
   liked: boolean;
+  commentsCount?: number;
+  commentsEnabled?: boolean;
   saved: boolean;
   tags: string[];
   images: string[];
   media?: MediaItem[];
   videoUrl?: string;
+  isGlobal?: boolean;
 }
 
 export interface ExplorePost {
   id: string | number;
   author: string;
   authorHandle?: string;
+  avatarUrl?: string;
   initials: string;
   college: string;
   time?: string;
   content: string;
   likes: number;
   liked: boolean;
+  commentsCount?: number;
+  commentsEnabled?: boolean;
   saved: boolean;
   tags: string[];
   images: string[];
   media?: MediaItem[];
   videoUrl?: string;
+  isGlobal?: boolean;
 }
 
 export interface AdData {
@@ -63,9 +72,34 @@ export interface AdData {
   discount?: string;
 }
 
-export interface Comment {
-  id: number;
+export interface PostComment {
+  id: string;
+  postId: string | number;
   author: string;
+  authorHandle?: string;
+  avatarUrl?: string;
+  initials: string;
+  collegeName?: string;
+  collegeShortName?: string;
   body: string;
   time: string;
+  createdAt?: string;
 }
+
+export interface TeamDiscussion {
+  id: string;
+  teamId: string;
+  authorId: string;
+  authorName: string;
+  authorHandle?: string;
+  avatarUrl?: string;
+  initials: string;
+  collegeName?: string;
+  collegeShortName?: string;
+  body: string;
+  time: string;
+  createdAt?: string;
+}
+
+// Backward compatibility alias
+export type Comment = PostComment;

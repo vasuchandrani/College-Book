@@ -10,6 +10,9 @@ import com.collegebook.collegebookbackend.collab.dto.TeamResponseDto;
 import com.collegebook.collegebookbackend.collab.entity.TeamType;
 import com.collegebook.collegebookbackend.common.PageResponse;
 
+import com.collegebook.collegebookbackend.collab.dto.CreateDiscussionRequest;
+import com.collegebook.collegebookbackend.collab.dto.TeamDiscussionResponseDto;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,4 +39,7 @@ public interface CollabService {
     TeamResponseDto addMember(UUID ownerId, UUID teamId, String handle);
     TeamResponseDto removeMember(UUID ownerId, UUID teamId, UUID memberUserId);
     void deleteJoinRequest(UUID userId, UUID requestId);
+    PageResponse<TeamDiscussionResponseDto> getDiscussions(UUID teamId, int page, int size);
+    TeamDiscussionResponseDto addDiscussion(UUID userId, UUID teamId, CreateDiscussionRequest request);
+    void deleteDiscussion(UUID userId, UUID teamId, UUID discussionId);
 }

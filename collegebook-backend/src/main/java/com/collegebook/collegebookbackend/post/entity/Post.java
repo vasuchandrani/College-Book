@@ -79,7 +79,12 @@ public class Post {
     private List<Tag> tags = new ArrayList<>();
 
     @Column(name = "is_global", nullable = false)
+    @Builder.Default
     private boolean isGlobal = true;
+
+    @Column(name = "comments_enabled", nullable = false)
+    @Builder.Default
+    private boolean commentsEnabled = true;
 
     @Column(name = "deleted_at")
     private Instant deletedAt;

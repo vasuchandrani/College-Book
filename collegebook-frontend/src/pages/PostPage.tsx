@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,10 +6,16 @@ import {
   Bookmark,
   Share2,
   FileQuestion,
+  MessageSquare,
+  Send,
+  Lock,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import ImageCarousel from "@/components/ImageCarousel";
@@ -22,7 +28,11 @@ import {
   likePost as apiLikePost,
   savePost as apiSavePost,
   sharePostLink,
+  getComments,
+  addComment,
+  deleteComment,
   type FeedPost,
+  type PostComment,
 } from "@/lib/api";
 
 const PostPage = () => {
@@ -33,6 +43,16 @@ const PostPage = () => {
   const [post, setPost] = useState<FeedPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Comments state
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentBody, setCommentBody] = useState("");
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const currentUser = JSON.parse(
+    localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}'
+  );
 
   const isLoggedIn = !!localStorage.getItem("cb_token") || !!localStorage.getItem("cb_user");
 
@@ -54,6 +74,16 @@ const PostPage = () => {
       .then((data) => {
         if (isMounted) {
           setPost(data);
+          // Fetch comments
+          setCommentsLoading(true);
+          getComments(data.id)
+            .then((c) => {
+              if (isMounted) setComments(c || []);
+            })
+            .catch(() => {})
+            .finally(() => {
+              if (isMounted) setCommentsLoading(false);
+            });
         }
       })
       .catch((err) => {
@@ -125,6 +155,114 @@ const PostPage = () => {
     toast.success("Post link copied to clipboard!");
   };
 
+  // Instant Optimistic Comment Posting (0ms perceived latency)
+  const handleAddComment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!post || !commentBody.trim() || post.commentsEnabled === false) return;
+
+    const trimmed = commentBody.trim();
+    const tempId = "temp-" + Date.now();
+
+    const optimisticComment: PostComment = {
+      id: tempId,
+      postId: post.id,
+      author: currentUser.name || "You",
+      authorHandle: currentUser.handle || currentUser.username,
+      avatarUrl: currentUser.avatarUrl,
+      initials: currentUser.initials || "YO",
+      collegeName: currentUser.collegeName,
+      collegeShortName: currentUser.collegeShortName,
+      body: trimmed,
+      time: "Just now",
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Instantly render on screen (0ms)
+    setComments((prev) => [...prev, optimisticComment]);
+    setCommentBody("");
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            commentsCount: (prev.commentsCount || comments.length) + 1,
+          }
+        : null
+    );
+
+    setTimeout(() => {
+      commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+
+    // 2. Perform API call in background
+    try {
+      const realComment = await addComment({
+        postId: post.id,
+        body: trimmed,
+      });
+
+      // Replace temp ID with real DB response silently
+      setComments((prev) =>
+        prev.map((c) => (c.id === tempId ? realComment : c))
+      );
+    } catch (err: any) {
+      // Rollback on failure
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
+            }
+          : null
+      );
+      toast.error(err.message || "Failed to add comment");
+    }
+  };
+
+  // Instant Optimistic Comment Deletion (0ms perceived latency)
+  const handleDeleteComment = async (commentId: string) => {
+    if (!post) return;
+
+    const commentToDelete = comments.find((c) => c.id === commentId);
+    if (!commentToDelete) return;
+
+    // 1. Instantly remove from screen (0ms)
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
+          }
+        : null
+    );
+    toast.success("Comment deleted");
+
+    // 2. Perform API call in background
+    try {
+      await deleteComment(post.id, commentId);
+    } catch (err: any) {
+      // Rollback on network failure
+      setComments((prev) => [...prev, commentToDelete]);
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              commentsCount: (prev.commentsCount || 0) + 1,
+            }
+          : null
+      );
+      toast.error(err.message || "Failed to delete comment");
+    }
+  };
+
+  const handleCommentKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAddComment();
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto p-4 md:p-6 min-h-[60vh] flex flex-col items-center justify-center">
@@ -166,10 +304,12 @@ const PostPage = () => {
     );
   }
 
+  const isCommentsEnabled = post.commentsEnabled !== false;
+
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-20">
+    <div className="max-w-2xl mx-auto p-4 md:p-6 pb-20 space-y-6">
       {/* Navigation Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
@@ -191,10 +331,14 @@ const PostPage = () => {
       >
         <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
           <div className="flex items-start gap-3">
-            <Avatar className="h-11 w-11 shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                {post.initials}
-              </AvatarFallback>
+            <Avatar className="h-11 w-11 shrink-0 border border-border">
+              {post.avatarUrl ? (
+                <AvatarImage src={post.avatarUrl} alt={post.author} />
+              ) : (
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {post.initials}
+                </AvatarFallback>
+              )}
             </Avatar>
 
             <div className="flex-1 min-w-0">
@@ -213,7 +357,7 @@ const PostPage = () => {
                       </span>
                     )}
                     {post.authorHandle && <span>•</span>}
-                    <span>{post.course}</span>
+                    <span>{post.course || post.college || "Campus Student"}</span>
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground shrink-0 ml-2">
@@ -291,6 +435,17 @@ const PostPage = () => {
                     <span>Save</span>
                   </Button>
 
+                  {isCommentsEnabled && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{post.commentsCount || comments.length}</span>
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -306,6 +461,155 @@ const PostPage = () => {
           </div>
         </Card>
       </motion.div>
+
+      {/* Inline Comments Section */}
+      <Card className="p-5 shadow-card space-y-4">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold font-heading text-foreground">
+              Comments ({comments.length})
+            </h3>
+          </div>
+        </div>
+
+        {/* Comment input form if enabled */}
+        {isCommentsEnabled ? (
+          <form onSubmit={handleAddComment} className="space-y-2 pt-1">
+            <div className="relative flex items-end gap-2 bg-muted/30 border border-border rounded-xl p-2 focus-within:border-primary/60 transition-colors">
+              <Textarea
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+                onKeyDown={handleCommentKeyDown}
+                placeholder="Write a comment... (use @handle to mention a student)"
+                rows={2}
+                maxLength={1000}
+                className="min-h-[48px] max-h-[120px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs px-2 py-1 bg-transparent"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!commentBody.trim()}
+                className="h-9 px-3.5 rounded-lg shrink-0 gap-1.5 font-medium text-xs shadow-sm bg-gradient-hero text-primary-foreground"
+              >
+                <span>Send</span>
+                <Send className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+              <span className="flex items-center gap-1 text-[10px]">
+                <Sparkles className="w-3 h-3 text-primary" />
+                Use <span className="font-semibold text-primary">@handle</span> to refer to any classmate
+              </span>
+              <span className="text-[10px]">{commentBody.length}/1000</span>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-center justify-center gap-2 py-3 px-4 text-xs text-muted-foreground bg-muted/30 rounded-xl border border-border/50">
+            <Lock className="w-4 h-4 text-muted-foreground" />
+            <span>Comments are turned off for this post by the author.</span>
+          </div>
+        )}
+
+        {/* Comments List */}
+        <div className="space-y-3 pt-2">
+          {commentsLoading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <ThemedLoader size="sm" />
+              <p className="text-xs text-muted-foreground">Loading comments...</p>
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="py-8 text-center space-y-1.5">
+              <p className="text-sm font-medium text-foreground">No comments yet</p>
+              <p className="text-xs text-muted-foreground">
+                {isCommentsEnabled
+                  ? "Be the first to share your thoughts on this post!"
+                  : "Comments are disabled on this post."}
+              </p>
+            </div>
+          ) : (
+            comments.map((comment) => {
+              const isAuthor =
+                currentUser &&
+                ((currentUser.id && currentUser.id === comment.authorId) ||
+                  (currentUser.handle &&
+                    comment.authorHandle &&
+                    currentUser.handle.replace(/^@/, "").toLowerCase() ===
+                      comment.authorHandle.replace(/^@/, "").toLowerCase()) ||
+                  (currentUser.name &&
+                    comment.author &&
+                    currentUser.name === comment.author));
+
+              return (
+                <div key={comment.id} className="flex items-start gap-3 group animate-in fade-in-50 duration-200">
+                  <Link
+                    to={comment.authorHandle ? `/student/${comment.authorHandle}` : "#"}
+                    className="shrink-0 transition-transform active:scale-95"
+                  >
+                    <Avatar className="h-8 w-8 border border-border">
+                      {comment.avatarUrl ? (
+                        <AvatarImage src={comment.avatarUrl} alt={comment.author} />
+                      ) : (
+                        <AvatarFallback className="text-xs bg-gradient-hero text-primary-foreground font-semibold">
+                          {comment.initials || "U"}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Link>
+
+                  <div className="flex-1 min-w-0 bg-muted/40 hover:bg-muted/60 transition-colors rounded-2xl px-3.5 py-2.5 border border-border/40">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        <Link
+                          to={comment.authorHandle ? `/student/${comment.authorHandle}` : "#"}
+                          className="text-xs font-semibold text-foreground hover:text-primary transition-colors truncate"
+                        >
+                          {comment.author}
+                        </Link>
+                        {comment.authorHandle && (
+                          <Link
+                            to={`/student/${comment.authorHandle}`}
+                            className="text-[11px] text-muted-foreground hover:text-primary transition-colors font-mono"
+                          >
+                            @{comment.authorHandle}
+                          </Link>
+                        )}
+                        {(comment.collegeShortName || comment.collegeName) && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary text-secondary-foreground font-medium">
+                            {comment.collegeShortName || comment.collegeName}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-muted-foreground">
+                          {comment.time}
+                        </span>
+                        {isAuthor && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="text-muted-foreground/50 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <FormattedContent
+                      content={comment.body}
+                      className="text-xs leading-relaxed text-foreground"
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={commentsEndRef} />
+        </div>
+      </Card>
     </div>
   );
 };

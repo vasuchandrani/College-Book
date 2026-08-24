@@ -1,4 +1,4 @@
-package com.collegebook.collegebookbackend.post.dto;
+package com.collegebook.collegebookbackend.collab.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,10 +12,10 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CommentResponseDto {
+public class TeamDiscussionResponseDto {
 
     private UUID id;
-    private UUID postId;
+    private UUID teamId;
     private UUID authorId;
     private String authorName;
     private String authorHandle;

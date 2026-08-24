@@ -43,4 +43,7 @@ public class PostResponseDto {
 
     private Instant createdAt;
     private boolean isGlobal;
+
+    @Builder.Default
+    private boolean commentsEnabled = true;
 }

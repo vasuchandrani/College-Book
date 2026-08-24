@@ -1,7 +1,6 @@
 package com.collegebook.collegebookbackend.post.dto;
 
 import com.collegebook.collegebookbackend.storage.dto.MediaKeyDto;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,10 +34,14 @@ public class CreatePostRequest {
     @Builder.Default
     private Boolean isGlobal = true;
 
+    @Builder.Default
+    private Boolean commentsEnabled = true;
+
     public CreatePostRequest(String content, List<String> images, List<String> tags) {
         this.content = content;
         this.images = images;
         this.tags = tags;
         this.isGlobal = true;
+        this.commentsEnabled = true;
     }
 }

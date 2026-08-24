@@ -54,6 +54,8 @@ public class CollabServiceTest {
     @Mock
     private TeamStarRepository teamStarRepository;
     @Mock
+    private com.collegebook.collegebookbackend.collab.repository.TeamDiscussionRepository teamDiscussionRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private ProfileRepository profileRepository;
@@ -69,6 +71,7 @@ public class CollabServiceTest {
                 teamMemberRepository,
                 joinRequestRepository,
                 teamStarRepository,
+                teamDiscussionRepository,
                 userRepository,
                 profileRepository,
                 socialInteractionService
@@ -671,5 +674,182 @@ public class CollabServiceTest {
         assertNotNull(respB);
         assertEquals(1, respB.getItems().size());
         org.junit.jupiter.api.Assertions.assertFalse(respB.getItems().get(0).isStarred());
+    }
+
+    @Test
+    void testAddDiscussionSuccess() {
+        UUID userId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(userId);
+        author.setEmail("author@ddu.ac.in");
+
+        Team team = new Team();
+        team.setId(teamId);
+        team.setTitle("Open Source Project");
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(author));
+        when(teamDiscussionRepository.save(any())).thenAnswer(i -> {
+            com.collegebook.collegebookbackend.collab.entity.TeamDiscussion d = i.getArgument(0);
+            d.setId(UUID.randomUUID());
+            d.setCreatedAt(java.time.Instant.now());
+            return d;
+        });
+
+        com.collegebook.collegebookbackend.profile.entity.Profile profile = new com.collegebook.collegebookbackend.profile.entity.Profile();
+        profile.setFullName("Ronak Gondaliya");
+        profile.setHandle("ronakgondaliya");
+        profile.setInitials("RG");
+        when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+
+        com.collegebook.collegebookbackend.collab.dto.CreateDiscussionRequest req =
+                new com.collegebook.collegebookbackend.collab.dto.CreateDiscussionRequest("@ronakgondaliya let's use .NET for the backend API!");
+        com.collegebook.collegebookbackend.collab.dto.TeamDiscussionResponseDto resp = collabService.addDiscussion(userId, teamId, req);
+
+        assertNotNull(resp);
+        assertEquals("Ronak Gondaliya", resp.getAuthorName());
+        assertEquals("ronakgondaliya", resp.getAuthorHandle());
+        assertEquals("@ronakgondaliya let's use .NET for the backend API!", resp.getBody());
+    }
+
+    @Test
+    void testGetDiscussions() {
+        UUID teamId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(userId);
+        author.setEmail("author@ddu.ac.in");
+
+        Team team = new Team();
+        team.setId(teamId);
+
+        com.collegebook.collegebookbackend.collab.entity.TeamDiscussion d =
+                com.collegebook.collegebookbackend.collab.entity.TeamDiscussion.builder()
+                        .id(UUID.randomUUID())
+                        .team(team)
+                        .author(author)
+                        .body("Discussion comment")
+                        .createdAt(java.time.Instant.now())
+                        .build();
+
+        org.springframework.data.domain.Page<com.collegebook.collegebookbackend.collab.entity.TeamDiscussion> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(d));
+
+        when(teamDiscussionRepository.findByTeamIdAndDeletedAtIsNullOrderByCreatedAtAsc(any(), any())).thenReturn(page);
+
+        com.collegebook.collegebookbackend.common.PageResponse<com.collegebook.collegebookbackend.collab.dto.TeamDiscussionResponseDto> res =
+                collabService.getDiscussions(teamId, 0, 10);
+
+        assertNotNull(res);
+        assertEquals(1, res.getItems().size());
+        assertEquals("Discussion comment", res.getItems().get(0).getBody());
+    }
+
+    @Test
+    void testDeleteDiscussionSuccess() {
+        UUID authorId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+        UUID discussionId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Team team = new Team();
+        team.setId(teamId);
+
+        com.collegebook.collegebookbackend.collab.entity.TeamDiscussion discussion =
+                com.collegebook.collegebookbackend.collab.entity.TeamDiscussion.builder()
+                        .id(discussionId)
+                        .team(team)
+                        .author(author)
+                        .body("To be deleted")
+                        .build();
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamDiscussionRepository.findById(discussionId)).thenReturn(Optional.of(discussion));
+
+        collabService.deleteDiscussion(authorId, teamId, discussionId);
+
+        assertNotNull(discussion.getDeletedAt());
+        verify(teamDiscussionRepository).save(discussion);
+    }
+
+    @Test
+    void testDeleteDiscussionForbiddenForNonAuthorEvenIfOwner() {
+        UUID authorId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+        UUID discussionId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        User owner = new User();
+        owner.setId(ownerId);
+
+        Team team = new Team();
+        team.setId(teamId);
+        team.setOwner(owner);
+
+        com.collegebook.collegebookbackend.collab.entity.TeamDiscussion discussion =
+                com.collegebook.collegebookbackend.collab.entity.TeamDiscussion.builder()
+                        .id(discussionId)
+                        .team(team)
+                        .author(author)
+                        .body("Another user's comment")
+                        .build();
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamDiscussionRepository.findById(discussionId)).thenReturn(Optional.of(discussion));
+
+        AppException ex = assertThrows(AppException.class, () -> collabService.deleteDiscussion(ownerId, teamId, discussionId));
+        assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
+    }
+
+    @Test
+    void testDeleteDiscussionAlreadyDeletedThrowsNotFound() {
+        UUID authorId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+        UUID discussionId = UUID.randomUUID();
+
+        User author = new User();
+        author.setId(authorId);
+
+        Team team = new Team();
+        team.setId(teamId);
+
+        com.collegebook.collegebookbackend.collab.entity.TeamDiscussion discussion =
+                com.collegebook.collegebookbackend.collab.entity.TeamDiscussion.builder()
+                        .id(discussionId)
+                        .team(team)
+                        .author(author)
+                        .body("Deleted comment")
+                        .deletedAt(java.time.Instant.now())
+                        .build();
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamDiscussionRepository.findById(discussionId)).thenReturn(Optional.of(discussion));
+
+        AppException ex = assertThrows(AppException.class, () -> collabService.deleteDiscussion(authorId, teamId, discussionId));
+        assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void testDeleteDiscussionNonExistentDiscussionThrowsNotFound() {
+        UUID authorId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+        UUID discussionId = UUID.randomUUID();
+
+        Team team = new Team();
+        team.setId(teamId);
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamDiscussionRepository.findById(discussionId)).thenReturn(Optional.empty());
+
+        AppException ex = assertThrows(AppException.class, () -> collabService.deleteDiscussion(authorId, teamId, discussionId));
+        assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
     }
 }

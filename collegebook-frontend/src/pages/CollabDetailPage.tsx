@@ -19,10 +19,12 @@ import {
   Tag,
   Layers,
   Clock,
+  Trash2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -37,7 +39,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { getTeamById, starProject, sendJoinRequest, getMyJoinedRequests } from "@/lib/api";
+import {
+  getTeamById,
+  starProject,
+  sendJoinRequest,
+  getMyJoinedRequests,
+  getTeamDiscussions,
+  addTeamDiscussion,
+  deleteTeamDiscussion,
+} from "@/lib/api";
+import type { TeamDiscussion } from "@/types";
 import { FormattedContent } from "@/components/FormattedContent";
 import { ThemedLoader } from "@/components/ThemedLoader";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
@@ -61,34 +72,111 @@ export default function CollabDetailPage() {
   // Room Chat Dialog
   const [roomChatOpen, setRoomChatOpen] = useState(false);
 
+  // Project Discussions
+  const [discussions, setDiscussions] = useState<TeamDiscussion[]>([]);
+  const [discussionsLoading, setDiscussionsLoading] = useState(false);
+  const [submittingDiscussion, setSubmittingDiscussion] = useState(false);
+  const [discussionBody, setDiscussionBody] = useState("");
+
   const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}');
 
   useEffect(() => {
     if (!id) return;
     let alive = true;
     setLoading(true);
+    setDiscussionsLoading(true);
 
     Promise.all([
       getTeamById(id).catch(() => null),
       getMyJoinedRequests().catch(() => []),
+      getTeamDiscussions(id).catch(() => []),
     ])
-      .then(([teamData, reqsData]) => {
+      .then(([teamData, reqsData, discussionsData]) => {
         if (alive) {
           setTeam(teamData);
           setMyRequests(reqsData || []);
+          setDiscussions(discussionsData || []);
         }
       })
       .catch((e) => {
         toast.error(e.message || "Failed to load project details");
       })
       .finally(() => {
-        if (alive) setLoading(false);
+        if (alive) {
+          setLoading(false);
+          setDiscussionsLoading(false);
+        }
       });
 
     return () => {
       alive = false;
     };
   }, [id]);
+
+  const handleAddDiscussion = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!id || !discussionBody.trim()) return;
+
+    const trimmed = discussionBody.trim();
+    const tempId = "temp-" + Date.now();
+
+    const optimisticDiscussion: TeamDiscussion = {
+      id: tempId,
+      teamId: id,
+      authorName: user.name || "You",
+      authorHandle: user.handle || user.username,
+      avatarUrl: user.avatarUrl,
+      initials: user.initials || "YO",
+      collegeName: user.collegeName,
+      collegeShortName: user.collegeShortName,
+      body: trimmed,
+      time: "Just now",
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Instantly render on screen (0ms)
+    setDiscussions((prev) => [...prev, optimisticDiscussion]);
+    setDiscussionBody("");
+
+    // 2. Perform API call in background
+    try {
+      const realDiscussion = await addTeamDiscussion(id, trimmed);
+      setDiscussions((prev) =>
+        prev.map((d) => (d.id === tempId ? realDiscussion : d))
+      );
+    } catch (err: any) {
+      // Rollback on failure
+      setDiscussions((prev) => prev.filter((d) => d.id !== tempId));
+      toast.error(err.message || "Failed to post comment");
+    }
+  };
+
+  const handleDeleteDiscussion = async (discussionId: string) => {
+    if (!id) return;
+
+    const discussionToDelete = discussions.find((d) => d.id === discussionId);
+    if (!discussionToDelete) return;
+
+    // 1. Instantly remove from screen (0ms)
+    setDiscussions((prev) => prev.filter((d) => d.id !== discussionId));
+    toast.success("Comment deleted");
+
+    // 2. Perform API call in background
+    try {
+      await deleteTeamDiscussion(id, discussionId);
+    } catch (err: any) {
+      // Rollback on failure
+      setDiscussions((prev) => [...prev, discussionToDelete]);
+      toast.error(err.message || "Failed to delete comment");
+    }
+  };
+
+  const handleDiscussionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAddDiscussion();
+    }
+  };
 
   const handleToggleStar = () => {
     if (!team) return;
@@ -572,7 +660,7 @@ export default function CollabDetailPage() {
       </Card>
 
       {/* Discussion & Comments Section */}
-      <Card className="p-6 sm:p-8 shadow-card border-border/80 space-y-4 bg-card/80 backdrop-blur-sm">
+      <Card className="p-6 sm:p-8 shadow-card border-border/80 space-y-5 bg-card/80 backdrop-blur-sm">
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-primary" />
@@ -581,36 +669,141 @@ export default function CollabDetailPage() {
             </h2>
           </div>
           <Badge variant="outline" className="text-[11px] bg-muted/40">
-            0 comments
+            {discussions.length} {discussions.length === 1 ? "comment" : "comments"}
           </Badge>
         </div>
 
-        {/* Info Banner for Upcoming Comments Feature */}
-        <div className="p-4 rounded-xl bg-muted/40 border border-dashed border-border flex items-start gap-3">
-          <MessageSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground">
-              Comments & Discussion Thread (Coming Soon)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              We will be introducing project discussions soon! Students and contributors will be able to share feedback, ask questions, and brainstorm ideas right here.
-            </p>
-          </div>
-        </div>
-
-        {/* Teaser input */}
-        <div className="space-y-2 pt-1 opacity-60">
-          <Textarea
-            placeholder="Project discussion thread will be enabled soon..."
-            disabled
-            rows={2}
-            className="text-xs bg-muted/20 resize-none cursor-not-allowed"
-          />
-          <div className="flex justify-end">
-            <Button size="sm" disabled className="text-xs gap-1.5 h-8">
-              <Send className="h-3 w-3" /> Post Comment
+        {/* Discussion Input Form */}
+        <form onSubmit={handleAddDiscussion} className="space-y-2">
+          <div className="relative flex items-end gap-2 bg-muted/30 border border-border rounded-xl p-2 focus-within:border-primary/60 transition-colors">
+            <Textarea
+              value={discussionBody}
+              onChange={(e) => setDiscussionBody(e.target.value)}
+              onKeyDown={handleDiscussionKeyDown}
+              placeholder="Ask a question, share ideas, or tag collaborators with @handle..."
+              rows={2}
+              maxLength={1000}
+              className="min-h-[48px] max-h-[120px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs px-2 py-1 bg-transparent"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!discussionBody.trim() || submittingDiscussion}
+              className="h-9 px-3.5 rounded-lg shrink-0 gap-1.5 font-medium text-xs shadow-sm bg-gradient-hero text-primary-foreground"
+            >
+              {submittingDiscussion ? (
+                <ThemedLoader size="sm" />
+              ) : (
+                <>
+                  <span>Post</span>
+                  <Send className="w-3.5 h-3.5" />
+                </>
+              )}
             </Button>
           </div>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+            <span className="flex items-center gap-1 text-[10px]">
+              <Sparkles className="w-3 h-3 text-primary" />
+              Use <span className="font-semibold text-primary">@handle</span> to mention any student in your team
+            </span>
+            <span className="text-[10px]">{discussionBody.length}/1000</span>
+          </div>
+        </form>
+
+        {/* Discussions List */}
+        <div className="space-y-3 pt-2">
+          {discussionsLoading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <ThemedLoader size="sm" />
+              <p className="text-xs text-muted-foreground">Loading discussions...</p>
+            </div>
+          ) : discussions.length === 0 ? (
+            <div className="py-8 text-center space-y-1.5 bg-muted/20 rounded-xl border border-dashed border-border/60">
+              <MessageSquare className="w-8 h-8 text-muted-foreground/60 mx-auto" />
+              <p className="text-xs font-semibold text-foreground">No discussions yet</p>
+              <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+                Be the first to start the project discussion! Ask questions, propose features, or share feedback.
+              </p>
+            </div>
+          ) : (
+            discussions.map((d) => {
+              const isAuthor =
+                user &&
+                ((user.id && user.id === d.authorId) ||
+                  (user.handle &&
+                    d.authorHandle &&
+                    user.handle.replace(/^@/, "").toLowerCase() ===
+                      d.authorHandle.replace(/^@/, "").toLowerCase()) ||
+                  (user.name && user.name === d.authorName));
+
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors group"
+                >
+                  <Link
+                    to={d.authorHandle ? `/student/${d.authorHandle}` : "#"}
+                    className="shrink-0 transition-transform active:scale-95"
+                  >
+                    <Avatar className="h-8 w-8 border border-border">
+                      {d.avatarUrl ? (
+                        <AvatarImage src={d.avatarUrl} alt={d.authorName} />
+                      ) : (
+                        <AvatarFallback className="text-xs bg-gradient-hero text-primary-foreground font-semibold">
+                          {d.initials || "U"}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Link>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        <Link
+                          to={d.authorHandle ? `/student/${d.authorHandle}` : "#"}
+                          className="text-xs font-semibold text-foreground hover:text-primary transition-colors truncate"
+                        >
+                          {d.authorName}
+                        </Link>
+                        {d.authorHandle && (
+                          <Link
+                            to={`/student/${d.authorHandle}`}
+                            className="text-[11px] text-muted-foreground hover:text-primary transition-colors font-mono"
+                          >
+                            @{d.authorHandle}
+                          </Link>
+                        )}
+                        {(d.collegeShortName || d.collegeName) && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary text-secondary-foreground font-medium">
+                            {d.collegeShortName || d.collegeName}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] text-muted-foreground">{d.time}</span>
+                        {isAuthor && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDiscussion(d.id)}
+                            className="text-muted-foreground/50 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <FormattedContent
+                      content={d.body}
+                      className="text-xs leading-relaxed text-foreground"
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </Card>
 

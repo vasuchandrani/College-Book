@@ -230,6 +230,7 @@ public class PostServiceImpl implements PostService {
         post.setCollege(author.getCollege());
         post.setContent(hasContent ? request.getContent().trim() : "");
         post.setGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true);
+        post.setCommentsEnabled(request.getCommentsEnabled() == null || request.getCommentsEnabled());
         post.setImages(request.getImages() != null ? request.getImages() : Collections.emptyList());
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
@@ -332,9 +333,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "post_comments", key = "#postId.toString() + ':' + #page + ':' + #size")
     public PageResponse<CommentResponseDto> getComments(UUID postId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Comment> commentsPage = commentRepository.findByPostIdOrderByCreatedAtAsc(postId, pageable);
+        Page<Comment> commentsPage = commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(postId, pageable);
 
         List<CommentResponseDto> content = commentsPage.getContent().stream()
                 .map(this::mapCommentToDto)
@@ -345,9 +347,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
     public CommentResponseDto addComment(UUID userId, UUID postId, CreateCommentRequest request) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
+
+        if (!post.isCommentsEnabled()) {
+            throw new AppException(ErrorCode.COMMENTS_DISABLED, "Comments are disabled for this post");
+        }
 
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -363,6 +370,31 @@ public class PostServiceImpl implements PostService {
         postRepository.save(post);
 
         return mapCommentToDto(saved);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
+    public void deleteComment(UUID userId, UUID postId, UUID commentId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Comment not found"));
+
+        if (comment.getDeletedAt() != null) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Comment not found or already deleted");
+        }
+
+        if (!comment.getAuthor().getId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Only the author can delete this comment");
+        }
+
+        comment.setDeletedAt(Instant.now());
+        commentRepository.save(comment);
+
+        post.setCommentsCount(Math.max(0, post.getCommentsCount() - 1));
+        postRepository.save(post);
     }
 
     @Override
@@ -440,6 +472,7 @@ public class PostServiceImpl implements PostService {
         int effectiveLikes = (int) socialInteractionService.getPostLikesCount(post.getId(), post.getLikesCount());
         dto.setLikes(effectiveLikes);
         dto.setCommentsCount(post.getCommentsCount());
+        dto.setCommentsEnabled(post.isCommentsEnabled());
 
         if (userId != null) {
             dto.setLiked(socialInteractionService.isPostLikedByUser(post.getId(), userId));
@@ -464,7 +497,11 @@ public class PostServiceImpl implements PostService {
 
         Optional<Profile> profileOpt = profileRepository.findByUserId(comment.getAuthor().getId());
         dto.setAuthorName(profileOpt.map(Profile::getFullName).orElse(comment.getAuthor().getEmail()));
+        dto.setAuthorHandle(profileOpt.map(Profile::getHandle).orElse(null));
+        dto.setAvatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null));
         dto.setInitials(profileOpt.map(Profile::getInitials).orElse("U"));
+        dto.setCollegeName(comment.getAuthor().getCollege() != null ? comment.getAuthor().getCollege().getName() : null);
+        dto.setCollegeShortName(comment.getAuthor().getCollege() != null ? comment.getAuthor().getCollege().getShortName() : null);
         dto.setBody(comment.getContent());
         dto.setTime(formatRelativeTime(comment.getCreatedAt()));
         dto.setCreatedAt(comment.getCreatedAt());

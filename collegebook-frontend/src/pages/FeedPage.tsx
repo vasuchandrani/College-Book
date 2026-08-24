@@ -13,6 +13,7 @@ import {
   Hash,
   Globe,
   School,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import PostCommentsModal from "@/components/PostCommentsModal";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { toast } from "sonner";
 import {
@@ -75,6 +77,8 @@ const FeedPage = () => {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [isGlobal, setIsGlobal] = useState(true);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [activeCommentsPost, setActiveCommentsPost] = useState<FeedPost | null>(null);
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -385,6 +389,7 @@ const FeedPage = () => {
         mediaKeys,
         tags: postTags,
         isGlobal,
+        commentsEnabled,
       });
 
       setPosts([created, ...posts]);
@@ -568,6 +573,17 @@ const FeedPage = () => {
                     />{" "}
                     Save
                   </Button>
+                  {post.commentsEnabled !== false && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveCommentsPost(post)}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{post.commentsCount || 0}</span>
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -860,6 +876,20 @@ const FeedPage = () => {
                     Campus
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCommentsEnabled(!commentsEnabled)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all duration-200 ${
+                    commentsEnabled
+                      ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/15"
+                      : "bg-muted text-muted-foreground border-border/60 hover:text-foreground"
+                  }`}
+                  title={commentsEnabled ? "Comments allowed on your post" : "Comments turned off"}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                  <span>{commentsEnabled ? "Comments On" : "Comments Off"}</span>
+                </button>
               </div>
 
               <div className="flex justify-end">
@@ -906,6 +936,20 @@ const FeedPage = () => {
           </p>
         </div>
       )}
+
+      {/* Post Comments Modal */}
+      <PostCommentsModal
+        post={activeCommentsPost}
+        isOpen={Boolean(activeCommentsPost)}
+        onClose={() => setActiveCommentsPost(null)}
+        onCommentAdded={(postId, newCount) => {
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId ? { ...p, commentsCount: newCount } : p
+            )
+          );
+        }}
+      />
     </div>
   );
 };
