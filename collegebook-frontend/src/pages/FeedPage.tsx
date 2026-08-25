@@ -15,6 +15,7 @@ import {
   School,
   MessageSquare,
 } from "lucide-react";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +31,7 @@ import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
+import { formatSmartDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import {
   getFeedPosts,
@@ -145,18 +147,20 @@ const FeedPage = () => {
                   .split(" ")
                   .map((w: string) => w[0])
                   .join(""));
-          const updated = {
-            ...user,
-            id: p.userId || user.id,
-            name: p.name || p.fullName || user.name,
-            college: loadedCollege,
-            collegeShort: loadedCollegeShort,
-            course: p.courseName || user.course,
-            currentYear: p.currentYear || user.currentYear,
-            defaultBio: p.defaultBio || user.defaultBio,
-          };
-          setUser(updated);
-          localStorage.setItem("cb_user", JSON.stringify(updated));
+          setUser((currentUser) => {
+            const updated = {
+              ...currentUser,
+              id: p.userId || currentUser.id,
+              name: p.name || p.fullName || currentUser.name,
+              college: loadedCollege,
+              collegeShort: loadedCollegeShort,
+              course: p.courseName || currentUser.course,
+              currentYear: p.currentYear || currentUser.currentYear,
+              defaultBio: p.defaultBio || currentUser.defaultBio,
+            };
+            localStorage.setItem("cb_user", JSON.stringify(updated));
+            return updated;
+          });
         }
       })
       .catch(() => {});
@@ -470,79 +474,88 @@ const FeedPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: Math.min(i * 0.03, 0.3) }}
         >
-          <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
-            <div className="flex items-start gap-3">
-              <Avatar className="h-10 w-10 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  {post.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Link
-                      to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                      className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight"
-                    >
-                      {post.author}
-                    </Link>
-                    <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-                      {post.authorHandle && (
-                        <span className="font-mono text-primary/90 font-medium">
-                          @{post.authorHandle}
-                        </span>
-                      )}
-                      {post.authorHandle && <span>•</span>}
-                      <span>{post.course}</span>
-                    </div>
+          <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+            {/* Top Section: Author Profile Header */}
+            <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link
+                  to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                  className="shrink-0 transition-transform active:scale-95"
+                >
+                  <Avatar className="h-10 w-10 border border-border">
+                    {post.avatarUrl && (
+                      <AvatarImage src={post.avatarUrl} alt={post.author} />
+                    )}
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      {post.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+                <div className="min-w-0">
+                  <Link
+                    to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                    className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
+                  >
+                    {post.author}
+                  </Link>
+                  <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                    {post.authorHandle && (
+                      <span className="font-mono text-primary/90 font-medium">
+                        @{post.authorHandle}
+                      </span>
+                    )}
+                    {post.authorHandle && post.course && <span>•</span>}
+                    {post.course && <span className="truncate">{post.course}</span>}
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                    {post.time}
-                  </span>
                 </div>
+              </div>
+            </div>
 
-                {/* Multiline, 2-line gap normalized, clickable content */}
-                <FormattedContent content={post.content} className="mt-2" />
+            {/* Bottom Section: Full Width Body, Media, Actions, Comments */}
+            <div className="w-full">
+              {/* Multiline, 2-line gap normalized, clickable content */}
+              <FormattedContent content={post.content} className="mt-1" />
 
-                {/* Images */}
-                {post.images && post.images.length > 0 && (
-                  <div className="mt-3">
-                    <ImageCarousel images={post.images} />
-                  </div>
-                )}
+              {/* Images */}
+              {post.images && post.images.length > 0 && (
+                <div className="mt-3">
+                  <ImageCarousel images={post.images} />
+                </div>
+              )}
 
-                {/* Video */}
-                {post.videoUrl && (
-                  <div className="mt-3">
-                    <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
-                  </div>
-                )}
+              {/* Video */}
+              {post.videoUrl && (
+                <div className="mt-3">
+                  <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                </div>
+              )}
 
-                {/* Hashtags below content, above buttons */}
-                {post.tags && post.tags.length > 0 && (
-                  <div className="flex gap-1.5 mt-3 flex-wrap">
-                    {post.tags.map((t) => {
-                      const cleanTag = t.replace(/^#/, "");
-                      const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
-                      return (
-                        <button
-                          key={cleanTag}
-                          type="button"
-                          onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground shadow-xs"
-                              : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          #{cleanTag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+              {/* Hashtags below content, above buttons */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex gap-1.5 mt-3 flex-wrap">
+                  {post.tags.map((t) => {
+                    const cleanTag = t.replace(/^#/, "");
+                    const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
+                    return (
+                      <button
+                        key={cleanTag}
+                        type="button"
+                        onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-xs"
+                            : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        #{cleanTag}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-                <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
+              <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
+                <div className="flex items-center gap-1 flex-wrap">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -605,26 +618,29 @@ const FeedPage = () => {
                     <Share2 className="h-4 w-4" /> Share
                   </Button>
                 </div>
-
-                {/* Inline Expandable Comments Stream */}
-                <AnimatePresence>
-                  {expandedCommentsPostId === post.id && (
-                    <InlineCommentsSection
-                      post={post}
-                      onCommentCountChange={(newCount) => {
-                        setPosts((prev) =>
-                          prev.map((p) =>
-                            p.id === post.id
-                              ? { ...p, commentsCount: newCount }
-                              : p
-                          )
-                        );
-                      }}
-                      onClose={() => setExpandedCommentsPostId(null)}
-                    />
-                  )}
-                </AnimatePresence>
+                <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                  {formatSmartDate(post.createdAt || post.time)}
+                </span>
               </div>
+
+              {/* Inline Expandable Comments Stream */}
+              <AnimatePresence>
+                {expandedCommentsPostId === post.id && (
+                  <InlineCommentsSection
+                    post={post}
+                    onCommentCountChange={(newCount) => {
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p.id === post.id
+                            ? { ...p, commentsCount: newCount }
+                            : p
+                        )
+                      );
+                    }}
+                    onClose={() => setExpandedCommentsPostId(null)}
+                  />
+                )}
+              </AnimatePresence>
             </div>
           </Card>
         </motion.div>
@@ -643,6 +659,11 @@ const FeedPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-3 sm:p-6 pb-20">
+      <SEO
+        title="Campus Feed"
+        description="Explore live updates, student ideas, hackathon achievements, and campus discussions at your university on CollegeBook."
+        keywords="collegebook feed, campus feed, university updates, student posts, college life"
+      />
       <div className="mb-4 sm:mb-6">
         <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
         <p className="text-muted-foreground text-xs sm:text-sm">

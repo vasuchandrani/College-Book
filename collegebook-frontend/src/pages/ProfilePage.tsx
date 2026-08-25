@@ -164,12 +164,6 @@ const roleOptions = [
   "Other",
 ];
 
-interface CustomLink {
-  id: string;
-  label: string;
-  url: string;
-}
-
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -340,12 +334,13 @@ const ProfilePage = () => {
       getProfile()
         .then((p) => {
           if (alive && p) {
+            const localUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
             const loadedCollege =
-              p.collegeName || p.college || user.college || "Dharmsinh Desai University";
+              p.collegeName || p.college || localUser.college || "Dharmsinh Desai University";
             const loadedCollegeShort =
               p.collegeShort ||
               p.collegeShortName ||
-              user.collegeShort ||
+              localUser.collegeShort ||
               (loadedCollege === "Dharmsinh Desai University"
                 ? "DDU"
                 : loadedCollege.split(" ").map((w: string) => w[0]).join(""));
@@ -359,7 +354,7 @@ const ProfilePage = () => {
             }
             if (savedLinks.length === 0) {
               try {
-                const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || user.name));
+                const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || localUser.name));
                 if (raw) savedLinks = JSON.parse(raw);
               } catch (e) { }
             }
@@ -381,7 +376,7 @@ const ProfilePage = () => {
             }
             if (savedContacts.length === 0) {
               try {
-                const raw = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || user.name));
+                const raw = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || localUser.name));
                 if (raw) {
                   try {
                     const parsed = JSON.parse(raw);
@@ -393,19 +388,19 @@ const ProfilePage = () => {
               } catch (e) { }
             }
 
-            const yearNum = p.currentYear || user.currentYear || 4;
+            const yearNum = p.currentYear || localUser.currentYear || 4;
             const yearSuffix = yearNum === 1 ? "st" : yearNum === 2 ? "nd" : yearNum === 3 ? "rd" : "th";
             const loadedYear = `${yearNum}${yearSuffix} Year`;
 
-            const rawCourse = p.courseShortName || p.courseName || user.course || "";
+            const rawCourse = p.courseShortName || p.courseName || localUser.course || "";
             const cName = normalizeCourseShort(rawCourse);
-            const dName = p.departmentName || user.department || "";
+            const dName = p.departmentName || localUser.department || "";
             let cleanBio = cName;
             if (dName && !cleanBio.toLowerCase().includes(dName.toLowerCase())) {
               cleanBio = `${cleanBio} ${dName}`.trim();
             }
             if (!cleanBio) {
-              cleanBio = p.defaultBio ? p.defaultBio.split("•")[0].trim() : defaultBio;
+              cleanBio = p.defaultBio ? p.defaultBio.split("•")[0].trim() : "Student";
             }
             if (cleanBio.includes("Bachelor of Technology")) {
               cleanBio = cleanBio.replace(/Bachelor of Technology/g, "B.Tech");
@@ -415,17 +410,17 @@ const ProfilePage = () => {
             }
 
             const loaded = {
-              name: p.fullName || p.name || user.name || "Student",
-              handle: p.handle || user.handle || "",
+              name: p.fullName || p.name || localUser.name || "Student",
+              handle: p.handle || localUser.handle || "",
               bio: cleanBio,
               customBio: p.bioExtra || "",
               college: loadedCollege,
-              collegeId: p.collegeId || user.collegeId || "",
-              courseId: p.courseId || user.courseId || "",
+              collegeId: p.collegeId || localUser.collegeId || "",
+              courseId: p.courseId || localUser.courseId || "",
               courseName: cName,
-              departmentId: p.departmentId || user.departmentId || "",
+              departmentId: p.departmentId || localUser.departmentId || "",
               departmentName: dName,
-              email: user.email || "",
+              email: localUser.email || "",
               year: loadedYear,
               yearNum: yearNum,
               avatarUrl: p.avatarUrl || "",
@@ -472,15 +467,15 @@ const ProfilePage = () => {
             });
 
             const updatedUser = {
-              ...user,
+              ...localUser,
               name: loaded.name,
               handle: loaded.handle,
               college: loadedCollege,
               collegeId: loaded.collegeId,
               collegeShort: loadedCollegeShort,
-              course: cName || user.course || "Student",
+              course: cName || localUser.course || "Student",
               courseId: loaded.courseId,
-              department: dName || user.department,
+              department: dName || localUser.department,
               departmentId: loaded.departmentId,
               currentYear: yearNum,
               defaultBio: cleanBio,

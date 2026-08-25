@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormattedContent } from "@/components/FormattedContent";
 import { ThemedLoader } from "@/components/ThemedLoader";
 import { getComments, addComment, deleteComment } from "@/lib/api";
+import { formatSmartDate } from "@/lib/dateUtils";
 import type { FeedPost, ExplorePost, PostComment } from "@/types";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -259,7 +260,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
 
                       {/* Time placed cleanly in the top-right corner */}
                       <span className="text-[10px] text-muted-foreground shrink-0 select-none">
-                        {comment.time}
+                        {formatSmartDate(comment.createdAt || comment.time)}
                       </span>
                     </div>
 

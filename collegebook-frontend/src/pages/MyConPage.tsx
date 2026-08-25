@@ -1,3 +1,4 @@
+import SEO from "@/components/SEO";
 import { ShieldCheck, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,6 +24,11 @@ const badges: BadgeItem[] = [
 const MyConPage = () => {
   return (
     <div className="max-w-3xl mx-auto p-3 sm:p-6 pb-20">
+      <SEO
+        title="myCon — Verified Skill Badges"
+        description="Earn proof-backed credentials and verified coding badges on CollegeBook without resume fluff."
+        keywords="mycon, verified skill badges, collegebook mycon, competitive programming badge, student verification"
+      />
       <div className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl font-bold mb-1">myCon — Skill Badges</h1>
         <p className="text-muted-foreground text-xs sm:text-sm">Earn verified badges to showcase your credentials on College-Book</p>

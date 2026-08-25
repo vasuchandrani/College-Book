@@ -8,6 +8,7 @@
 import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion } from "@/types";
 export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion };
 import { appConfig } from "@/config/app.config";
+import { formatSmartDate } from "@/lib/dateUtils";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -382,7 +383,8 @@ export const getFeedPosts = async (
       initials: post.initials,
       course: post.courseName,
       college: post.collegeName,
-      time: post.time || "Just now",
+      time: formatSmartDate(post.createdAt || post.time),
+      createdAt: post.createdAt,
       content: post.content,
       likes: post.likes || 0,
       liked: post.liked || false,
@@ -427,7 +429,8 @@ export const getExplorePosts = async (
       avatarUrl: post.avatarUrl,
       initials: post.initials,
       college: post.collegeName || "College",
-      time: post.time || "Just now",
+      time: formatSmartDate(post.createdAt || post.time),
+      createdAt: post.createdAt,
       content: post.content,
       likes: post.likes || 0,
       liked: post.liked || false,
@@ -474,7 +477,8 @@ export const getStudentPosts = async (
       initials: post.initials,
       course: post.courseName,
       college: post.collegeName,
-      time: post.time || "Just now",
+      time: formatSmartDate(post.createdAt || post.time),
+      createdAt: post.createdAt,
       content: post.content,
       likes: post.likes || 0,
       liked: post.liked || false,
@@ -548,7 +552,8 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
     initials: post.initials,
     course: post.courseName,
     college: post.collegeName,
-    time: post.time || "Just now",
+    time: formatSmartDate(post.createdAt || post.time),
+    createdAt: post.createdAt,
     content: post.content,
     likes: post.likes || 0,
     liked: post.liked || false,
@@ -582,7 +587,8 @@ export const getPostById = async (postId: number | string): Promise<FeedPost> =>
     initials: post.initials,
     course: post.courseName,
     college: post.collegeName,
-    time: post.time || "Just now",
+    time: formatSmartDate(post.createdAt || post.time),
+    createdAt: post.createdAt,
     content: post.content,
     likes: post.likes || 0,
     liked: post.liked || false,
@@ -696,7 +702,7 @@ export const addComment = async (payload: CommentPayload): Promise<PostComment> 
     collegeName: c.collegeName,
     collegeShortName: c.collegeShortName,
     body: c.body,
-    time: c.time || "Just now",
+    time: formatSmartDate(c.createdAt || c.time),
     createdAt: c.createdAt,
   };
 };
@@ -752,7 +758,7 @@ export const addTeamDiscussion = async (
     collegeName: d.collegeName,
     collegeShortName: d.collegeShortName,
     body: d.body,
-    time: d.time || "Just now",
+    time: formatSmartDate(d.createdAt || d.time),
     createdAt: d.createdAt,
   };
 };

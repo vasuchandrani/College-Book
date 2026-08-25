@@ -16,7 +16,6 @@ import {
   MessageSquare,
   Send,
   CheckCircle2,
-  Tag,
   Layers,
   Clock,
   Trash2,
@@ -37,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatSmartDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import {
   getTeamById,
@@ -48,8 +48,8 @@ import {
   deleteTeamDiscussion,
 } from "@/lib/api";
 import type { TeamDiscussion } from "@/types";
-import { FormattedContent } from "@/components/FormattedContent";
-import { ThemedLoader } from "@/components/ThemedLoader";
+import FormattedContent from "@/components/FormattedContent";
+import ThemedLoader from "@/components/ThemedLoader";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 
 export default function CollabDetailPage() {
@@ -188,16 +188,16 @@ export default function CollabDetailPage() {
         setTeam((prev: any) =>
           prev
             ? {
-                ...prev,
-                starred: newStarred,
-                starsCount: newStarred
-                  ? prev.starred
-                    ? prev.starsCount
-                    : (prev.starsCount || 0) + 1
-                  : prev.starred
+              ...prev,
+              starred: newStarred,
+              starsCount: newStarred
+                ? prev.starred
+                  ? prev.starsCount
+                  : (prev.starsCount || 0) + 1
+                : prev.starred
                   ? Math.max(0, (prev.starsCount || 0) - 1)
                   : prev.starsCount || 0,
-              }
+            }
             : prev
         );
       },
@@ -216,29 +216,29 @@ export default function CollabDetailPage() {
 
   const isLead = Boolean(
     user &&
-      team &&
-      ((user.id && team.ownerId && team.ownerId === user.id) ||
-        (team.ownerName && (team.ownerName === user.name || team.ownerName === user.fullName)))
+    team &&
+    ((user.id && team.ownerId && team.ownerId === user.id) ||
+      (team.ownerName && (team.ownerName === user.name || team.ownerName === user.fullName)))
   );
 
   const isMember = Boolean(
     user &&
-      team &&
-      Array.isArray(team.members) &&
-      team.members.some(
-        (m: any) =>
-          (user.id && m.userId && m.userId === user.id) ||
-          (m.name && (m.name === user.name || m.name === user.fullName))
-      )
+    team &&
+    Array.isArray(team.members) &&
+    team.members.some(
+      (m: any) =>
+        (user.id && m.userId && m.userId === user.id) ||
+        (m.name && (m.name === user.name || m.name === user.fullName))
+    )
   );
 
   const isPending = Boolean(
     team &&
-      myRequests.some(
-        (r: any) =>
-          (r.teamId === team.id || r.projectId === team.id) &&
-          String(r.status || "").toUpperCase() === "PENDING"
-      )
+    myRequests.some(
+      (r: any) =>
+        (r.teamId === team.id || r.projectId === team.id) &&
+        String(r.status || "").toUpperCase() === "PENDING"
+    )
   );
 
   const handleJoinSubmit = async () => {
@@ -398,11 +398,10 @@ export default function CollabDetailPage() {
               variant="outline"
               disabled={starring}
               onClick={handleToggleStar}
-              className={`gap-1.5 text-xs h-9 px-3.5 border border-border/70 ${
-                team.starred
+              className={`gap-1.5 text-xs h-9 px-3.5 border border-border/70 ${team.starred
                   ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20 border-amber-400/40"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
               <span className="font-semibold">{team.starsCount || 0}</span>
@@ -492,23 +491,23 @@ export default function CollabDetailPage() {
         {/* Looking for Roles */}
         {((team.requiredRoles && team.requiredRoles.length > 0) ||
           (team.requiredExpertise && team.requiredExpertise.length > 0)) && (
-          <div className="space-y-2.5 pt-2">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Looking for Roles
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {(team.requiredRoles || team.requiredExpertise || []).map((role: string, idx: number) => (
-                <Badge
-                  key={`${role}-${idx}`}
-                  variant="secondary"
-                  className="px-3 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors shadow-2xs"
-                >
-                  {role}
-                </Badge>
-              ))}
+            <div className="space-y-2.5 pt-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Looking for Roles
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {(team.requiredRoles || team.requiredExpertise || []).map((role: string, idx: number) => (
+                  <Badge
+                    key={`${role}-${idx}`}
+                    variant="secondary"
+                    className="px-3 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors shadow-2xs"
+                  >
+                    {role}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Required Skills & Tech Stack */}
         {team.skills && team.skills.length > 0 && (
@@ -728,7 +727,7 @@ export default function CollabDetailPage() {
                   (user.handle &&
                     d.authorHandle &&
                     user.handle.replace(/^@/, "").toLowerCase() ===
-                      d.authorHandle.replace(/^@/, "").toLowerCase()) ||
+                    d.authorHandle.replace(/^@/, "").toLowerCase()) ||
                   (user.name && user.name === d.authorName));
 
               return (
@@ -775,7 +774,7 @@ export default function CollabDetailPage() {
                         )}
                       </div>
 
-                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">{d.time}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">{formatSmartDate(d.createdAt || d.time)}</span>
                     </div>
 
                     <FormattedContent

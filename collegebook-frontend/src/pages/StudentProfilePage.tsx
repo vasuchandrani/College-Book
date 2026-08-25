@@ -49,14 +49,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
+import { formatSmartDate } from "@/lib/dateUtils";
 import {
   getStudentBySlug,
   getStudentPosts,
@@ -97,6 +99,7 @@ const StudentProfilePage = () => {
   const [notFound, setNotFound] = useState(false);
   const [postsLoading, setPostsLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);
+  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const { triggerToggle } = useDebouncedToggle(400);
 
   // Join Dialog
@@ -690,55 +693,61 @@ const StudentProfilePage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.3) }}
                 >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                          {post.initials || initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-semibold text-sm">{post.author}</span>
-                            <span className="text-muted-foreground text-xs ml-2">{post.course}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">{post.time}</span>
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    {/* Top Section: Author Header */}
+                    <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="h-10 w-10 border border-border shrink-0">
+                          {post.avatarUrl && (
+                            <AvatarImage src={post.avatarUrl} alt={post.author} />
+                          )}
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                            {post.initials || initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-sm block leading-tight truncate">{post.author}</span>
+                          <span className="text-muted-foreground text-xs">{post.course}</span>
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Multiline, 2-line gap normalized, clickable content */}
-                        <FormattedContent content={post.content} maxEnters={2} className="mt-2" />
+                    {/* Bottom Section: Full Width Body, Media, Actions */}
+                    <div className="w-full">
+                      {/* Multiline, 2-line gap normalized, clickable content */}
+                      <FormattedContent content={post.content} maxEnters={2} className="mt-1" />
 
-                        {/* Images */}
-                        {post.images && post.images.length > 0 && (
-                          <div className="mt-3">
-                            <ImageCarousel images={post.images} />
-                          </div>
-                        )}
+                      {/* Images */}
+                      {post.images && post.images.length > 0 && (
+                        <div className="mt-3">
+                          <ImageCarousel images={post.images} />
+                        </div>
+                      )}
 
-                        {/* Video */}
-                        {post.videoUrl && (
-                          <div className="mt-3">
-                            <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
-                          </div>
-                        )}
+                      {/* Video */}
+                      {post.videoUrl && (
+                        <div className="mt-3">
+                          <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                        </div>
+                      )}
 
-                        {/* Hashtags */}
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex gap-1.5 mt-3 flex-wrap">
-                            {post.tags.map((t) => (
-                              <span
-                                key={t}
-                                className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground"
-                              >
-                                #{t.replace(/^#/, "")}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                      {/* Hashtags */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex gap-1.5 mt-3 flex-wrap">
+                          {post.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground"
+                            >
+                              #{t.replace(/^#/, "")}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
-                        {/* Action Bar */}
-                        <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
+                      {/* Action Bar */}
+                      <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -760,6 +769,25 @@ const StudentProfilePage = () => {
                           >
                             <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} /> Save
                           </Button>
+                          {post.commentsEnabled !== false && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setExpandedCommentsPostId((prev) =>
+                                  prev === post.id ? null : post.id
+                                )
+                              }
+                              className={`gap-1.5 text-xs transition-colors ${
+                                expandedCommentsPostId === post.id
+                                  ? "text-primary bg-primary/10 font-semibold"
+                                  : "text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              <span>{post.commentsCount || 0}</span>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -773,7 +801,29 @@ const StudentProfilePage = () => {
                             <Share2 className="h-4 w-4" /> Share
                           </Button>
                         </div>
+                        <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                          {formatSmartDate(post.createdAt || post.time)}
+                        </span>
                       </div>
+
+                      {/* Inline Expandable Comments Stream */}
+                      <AnimatePresence>
+                        {expandedCommentsPostId === post.id && (
+                          <InlineCommentsSection
+                            post={post}
+                            onCommentCountChange={(newCount) => {
+                              setStudentPosts((prev) =>
+                                prev.map((p) =>
+                                  p.id === post.id
+                                    ? { ...p, commentsCount: newCount }
+                                    : p
+                                )
+                              );
+                            }}
+                            onClose={() => setExpandedCommentsPostId(null)}
+                          />
+                        )}
+                      </AnimatePresence>
                     </div>
                   </Card>
                 </motion.div>

@@ -2,34 +2,200 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CollegeBook — Build Your College Story</title>
-    <meta name="description" content="A purpose-built digital campus platform for college students. Connect, collaborate, and grow — without distraction.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Primary SEO Title & Meta Tags -->
+    <title>CollegeBook — Digital Campus Network & Student Collaboration Platform | College-Book</title>
+    <meta name="title" content="CollegeBook — Digital Campus Network & Student Collaboration Platform | College-Book" />
+    <meta name="description" content="CollegeBook (College-Book) is the authentic digital campus network for college and university students. Connect with peers, discover cross-campus explore feeds, build hackathon teams in Collab Hub, earn verified myCon skill badges, and build your digital graduation memory book." />
+    <meta name="keywords" content="collegebook, college-book, college book, collegebook app, college social network, digital campus platform, student collaboration hub, collab hub, campus feed, cross campus explore, mycon skill badges, university student network, hackathon team finder, college memory book, ddu collegebook, iit bombay collegebook, student developer community, college networking website" />
     <meta name="author" content="Vatsal Chandrani" />
-    <meta name="robots" content="index, follow" />
+    <meta name="application-name" content="CollegeBook" />
     <meta name="theme-color" content="#1e3a5f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="CollegeBook" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://collegebook.vercel.app/" />
+
+    <!-- Search Engine Crawler Directives -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://collegebook.vercel.app/" />
     <meta property="og:site_name" content="CollegeBook" />
+    <meta property="og:title" content="CollegeBook — Digital Campus Network & Student Collaboration Platform" />
+    <meta property="og:description" content="CollegeBook (College-Book) is the dedicated digital campus platform for students. Connect with university peers, discover campus feeds, assemble hackathon teams in Collab Hub, and preserve your graduation memory book." />
+    <meta property="og:image" content="https://collegebook.vercel.app/logo.png" />
+    <meta property="og:image:secure_url" content="https://collegebook.vercel.app/logo.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="CollegeBook - Digital Campus Social Network and Student Collaboration Platform" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://collegebook.vercel.app/" />
+    <meta name="twitter:title" content="CollegeBook — Digital Campus Network & Student Collaboration Platform" />
+    <meta name="twitter:description" content="CollegeBook is the purpose-built digital campus platform for students. Discover campus feeds, build project teams in Collab Hub, and earn verified skill badges." />
+    <meta name="twitter:image" content="https://collegebook.vercel.app/logo.png" />
+    <meta name="twitter:image:alt" content="CollegeBook Digital Campus Platform" />
+    <meta name="twitter:creator" content="@vatsalchandrani" />
 
-    <!-- Favicon & Icons with cache-busting -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2">
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" />
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=3" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=3" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png?v=3" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
+    <link rel="manifest" href="/site.webmanifest" />
 
-    <meta property="og:image" content="/logo.png?v=2">
-    <meta name="twitter:image" content="/logo.png?v=2">
-    <meta property="og:title" content="CollegeBook — Build Your College Story">
-    <meta name="twitter:title" content="CollegeBook — Build Your College Story">
-    <meta property="og:description" content="A purpose-built digital campus platform for college students. Connect, collaborate, and grow — without distraction.">
-    <meta name="twitter:description" content="A purpose-built digital campus platform for college students. Connect, collaborate, and grow — without distraction.">
-
-    <!-- Preconnect to Google Fonts for faster font loading -->
+    <!-- Preconnect & DNS-Prefetch for Fast Loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
+    <!-- Structured Data 1: WebApplication / SoftwareApplication / Organization (Eliminates textbook confusion) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://collegebook.vercel.app/#webapp",
+          "name": "CollegeBook",
+          "alternateName": ["College-Book", "College Book", "CollegeBook App", "CollegeBook Campus Network"],
+          "url": "https://collegebook.vercel.app",
+          "applicationCategory": "EducationalApplication, SocialNetworkingApplication",
+          "operatingSystem": "Web, Android, iOS",
+          "browserRequirements": "Requires JavaScript. Requires HTML5.",
+          "description": "CollegeBook is the dedicated digital campus platform and student social network for university collaboration, clean campus feeds, hackathon team building in Collab Hub, and verified myCon skill credentials.",
+          "author": {
+            "@type": "Person",
+            "name": "Vatsal Chandrani",
+            "jobTitle": "Founder & Software Engineer",
+            "url": "https://vatsal-chandrani.me"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "Clean Campus Feed with anonymous appreciation",
+            "Cross-Campus Explore across Indian Universities",
+            "Collab Hub for Hackathon Teams and Open Source Projects",
+            "myCon Verified Skill Badges",
+            "Degree Time-Bound Accounts with Digital Memory Book Archive"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://collegebook.vercel.app/#organization",
+          "name": "CollegeBook",
+          "alternateName": ["College-Book", "College Book"],
+          "url": "https://collegebook.vercel.app",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://collegebook.vercel.app/logo.png",
+            "width": 512,
+            "height": 512
+          },
+          "founder": {
+            "@type": "Person",
+            "name": "Vatsal Chandrani"
+          },
+          "sameAs": [
+            "https://github.com/vasuchandrani/College-Book",
+            "https://vatsal-chandrani.me"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://collegebook.vercel.app/#website",
+          "url": "https://collegebook.vercel.app",
+          "name": "CollegeBook",
+          "alternateName": ["College-Book", "College Book"],
+          "description": "Authentic digital campus network and student collaboration platform.",
+          "publisher": {
+            "@id": "https://collegebook.vercel.app/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://collegebook.vercel.app/explore?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data 2: FAQPage Schema (Displays expandable rich snippets in Google Search) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does CollegeBook verify that only real college students join?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Students sign up with their institutional college email (e.g., student@university.edu) or select their verified campus from our comprehensive database of colleges and universities. Every profile is anchored to their authentic university identity."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why are likes anonymous on posts in CollegeBook?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Likes are anonymous so that any student can appreciate a post freely without hesitation, anxiety, or social pressure. You can simply support what your peers share with complete peace of mind."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the Collab Hub team building and communication work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "When a project creator posts a team opening with required skills, prospective members submit a structured join request outlining their intent and experience. Once accepted, a private, dedicated team chat room is unlocked."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is myCon and how are skill badges validated on CollegeBook?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Unlike conventional platforms where anyone can add self-proclaimed skills without proof, myCon verifies authentic credentials by connecting to public coding profiles or verified competition proofs."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens to my CollegeBook account when I graduate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "CollegeBook accounts are intentionally time-bound to your degree program duration. Upon graduation, all your posts, team records, and validated achievements are compiled into a downloadable Digital Memory Book that you keep forever."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is CollegeBook free for students?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, CollegeBook is a 100% student-focused platform and completely free for all college and university students."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
 
   <body>

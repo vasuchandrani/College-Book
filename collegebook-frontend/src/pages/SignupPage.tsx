@@ -4,6 +4,7 @@ import {
   BookOpen, ChevronRight, ChevronLeft, Check, Eye, EyeOff, Search, 
   AlertCircle, Building2, Send, CheckCircle2, GraduationCap, X, Loader2
 } from "lucide-react";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,7 +97,7 @@ const courseYearMap: Record<string, number> = {
   "PhD": 5, "Diploma": 3, "Integrated M.Tech": 5, "Dual Degree": 5,
 };
 
-export const getCourseDuration = (courseName: string, durationYearsFromDb?: number): number => {
+const getCourseDuration = (courseName: string, durationYearsFromDb?: number): number => {
   if (durationYearsFromDb && durationYearsFromDb > 0) return durationYearsFromDb;
   if (!courseName) return 4;
   const lower = courseName.toLowerCase();
@@ -584,6 +585,11 @@ const SignupPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <SEO
+        title="Join Your Campus"
+        description="Sign up for CollegeBook with your university student credentials and join your dedicated college network."
+        keywords="collegebook signup, join collegebook, campus registration, student account"
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">

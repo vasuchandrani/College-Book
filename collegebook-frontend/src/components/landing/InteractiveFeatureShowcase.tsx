@@ -29,15 +29,19 @@ import {
   Star,
   Clock,
   Check,
+  MessageSquare,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import DownloadAppButton from "@/components/DownloadAppButton";
 import { toast } from "sonner";
+import { initialCommentsMap, showcaseBadges, ShowcaseComment } from "./data/showcaseData";
 
 const InteractiveFeatureShowcase = () => {
   const [activeTab, setActiveTab] = useState<"feed" | "explore" | "collab" | "mycollab" | "profile">("feed");
   const [feedMode, setFeedMode] = useState<"campus" | "global">("campus");
+  const [allowComments, setAllowComments] = useState(true);
   const [collabSubTab, setCollabSubTab] = useState<"open_source" | "hackathon" | "project">("open_source");
   const [myCollabSubTab, setMyCollabSubTab] = useState<"open_source" | "requests" | "active" | "completed">("active");
 
@@ -47,8 +51,41 @@ const InteractiveFeatureShowcase = () => {
   const [ronakLikesCount, setRonakLikesCount] = useState(680);
   const [exploreLiked, setExploreLiked] = useState(false);
   const [exploreLikesCount, setExploreLikesCount] = useState(98);
+  const [snehaLiked, setSnehaLiked] = useState(false);
+  const [snehaLikesCount, setSnehaLikesCount] = useState(42);
   const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
   const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ "city_store": true });
+
+  // Interactive Comments State
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [commentsMap, setCommentsMap] = useState<Record<string, ShowcaseComment[]>>(initialCommentsMap);
+
+  const toggleComments = (postId: string) => {
+    setExpandedComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const handleAddPreviewComment = (postId: string, e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const text = (commentInputs[postId] || "").trim();
+    if (!text) return;
+
+    const newComment: ShowcaseComment = {
+      id: "c_" + Date.now(),
+      author: "You",
+      handle: "you",
+      college: "DDU",
+      body: text,
+      time: "Just now",
+    };
+
+    setCommentsMap((prev) => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), newComment],
+    }));
+    setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+    toast.success("Comment added to preview!");
+  };
 
   const toggleSave = (id: string) => {
     setSavedPosts((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -181,9 +218,7 @@ const InteractiveFeatureShowcase = () => {
                       {/* Page Header (Matches Explore layout) */}
                       <div>
                         <h3 className="font-heading text-base font-bold text-foreground">Campus Feed</h3>
-                        <p className="text-[11px] text-muted-foreground">
-                          {feedMode === "campus" ? "What's happening at Dharmsinh Desai University" : "Global Cross-Campus Pulse"}
-                        </p>
+                        <p className="text-[11px] text-muted-foreground">What's happening at Dharmsinh Desai University</p>
                       </div>
 
                       {/* Search Bar (Matches Explore) */}
@@ -216,12 +251,26 @@ const InteractiveFeatureShowcase = () => {
                         </div>
                         <div className="flex items-center justify-between pt-1.5 border-t border-border/60 text-[10px] gap-1">
                           <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer">
+                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer transition-colors">
                               <ImageIcon className="h-3 w-3" /> Media
                             </span>
-                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer">
+                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer transition-colors">
                               <Hash className="h-3 w-3" /> Tag
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAllowComments(!allowComments);
+                                toast.info(!allowComments ? "Comments enabled for new post" : "Comments turned off for new post");
+                              }}
+                              className={`flex items-center gap-0.5 transition-colors cursor-pointer ${
+                                allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
+                              }`}
+                              title={allowComments ? "Comments: On" : "Comments: Off"}
+                            >
+                              <MessageSquare className="h-3 w-3" />
+                              <span>{allowComments ? "On" : "Off"}</span>
+                            </button>
                           </div>
 
                           {/* Both Campus and Global buttons shown compactly */}
@@ -230,20 +279,22 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("campus")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${feedMode === "campus"
-                                  ? "bg-background text-primary shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground"
-                                  }`}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
+                                  feedMode === "campus"
+                                    ? "bg-background text-primary shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
                               >
                                 <Building2 className="h-2.5 w-2.5" /> Campus
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("global")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${feedMode === "global"
-                                  ? "bg-background text-primary shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground"
-                                  }`}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
+                                  feedMode === "global"
+                                    ? "bg-background text-primary shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
                               >
                                 <Globe className="h-2.5 w-2.5" /> Global
                               </button>
@@ -262,14 +313,13 @@ const InteractiveFeatureShowcase = () => {
 
                       {/* Post Card 1: Vatsal Chandrani (Founder) */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2.5">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-start gap-2.5 pb-2.5 border-b border-border/60">
                           <div className="h-9 w-9 rounded-full bg-gradient-hero text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
                             VC
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Vatsal Chandrani</span>
-                              <span className="text-[10px] text-muted-foreground">Just now</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground">@vatsalchandrani • B.Tech Information Technology</div>
                             <div className="text-[10px] text-primary font-semibold">Founder @ CollegeBook</div>
@@ -298,62 +348,141 @@ const InteractiveFeatureShowcase = () => {
                           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">#memorybook</span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFeedLiked(!feedLiked);
-                              setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
-                            }}
-                            className={`flex items-center gap-1.5 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
-                            <span>{feedLikesCount}</span>
-                          </button>
+                        {/* Action Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeedLiked(!feedLiked);
+                                setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
+                              }}
+                              className={`flex items-center gap-1 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
+                              <span>{feedLikesCount}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toggleSave("vatsal_feed_post")}
-                            className={`flex items-center gap-1.5 transition-colors ${savedPosts["vatsal_feed_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_feed_post"] ? "fill-primary" : ""}`} />
-                            <span>{savedPosts["vatsal_feed_post"] ? "Saved" : "Save"}</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleComments("vatsal_post")}
+                              className={`flex items-center gap-1 transition-colors ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>{(commentsMap["vatsal_post"] || []).length}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toast.success("Post link copied to clipboard!")}
-                            className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                          >
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>Share</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleSave("vatsal_feed_post")}
+                              className={`flex items-center gap-1 transition-colors ${savedPosts["vatsal_feed_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_feed_post"] ? "fill-primary" : ""}`} />
+                              <span>{savedPosts["vatsal_feed_post"] ? "Saved" : "Save"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toast.success("Post link copied to clipboard!")}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Share</span>
+                            </button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground select-none ml-auto">11m ago</span>
                         </div>
+
+                        {/* Interactive Inline Comments Section */}
+                        <AnimatePresence>
+                          {expandedComments["vatsal_post"] && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden mt-2 pt-2 border-t border-border/60"
+                            >
+                              <div className="bg-muted/30 rounded-xl p-2.5 border border-border/50 space-y-2">
+                                <div className="flex items-center justify-between px-0.5">
+                                  <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-primary" />
+                                    Comments ({(commentsMap["vatsal_post"] || []).length})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleComments("vatsal_post")}
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                  >
+                                    Hide <ChevronUp className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+
+                                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                                  {(commentsMap["vatsal_post"] || []).map((c) => (
+                                    <div key={c.id} className="p-2 rounded-lg bg-background/90 border border-border/40 text-[11px] space-y-1">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 flex-wrap min-w-0">
+                                          <span className="font-semibold text-foreground truncate">{c.author}</span>
+                                          <span className="text-[9px] text-muted-foreground font-mono">@{c.handle}</span>
+                                          {c.college && (
+                                            <span className="text-[8px] px-1 py-0.2 rounded bg-secondary text-secondary-foreground font-medium">
+                                              {c.college}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground select-none shrink-0">{c.time}</span>
+                                      </div>
+                                      <p className="text-foreground/90 text-[11px] leading-snug">{c.body}</p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <form
+                                  onSubmit={(e) => handleAddPreviewComment("vatsal_post", e)}
+                                  className="flex items-center gap-1.5 pt-1"
+                                >
+                                  <input
+                                    type="text"
+                                    value={commentInputs["vatsal_post"] || ""}
+                                    onChange={(e) => setCommentInputs((prev) => ({ ...prev, vatsal_post: e.target.value }))}
+                                    placeholder="Write a comment..."
+                                    className="flex-1 px-2 py-1 text-[11px] rounded-lg bg-background border border-border outline-none focus:border-primary"
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={!(commentInputs["vatsal_post"] || "").trim()}
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                  >
+                                    <Send className="w-2.5 h-2.5" />
+                                  </button>
+                                </form>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      {/* Post Card 2: Ronak Gondaliya (Incubyte, AI-driven dev & TDD) */}
+                      {/* Post Card 2: Ronak (Incubyte, AI-driven dev & TDD) */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2.5">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-start gap-2.5 pb-2.5 border-b border-border/60">
                           <div className="h-9 w-9 rounded-full bg-accent/20 text-accent-foreground flex items-center justify-center text-xs font-bold shrink-0">
                             RG
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-foreground truncate">Ronak Gondaliya</span>
-                              <span className="text-[10px] text-muted-foreground">13h ago</span>
+                              <span className="text-xs font-bold text-foreground truncate">Ronak</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">@ronakgondaliya • B.Tech Information Technology</div>
+                            <div className="text-[10px] text-muted-foreground">@ronak • B.Tech Information Technology</div>
                           </div>
                         </div>
 
                         <p className="text-xs text-foreground/90 leading-relaxed">
                           Recently explored how the engineering team at <strong>Incubyte</strong> approaches software engineering, and I was genuinely inspired by their AI-driven development workflow paired with strict <strong>Test-Driven Development (TDD)</strong>! 💻🔥
                         </p>
-                        <p className="text-xs text-foreground/90 leading-relaxed bg-muted/30 p-2 rounded-lg border border-border/40">
-                          <strong>How TDD works:</strong> You write a failing test first (🔴 <em>Red</em>), write minimal code to make it pass (🟢 <em>Green</em>), and then clean up the architecture (🔵 <em>Refactor</em>). Combining this with AI tools accelerates development while guaranteeing 100% bug-free quality.
-                        </p>
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          I’ve published a GitHub starter repository: <a href="https://github.com/ronakgondaliya/learn-tdd" target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline">github.com/ronakgondaliya/learn-tdd</a>. For all juniors aiming for high-standard tech companies like Incubyte, learning TDD now gives you a massive hiring edge! 🚀
+                          I’ve published a GitHub starter repository: <a href="https://github.com/ronak/learn-tdd" target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline">github.com/ronak/learn-tdd</a>. For all juniors aiming for high-standard tech companies like Incubyte, learning TDD now gives you a massive hiring edge! 🚀
                         </p>
 
                         <div className="flex gap-1.5 flex-wrap">
@@ -363,37 +492,120 @@ const InteractiveFeatureShowcase = () => {
                           <span className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">#placements</span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRonakLiked(!ronakLiked);
-                              setRonakLikesCount((c) => (ronakLiked ? c - 1 : c + 1));
-                            }}
-                            className={`flex items-center gap-1.5 transition-colors ${ronakLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Heart className={`h-3.5 w-3.5 ${ronakLiked ? "fill-red-500" : ""}`} />
-                            <span>{ronakLikesCount}</span>
-                          </button>
+                        {/* Action Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRonakLiked(!ronakLiked);
+                                setRonakLikesCount((c) => (ronakLiked ? c - 1 : c + 1));
+                              }}
+                              className={`flex items-center gap-1 transition-colors ${ronakLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Heart className={`h-3.5 w-3.5 ${ronakLiked ? "fill-red-500" : ""}`} />
+                              <span>{ronakLikesCount}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toggleSave("ronak_post")}
-                            className={`flex items-center gap-1.5 transition-colors ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Bookmark className={`h-3.5 w-3.5 ${savedPosts["ronak_post"] ? "fill-primary" : ""}`} />
-                            <span>{savedPosts["ronak_post"] ? "Saved" : "Save"}</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleComments("ronak_post")}
+                              className={`flex items-center gap-1 transition-colors ${expandedComments["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>{(commentsMap["ronak_post"] || []).length}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toast.success("Post link copied to clipboard!")}
-                            className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                          >
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>Share</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleSave("ronak_post")}
+                              className={`flex items-center gap-1 transition-colors ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Bookmark className={`h-3.5 w-3.5 ${savedPosts["ronak_post"] ? "fill-primary" : ""}`} />
+                              <span>{savedPosts["ronak_post"] ? "Saved" : "Save"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toast.success("Post link copied to clipboard!")}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Share</span>
+                            </button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground select-none ml-auto">13h ago</span>
                         </div>
+
+                        {/* Interactive Inline Comments Section */}
+                        <AnimatePresence>
+                          {expandedComments["ronak_post"] && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden mt-2 pt-2 border-t border-border/60"
+                            >
+                              <div className="bg-muted/30 rounded-xl p-2.5 border border-border/50 space-y-2">
+                                <div className="flex items-center justify-between px-0.5">
+                                  <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-primary" />
+                                    Comments ({(commentsMap["ronak_post"] || []).length})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleComments("ronak_post")}
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                  >
+                                    Hide <ChevronUp className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+
+                                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                                  {(commentsMap["ronak_post"] || []).map((c) => (
+                                    <div key={c.id} className="p-2 rounded-lg bg-background/90 border border-border/40 text-[11px] space-y-1">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 flex-wrap min-w-0">
+                                          <span className="font-semibold text-foreground truncate">{c.author}</span>
+                                          <span className="text-[9px] text-muted-foreground font-mono">@{c.handle}</span>
+                                          {c.college && (
+                                            <span className="text-[8px] px-1 py-0.2 rounded bg-secondary text-secondary-foreground font-medium">
+                                              {c.college}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground select-none shrink-0">{c.time}</span>
+                                      </div>
+                                      <p className="text-foreground/90 text-[11px] leading-snug">{c.body}</p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <form
+                                  onSubmit={(e) => handleAddPreviewComment("ronak_post", e)}
+                                  className="flex items-center gap-1.5 pt-1"
+                                >
+                                  <input
+                                    type="text"
+                                    value={commentInputs["ronak_post"] || ""}
+                                    onChange={(e) => setCommentInputs((prev) => ({ ...prev, ronak_post: e.target.value }))}
+                                    placeholder="Write a comment..."
+                                    className="flex-1 px-2 py-1 text-[11px] rounded-lg bg-background border border-border outline-none focus:border-primary"
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={!(commentInputs["ronak_post"] || "").trim()}
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                  >
+                                    <Send className="w-2.5 h-2.5" />
+                                  </button>
+                                </form>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </motion.div>
                   )}
@@ -437,9 +649,159 @@ const InteractiveFeatureShowcase = () => {
                         ))}
                       </div>
 
-                      {/* Explore Post 1: Vatsal Chandrani Global Post (Exact same as Campus Feed) */}
+                      {/* Explore Post 1: Jaykrishna Gadhavi from IIT Bombay (First with OAT image & 2m ago) */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2.5">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-start gap-2.5 pb-2.5 border-b border-border/60">
+                          <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs font-bold shrink-0">
+                            JG
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-foreground truncate">Jaykrishna Gadhavi</span>
+                            </div>
+                            <div className="text-[10px] text-amber-600 font-semibold">@jaykrishnagadhavi • IIT Bombay</div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-foreground/90 leading-relaxed">
+                          Hey folks! 🎤 Performing an impromptu Stand-Up Comedy show today right at <strong>OAT-1</strong> (Open Air Theatre)! Drop by after evening lectures for some campus humor, hostel life roasts, and chilled vibes. Everyone from all departments and visiting campuses is warmly welcome! See you all at 6 PM! 😂🔥
+                        </p>
+
+                        {/* Post Image: Open Air Theatre */}
+                        <div className="rounded-xl overflow-hidden border border-border/60 shadow-2xs">
+                          <img
+                            src="/landing/OAT.png"
+                            alt="Open Air Theatre OAT-1"
+                            className="w-full h-36 object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+
+                        <div className="flex gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#standupcomedy</span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#iitbombay</span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#campuslife</span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#oat1</span>
+                        </div>
+
+                        {/* Action Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExploreLiked(!exploreLiked);
+                                setExploreLikesCount((c) => (exploreLiked ? c - 1 : c + 1));
+                              }}
+                              className={`flex items-center gap-1 transition-colors ${exploreLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Heart className={`h-3.5 w-3.5 ${exploreLiked ? "fill-red-500" : ""}`} />
+                              <span>{exploreLikesCount}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleComments("jaykrishna_post")}
+                              className={`flex items-center gap-1 transition-colors ${expandedComments["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>{(commentsMap["jaykrishna_post"] || []).length}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleSave("jaykrishna_post")}
+                              className={`flex items-center gap-1 transition-colors ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Bookmark className={`h-3.5 w-3.5 ${savedPosts["jaykrishna_post"] ? "fill-primary" : ""}`} />
+                              <span>{savedPosts["jaykrishna_post"] ? "Saved" : "Save"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toast.success("Post link copied to clipboard!")}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Share</span>
+                            </button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground select-none ml-auto">2m ago</span>
+                        </div>
+
+                        {/* Interactive Inline Comments Section */}
+                        <AnimatePresence>
+                          {expandedComments["jaykrishna_post"] && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden mt-2 pt-2 border-t border-border/60"
+                            >
+                              <div className="bg-muted/30 rounded-xl p-2.5 border border-border/50 space-y-2">
+                                <div className="flex items-center justify-between px-0.5">
+                                  <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-primary" />
+                                    Comments ({(commentsMap["jaykrishna_post"] || []).length})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleComments("jaykrishna_post")}
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                  >
+                                    Hide <ChevronUp className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+
+                                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                                  {(commentsMap["jaykrishna_post"] || []).map((c) => (
+                                    <div key={c.id} className="p-2 rounded-lg bg-background/90 border border-border/40 text-[11px] space-y-1">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 flex-wrap min-w-0">
+                                          <span className="font-semibold text-foreground truncate">{c.author}</span>
+                                          <span className="text-[9px] text-muted-foreground font-mono">@{c.handle}</span>
+                                          {c.college && (
+                                            <span className="text-[8px] px-1 py-0.2 rounded bg-secondary text-secondary-foreground font-medium">
+                                              {c.college}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground select-none shrink-0">{c.time}</span>
+                                      </div>
+                                      <p className="text-foreground/90 text-[11px] leading-snug">{c.body}</p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <form
+                                  onSubmit={(e) => handleAddPreviewComment("jaykrishna_post", e)}
+                                  className="flex items-center gap-1.5 pt-1"
+                                >
+                                  <input
+                                    type="text"
+                                    value={commentInputs["jaykrishna_post"] || ""}
+                                    onChange={(e) => setCommentInputs((prev) => ({ ...prev, jaykrishna_post: e.target.value }))}
+                                    placeholder="Write a comment..."
+                                    className="flex-1 px-2 py-1 text-[11px] rounded-lg bg-background border border-border outline-none focus:border-primary"
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={!(commentInputs["jaykrishna_post"] || "").trim()}
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                  >
+                                    <Send className="w-2.5 h-2.5" />
+                                  </button>
+                                </form>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Explore Post 2: Vatsal Chandrani Global Post (Second with 11m ago) */}
+                      <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2.5">
+                        <div className="flex items-start gap-2.5 pb-2.5 border-b border-border/60">
                           <div className="h-9 w-9 rounded-full bg-gradient-hero text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0">
                             VC
                           </div>
@@ -474,108 +836,131 @@ const InteractiveFeatureShowcase = () => {
                           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">#memorybook</span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFeedLiked(!feedLiked);
-                              setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
-                            }}
-                            className={`flex items-center gap-1.5 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
-                            <span>{feedLikesCount}</span>
-                          </button>
+                        {/* Action Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeedLiked(!feedLiked);
+                                setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
+                              }}
+                              className={`flex items-center gap-1 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
+                              <span>{feedLikesCount}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toggleSave("vatsal_explore_post")}
-                            className={`flex items-center gap-1.5 transition-colors ${savedPosts["vatsal_explore_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_explore_post"] ? "fill-primary" : ""}`} />
-                            <span>{savedPosts["vatsal_explore_post"] ? "Saved" : "Save"}</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleComments("vatsal_post")}
+                              className={`flex items-center gap-1 transition-colors ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>{(commentsMap["vatsal_post"] || []).length}</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => toast.success("Post link copied to clipboard!")}
-                            className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                          >
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>Share</span>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleSave("vatsal_explore_post")}
+                              className={`flex items-center gap-1 transition-colors ${savedPosts["vatsal_explore_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_explore_post"] ? "fill-primary" : ""}`} />
+                              <span>{savedPosts["vatsal_explore_post"] ? "Saved" : "Save"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toast.success("Post link copied to clipboard!")}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Share</span>
+                            </button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground select-none ml-auto">11m ago</span>
                         </div>
+
+                        {/* Interactive Inline Comments Section */}
+                        <AnimatePresence>
+                          {expandedComments["vatsal_post"] && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden mt-2 pt-2 border-t border-border/60"
+                            >
+                              <div className="bg-muted/30 rounded-xl p-2.5 border border-border/50 space-y-2">
+                                <div className="flex items-center justify-between px-0.5">
+                                  <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-primary" />
+                                    Comments ({(commentsMap["vatsal_post"] || []).length})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleComments("vatsal_post")}
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                  >
+                                    Hide <ChevronUp className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+
+                                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                                  {(commentsMap["vatsal_post"] || []).map((c) => (
+                                    <div key={c.id} className="p-2 rounded-lg bg-background/90 border border-border/40 text-[11px] space-y-1">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 flex-wrap min-w-0">
+                                          <span className="font-semibold text-foreground truncate">{c.author}</span>
+                                          <span className="text-[9px] text-muted-foreground font-mono">@{c.handle}</span>
+                                          {c.college && (
+                                            <span className="text-[8px] px-1 py-0.2 rounded bg-secondary text-secondary-foreground font-medium">
+                                              {c.college}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[9px] text-muted-foreground select-none shrink-0">{c.time}</span>
+                                      </div>
+                                      <p className="text-foreground/90 text-[11px] leading-snug">{c.body}</p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <form
+                                  onSubmit={(e) => handleAddPreviewComment("vatsal_post", e)}
+                                  className="flex items-center gap-1.5 pt-1"
+                                >
+                                  <input
+                                    type="text"
+                                    value={commentInputs["vatsal_post"] || ""}
+                                    onChange={(e) => setCommentInputs((prev) => ({ ...prev, vatsal_post: e.target.value }))}
+                                    placeholder="Write a comment..."
+                                    className="flex-1 px-2 py-1 text-[11px] rounded-lg bg-background border border-border outline-none focus:border-primary"
+                                  />
+                                  <button
+                                    type="submit"
+                                    disabled={!(commentInputs["vatsal_post"] || "").trim()}
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                  >
+                                    <Send className="w-2.5 h-2.5" />
+                                  </button>
+                                </form>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      {/* Explore Post 2: Jaykrishna Gadhavi from IIT Bombay */}
-                      <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2.5">
-                        <div className="flex items-start gap-2.5">
-                          <div className="h-9 w-9 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center text-xs font-bold shrink-0">
-                            JG
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-foreground truncate">Jaykrishna Gadhavi</span>
-                              <span className="text-[10px] text-muted-foreground">30m ago</span>
-                            </div>
-                            <div className="text-[10px] text-amber-600 font-semibold">@jaykrishnagadhavi • IIT Bombay</div>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-foreground/90 leading-relaxed">
-                          Hey folks! 🎤 Performing an impromptu Stand-Up Comedy show today right beside Canteen-1 / Open Air Theatre! Drop by after evening lectures for some campus humor, hostel life roasts, and chilled vibes. Everyone from all departments and visiting campuses is warmly welcome! See you all at 6 PM! 😂🔥
-                        </p>
-
-                        <div className="flex gap-1.5 flex-wrap">
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#standupcomedy</span>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#iitbombay</span>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#campuslife</span>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-medium">#canteen</span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExploreLiked(!exploreLiked);
-                              setExploreLikesCount((c) => (exploreLiked ? c - 1 : c + 1));
-                            }}
-                            className={`flex items-center gap-1.5 transition-colors ${exploreLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Heart className={`h-3.5 w-3.5 ${exploreLiked ? "fill-red-500" : ""}`} />
-                            <span>{exploreLikesCount}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleSave("jaykrishna_post")}
-                            className={`flex items-center gap-1.5 transition-colors ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
-                          >
-                            <Bookmark className={`h-3.5 w-3.5 ${savedPosts["jaykrishna_post"] ? "fill-primary" : ""}`} />
-                            <span>{savedPosts["jaykrishna_post"] ? "Saved" : "Save"}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => toast.success("Post link copied to clipboard!")}
-                            className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                          >
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>Share</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Explore Post 3: Sneha Mukherjee */}
+                      {/* Explore Post 3: Sneha Mukherjee (Comments Off) */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2">
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-start gap-2.5 pb-2.5 border-b border-border/60">
                           <div className="h-9 w-9 rounded-full bg-blue-500/20 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
                             SM
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Sneha Mukherjee</span>
-                              <span className="text-[10px] text-muted-foreground">2h ago</span>
                             </div>
                             <div className="text-[10px] text-blue-600 font-medium">@snehamukherjee • BITS Pilani</div>
                           </div>
@@ -583,6 +968,43 @@ const InteractiveFeatureShowcase = () => {
                         <p className="text-xs text-foreground/90 leading-relaxed">
                           Inter-College Hackathon registrations are live! Looking for 2 backend specialists to assemble our squad on Collab Hub. 💻🏆
                         </p>
+
+                        {/* Action Bar (Comments off - no comment button shown) */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSnehaLiked(!snehaLiked);
+                                setSnehaLikesCount((c) => (snehaLiked ? c - 1 : c + 1));
+                              }}
+                              className={`flex items-center gap-1 transition-colors ${snehaLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Heart className={`h-3.5 w-3.5 ${snehaLiked ? "fill-red-500" : ""}`} />
+                              <span>{snehaLikesCount}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleSave("sneha_post")}
+                              className={`flex items-center gap-1 transition-colors ${savedPosts["sneha_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                            >
+                              <Bookmark className={`h-3.5 w-3.5 ${savedPosts["sneha_post"] ? "fill-primary" : ""}`} />
+                              <span>{savedPosts["sneha_post"] ? "Saved" : "Save"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toast.success("Post link copied to clipboard!")}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                              <span>Share</span>
+                            </button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground select-none ml-auto">2h ago</span>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -940,53 +1362,35 @@ const InteractiveFeatureShowcase = () => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                          {/* 1. CP Badge */}
-                          <div className="p-2 rounded-xl bg-muted/40 border border-border/50 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-foreground text-[11px]">CP Specialist</span>
-                              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          {showcaseBadges.map((b) => (
+                            <div
+                              key={b.id}
+                              className={`p-2 rounded-xl border space-y-1 ${
+                                b.status === "verified"
+                                  ? "bg-muted/40 border-border/50"
+                                  : "bg-amber-500/5 border-amber-500/30"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-foreground text-[11px]">{b.title}</span>
+                                {b.status === "verified" ? (
+                                  <BadgeCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                ) : (
+                                  <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0 animate-pulse" />
+                                )}
+                              </div>
+                              <p className="text-[9px] text-muted-foreground">{b.desc}</p>
+                              <span
+                                className={`text-[8px] px-1.5 py-0.5 rounded font-semibold inline-block ${
+                                  b.status === "verified"
+                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    : "bg-amber-500/15 text-amber-600 font-bold"
+                                }`}
+                              >
+                                {b.badgeLabel}
+                              </span>
                             </div>
-                            <p className="text-[9px] text-muted-foreground">Codeforces Rating 1650+</p>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold inline-block">
-                              Verified Proof
-                            </span>
-                          </div>
-
-                          {/* 2. Open Source Badge */}
-                          <div className="p-2 rounded-xl bg-muted/40 border border-border/50 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-foreground text-[11px]">Open Source</span>
-                              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                            </div>
-                            <p className="text-[9px] text-muted-foreground">50+ Merged GitHub PRs</p>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold inline-block">
-                              Verified Proof
-                            </span>
-                          </div>
-
-                          {/* 3. Web Dev Badge */}
-                          <div className="p-2 rounded-xl bg-muted/40 border border-border/50 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-foreground text-[11px]">Web Dev</span>
-                              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                            </div>
-                            <p className="text-[9px] text-muted-foreground">Full-Stack Architect</p>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold inline-block">
-                              Verified Proof
-                            </span>
-                          </div>
-
-                          {/* 4. Machine Learning Badge (PENDING APPROVAL) */}
-                          <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/30 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-foreground text-[11px]">Machine Learning</span>
-                              <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0 animate-pulse" />
-                            </div>
-                            <p className="text-[9px] text-muted-foreground">Model Benchmarking</p>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 font-bold inline-block">
-                              ⏳ Pending Approval
-                            </span>
-                          </div>
+                          ))}
                         </div>
                       </div>
 

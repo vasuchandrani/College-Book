@@ -1,7 +1,17 @@
+# robots.txt for CollegeBook (https://collegebook.vercel.app)
 User-agent: Googlebot
 Allow: /
+Allow: /explore
+Allow: /collab
+Allow: /feed
+Allow: /mycon
+Allow: /login
+Allow: /signup
 
 User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
 Allow: /
 
 User-agent: Twitterbot
@@ -10,9 +20,13 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Disallow: /reset-password
 
 Sitemap: https://collegebook.vercel.app/sitemap.xml

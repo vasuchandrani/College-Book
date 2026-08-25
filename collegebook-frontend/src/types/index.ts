@@ -37,6 +37,7 @@ export interface FeedPost {
   media?: MediaItem[];
   videoUrl?: string;
   isGlobal?: boolean;
+  createdAt?: string;
 }
 
 export interface ExplorePost {
@@ -58,6 +59,7 @@ export interface ExplorePost {
   media?: MediaItem[];
   videoUrl?: string;
   isGlobal?: boolean;
+  createdAt?: string;
 }
 
 export interface AdData {

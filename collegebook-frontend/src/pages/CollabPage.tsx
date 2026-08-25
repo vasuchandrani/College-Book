@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Users,
   Plus,
@@ -19,6 +19,7 @@ import {
   FolderGit2,
   Clock,
 } from "lucide-react";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -89,8 +90,9 @@ const roleOptions = [
 ];
 
 interface MemberEntry {
-  id: number;
+  id: number | string;
   name: string;
+  handle?: string;
   role: string;
 }
 
@@ -376,7 +378,7 @@ const CollabPage = () => {
         skills: skillTags,
         requiredRoles: roleTags,
         requiredExpertise: roleTags,
-        memberHandles: memberEntries.map((m) => m.name.trim().replace(/^@/, "")),
+        memberHandles: memberEntries.map((m) => (m.handle || m.name).trim().replace(/^@/, "")),
         maxMembers: maxM,
       });
 
@@ -527,7 +529,7 @@ const CollabPage = () => {
   }, [teams]);
 
   // Master Filter function (3 filters: Tech Stack, Role, College)
-  const applyFilters = (items: any[]) => {
+  const applyFilters = useCallback((items: any[]) => {
     return items.filter((t) => {
       // Search query
       if (search.trim()) {
@@ -576,14 +578,14 @@ const CollabPage = () => {
 
       return true;
     });
-  };
+  }, [search, selectedTech, selectedRole, selectedCollege]);
 
   const openSourceProjects = useMemo(
     () =>
       applyFilters(
         teams.filter((t) => t.type === "OPEN_SOURCE" || t.type === "open_source")
       ),
-    [teams, search, selectedTech, selectedRole, selectedCollege]
+    [teams, applyFilters]
   );
 
   const hackathonTeams = useMemo(
@@ -591,7 +593,7 @@ const CollabPage = () => {
       applyFilters(
         teams.filter((t) => t.type === "HACKATHON" || t.type === "hackathon")
       ),
-    [teams, search, selectedTech, selectedRole, selectedCollege]
+    [teams, applyFilters]
   );
 
   const teamProjects = useMemo(
@@ -604,7 +606,7 @@ const CollabPage = () => {
             (!t.type && t.type !== "OPEN_SOURCE" && t.type !== "HACKATHON")
         )
       ),
-    [teams, search, selectedTech, selectedRole, selectedCollege]
+    [teams, applyFilters]
   );
 
   const isAnyFilterActive =
@@ -622,6 +624,11 @@ const CollabPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
+      <SEO
+        title="Collab Hub — Build Teams & Open Source"
+        description="Discover open-source repositories, find hackathon teammates, and build student software together on CollegeBook Collab Hub."
+        keywords="collab hub, hackathon team builder, collegebook collab, open source student projects, coding partners"
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>

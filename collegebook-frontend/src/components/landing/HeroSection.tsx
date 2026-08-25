@@ -27,7 +27,7 @@ const HeroSection = () => {
             className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <span className="text-xs font-semibold text-primary">Built for Campus Life</span>
+              <span className="text-xs font-semibold text-primary">CollegeBook • The Digital Campus Platform</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.15] tracking-tight">

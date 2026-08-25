@@ -517,7 +517,9 @@ public class PostServiceImpl implements PostService {
         if (minutes < 60) return minutes + "m ago";
         long hours = minutes / 60;
         if (hours < 24) return hours + "h ago";
-        long days = hours / 24;
-        return days + "d ago";
+        if (hours <= 36) return "1d ago";
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("d MMM ''yy", java.util.Locale.ENGLISH)
+                .withZone(java.time.ZoneId.of("UTC"));
+        return formatter.format(instant);
     }
 }
