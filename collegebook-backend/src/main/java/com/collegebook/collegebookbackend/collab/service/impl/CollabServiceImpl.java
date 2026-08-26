@@ -582,6 +582,7 @@ public class CollabServiceImpl implements CollabService {
         Optional<Profile> profileOpt = profileRepository.findByUserId(team.getOwner().getId());
         dto.setOwnerName(profileOpt.map(Profile::getFullName).orElse(team.getOwner().getEmail()));
         dto.setOwnerHandle(profileOpt.map(Profile::getHandle).orElse(null));
+        dto.setOwnerAvatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null));
 
         dto.setTitle(team.getTitle());
         dto.setType(team.getType());
@@ -607,13 +608,17 @@ public class CollabServiceImpl implements CollabService {
                     Optional<Profile> memberProf = profileRepository.findByUserId(m.getUser().getId());
                     String name = memberProf.map(Profile::getFullName).orElse(m.getUser().getEmail());
                     String handle = memberProf.map(Profile::getHandle).orElse(null);
-                    return new TeamResponseDto.TeamMemberDto(
-                            m.getUser().getId(),
-                            name,
-                            handle,
-                            m.getRole() != null ? m.getRole().name() : "MEMBER",
-                            m.getJoinedAt()
-                    );
+                    String avatar = memberProf.map(Profile::getAvatarUrl).orElse(null);
+                    String initials = memberProf.map(Profile::getInitials).orElse(name != null && !name.isBlank() ? name.substring(0, Math.min(2, name.length())).toUpperCase() : "U");
+                    return TeamResponseDto.TeamMemberDto.builder()
+                            .userId(m.getUser().getId())
+                            .name(name)
+                            .handle(handle)
+                            .role(m.getRole() != null ? m.getRole().name() : "MEMBER")
+                            .joinedAt(m.getJoinedAt())
+                            .avatarUrl(avatar)
+                            .initials(initials)
+                            .build();
                 }).toList();
                 dto.setMembers(memberDtos);
             }

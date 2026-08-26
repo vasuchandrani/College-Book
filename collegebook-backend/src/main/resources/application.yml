@@ -110,7 +110,7 @@ springdoc:
     path: /swagger-ui.html
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT:8081}
   tomcat:
     threads:
       max: 20

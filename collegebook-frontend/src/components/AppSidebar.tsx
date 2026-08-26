@@ -14,7 +14,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getIncomingJoinRequests } from "@/lib/api";
+import { getIncomingJoinRequests, getMyCreatedTeams, getTeamChatMessages } from "@/lib/api";
+import { checkIsMessageUnread } from "@/lib/chatUnread";
 
 const mainNav = [
   { title: "Campus Feed", url: "/feed", icon: Newspaper },
@@ -36,11 +37,36 @@ export function AppSidebar() {
     const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
     if (!token) return;
     try {
-      const requests = await getIncomingJoinRequests();
-      const count = (requests || []).filter(
+      const [requests, teams] = await Promise.all([
+        getIncomingJoinRequests().catch(() => []),
+        getMyCreatedTeams().catch(() => []),
+      ]);
+      const reqCount = (requests || []).filter(
         (r: any) => String(r.status).toUpperCase() === "PENDING"
       ).length;
-      setPendingCollabCount(count);
+
+      let unreadChatCount = 0;
+      let storedUser: any = {};
+      try {
+        storedUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
+      } catch {}
+
+      await Promise.all(
+        (teams || []).map(async (t: any) => {
+          if (!t.id) return;
+          try {
+            const msgs = await getTeamChatMessages(t.id, 1);
+            if (msgs && msgs.length > 0) {
+              const latest = msgs[msgs.length - 1];
+              if (checkIsMessageUnread(t.id, latest.createdAt, latest.senderId, storedUser?.id)) {
+                unreadChatCount++;
+              }
+            }
+          } catch {}
+        })
+      );
+
+      setPendingCollabCount(reqCount + unreadChatCount);
     } catch {
       // ignore
     }
@@ -51,15 +77,15 @@ export function AppSidebar() {
 
     const handleUpdate = () => fetchPendingCount();
     window.addEventListener("cb_collab_updated", handleUpdate);
-    window.addEventListener("focus", handleUpdate);
-    const interval = setInterval(fetchPendingCount, 15000);
+    window.addEventListener("cb_room_read", handleUpdate);
+    const interval = setInterval(fetchPendingCount, 45000);
 
     return () => {
       window.removeEventListener("cb_collab_updated", handleUpdate);
-      window.removeEventListener("focus", handleUpdate);
+      window.removeEventListener("cb_room_read", handleUpdate);
       clearInterval(interval);
     };
-  }, [location.pathname]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("cb_token");

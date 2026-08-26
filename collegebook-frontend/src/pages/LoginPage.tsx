@@ -42,14 +42,20 @@ const LoginPage = () => {
         "cb_user",
         JSON.stringify({
           role: "student",
+          id: user.id || user.userId,
+          userId: user.id || user.userId,
           name: user.name,
+          fullName: user.fullName || user.name,
+          handle: user.handle,
           email: user.email,
+          avatarUrl: user.avatarUrl,
           college: user.college,
           collegeShort: user.collegeShort,
           course: user.course,
           currentYear: user.currentYear,
           defaultBio: user.defaultBio,
           initials: user.initials,
+          ...user,
         })
       );
       toast.success(`Welcome back, ${user.name}!`);

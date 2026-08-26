@@ -21,6 +21,7 @@ public class TeamResponseDto {
     private UUID ownerId;
     private String ownerName;
     private String ownerHandle;
+    private String ownerAvatarUrl;
     private String title;
     private TeamType type;
     private String description;
@@ -56,9 +57,15 @@ public class TeamResponseDto {
         private String handle;
         private String role;
         private Instant joinedAt;
+        private String avatarUrl;
+        private String initials;
 
         public TeamMemberDto(UUID userId, String name, String role, Instant joinedAt) {
-            this(userId, name, null, role, joinedAt);
+            this(userId, name, null, role, joinedAt, null, null);
+        }
+
+        public TeamMemberDto(UUID userId, String name, String handle, String role, Instant joinedAt) {
+            this(userId, name, handle, role, joinedAt, null, null);
         }
     }
 }

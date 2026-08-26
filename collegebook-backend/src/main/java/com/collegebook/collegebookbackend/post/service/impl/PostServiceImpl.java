@@ -426,6 +426,7 @@ public class PostServiceImpl implements PostService {
         Optional<Profile> profileOpt = profileRepository.findByUserId(post.getAuthor().getId());
         dto.setAuthorName(profileOpt.map(Profile::getFullName).orElse(post.getAuthor().getEmail()));
         dto.setAuthorHandle(profileOpt.map(Profile::getHandle).orElse(null));
+        dto.setAvatarUrl(resolveAvatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null)));
         dto.setInitials(profileOpt.map(Profile::getInitials).orElse("U"));
         dto.setCourseName(profileOpt.map(p -> p.getCourse() != null ? p.getCourse().getName() : null).orElse("Student"));
         dto.setCollegeName(post.getCollege() != null ? post.getCollege().getName() : null);
@@ -521,5 +522,19 @@ public class PostServiceImpl implements PostService {
         java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("d MMM ''yy", java.util.Locale.ENGLISH)
                 .withZone(java.time.ZoneId.of("UTC"));
         return formatter.format(instant);
+    }
+
+    private String resolveAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return null;
+        }
+        if (avatarUrl.startsWith("avatars/") || avatarUrl.contains(".amazonaws.com/")) {
+            try {
+                return mediaService.resolveAccessUrl(avatarUrl, "S3");
+            } catch (Exception e) {
+                return avatarUrl;
+            }
+        }
+        return avatarUrl;
     }
 }

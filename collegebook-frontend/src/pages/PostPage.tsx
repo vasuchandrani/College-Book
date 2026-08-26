@@ -338,13 +338,10 @@ const PostPage = () => {
                 className="shrink-0 transition-transform active:scale-95"
               >
                 <Avatar className="h-11 w-11 border border-border">
-                  {post.avatarUrl ? (
-                    <AvatarImage src={post.avatarUrl} alt={post.author} />
-                  ) : (
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                      {post.initials}
-                    </AvatarFallback>
-                  )}
+                  <AvatarImage src={post.avatarUrl} alt={post.author} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                    {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </Link>
               <div className="min-w-0">

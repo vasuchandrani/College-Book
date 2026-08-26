@@ -47,11 +47,12 @@ public class RedisRateLimitServiceImpl implements RateLimitService {
             return tryAcquireInMemory(key, maxRequests, window);
         }
 
-        if (currentCount == 1) {
+        Long expireSeconds = redisTemplate.getExpire(redisKey);
+        if (expireSeconds == null || expireSeconds < 0) {
             redisTemplate.expire(redisKey, window);
+            expireSeconds = window.toSeconds();
         }
 
-        Long expireSeconds = redisTemplate.getExpire(redisKey);
         long resetSeconds = (expireSeconds != null && expireSeconds > 0) ? expireSeconds : window.toSeconds();
 
         if (currentCount <= maxRequests) {

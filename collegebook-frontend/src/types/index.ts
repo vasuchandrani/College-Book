@@ -104,5 +104,51 @@ export interface TeamDiscussion {
   createdAt?: string;
 }
 
+export interface TeamChatMessage {
+  id: string;
+  teamId: string;
+  senderId: string;
+  senderName: string;
+  senderHandle?: string;
+  avatarUrl?: string;
+  initials: string;
+  collegeName?: string;
+  collegeShortName?: string;
+  role?: string; // "LEAD" or "MEMBER"
+  content: string;
+  messageType?: "TEXT" | "CODE" | "SYSTEM" | "IMAGE";
+  mediaUrl?: string;
+  createdAt?: string;
+  time?: string;
+  status?: "sending" | "sent" | "failed";
+}
+
+export interface ChatUser {
+  userId: string;
+  name: string;
+  handle?: string;
+  avatarUrl?: string;
+  initials: string;
+  role?: string;
+  online: boolean;
+}
+
+export interface TypingEvent {
+  teamId: string;
+  userId: string;
+  userName: string;
+  userHandle?: string;
+  typing: boolean;
+}
+
+export interface PresenceEventDto {
+  teamId: string;
+  eventType: "JOIN" | "LEAVE" | "SYNC";
+  userId: string;
+  userName?: string;
+  activeMembers?: ChatUser[];
+}
+
 // Backward compatibility alias
 export type Comment = PostComment;
+

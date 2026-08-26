@@ -272,11 +272,9 @@ const ExplorePage = () => {
                   className="shrink-0 transition-transform active:scale-95"
                 >
                   <Avatar className="h-10 w-10 border border-border">
-                    {post.avatarUrl && (
-                      <AvatarImage src={post.avatarUrl} alt={post.author} />
-                    )}
+                    <AvatarImage src={post.avatarUrl} alt={post.author} />
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                      {post.initials}
+                      {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Link>

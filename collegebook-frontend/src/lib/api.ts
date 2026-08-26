@@ -5,8 +5,8 @@
  * Signatures and return types are strictly preserved.
  */
 
-import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion } from "@/types";
-export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion };
+import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto } from "@/types";
+export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto };
 import { appConfig } from "@/config/app.config";
 import { formatSmartDate } from "@/lib/dateUtils";
 
@@ -178,6 +178,21 @@ export async function request<T>(
         ...(init.headers ?? {}),
       },
     });
+
+    // Auto-retry once on 429 Too Many Requests with backoff
+    if (res.status === 429) {
+      const retryAfterSec = parseInt(res.headers.get("Retry-After") || "1", 10);
+      const delayMs = Math.min(Math.max(isNaN(retryAfterSec) ? 1 : retryAfterSec, 1) * 1000, 2500);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      res = await fetch(fullUrl, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(init.headers ?? {}),
+        },
+      });
+    }
   } catch (networkError: any) {
     throw new ApiError(
       "Unable to connect to the server. Please check your internet connection.",
@@ -255,8 +270,11 @@ export interface SignupPayload {
 }
 export interface AuthUser {
   id?: string;
+  userId?: string;
   name: string;
+  fullName?: string;
   handle?: string;
+  avatarUrl?: string;
   initials: string;
   email: string;
   college: string;
@@ -265,6 +283,7 @@ export interface AuthUser {
   department?: string;
   currentYear?: number;
   defaultBio?: string;
+  role?: string;
 }
 
 export const login = async (payload: LoginPayload): Promise<AuthUser> => {
@@ -277,10 +296,13 @@ export const login = async (payload: LoginPayload): Promise<AuthUser> => {
     user?: {
       id?: string;
       email: string;
+      username?: string;
       collegeName?: string;
       collegeShortName?: string;
       profile?: {
         fullName?: string;
+        handle?: string;
+        avatarUrl?: string;
         collegeName?: string;
         collegeShortName?: string;
         courseName?: string;
@@ -307,16 +329,23 @@ export const login = async (payload: LoginPayload): Promise<AuthUser> => {
       localStorage.setItem("cb_refresh_token", res.refreshToken);
     }
   }
+
   const fullName = res.user?.profile?.fullName || "User";
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const collegeName = res.user?.collegeName || res.user?.profile?.collegeName || "DDU";
   const collegeShort = res.user?.collegeShortName || res.user?.profile?.collegeShortName || (collegeName === "Dharmsinh Desai University" ? "DDU" : collegeName.split(" ").map((p) => p[0]).join(""));
+  const rawHandle = res.user?.profile?.handle || res.user?.username || payload.email.split("@")[0];
+  const handle = rawHandle.startsWith("@") ? rawHandle : `@${rawHandle}`;
 
   return {
     id: res.user?.id,
+    userId: res.user?.id,
     name: fullName,
+    fullName: fullName,
+    handle,
     initials: initials || "U",
     email: res.user?.email || payload.email,
+    avatarUrl: res.user?.profile?.avatarUrl,
     college: collegeName,
     collegeShort: collegeShort,
     course: res.user?.profile?.courseName || "Student",
@@ -1845,5 +1874,56 @@ export const uploadVideoFile = async (
   };
 };
 
+// =========================================================================
+// Team Room Chat API Endpoints
+// =========================================================================
 
+export const getTeamChatMessages = async (
+  teamId: string,
+  limit: number = 50
+): Promise<TeamChatMessage[]> => {
+  return await request<TeamChatMessage[]>(`/teams/${teamId}/chat/messages?size=${limit}`);
+};
 
+export const getTeamRecentMessages = getTeamChatMessages;
+
+export const getPagedTeamChatMessages = async (
+  teamId: string,
+  page: number = 0,
+  size: number = 50
+): Promise<PageResponse<TeamChatMessage>> => {
+  return await request<PageResponse<TeamChatMessage>>(
+    `/teams/${teamId}/chat/messages?paged=true&page=${page}&size=${size}`
+  );
+};
+
+export const sendTeamChatMessage = async (
+  teamId: string,
+  content: string,
+  messageType: string = "TEXT",
+  mediaUrl?: string
+): Promise<TeamChatMessage> => {
+  return await request<TeamChatMessage>(`/teams/${teamId}/chat/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content,
+      messageType,
+      mediaUrl,
+    }),
+  });
+};
+
+export const deleteTeamChatMessage = async (
+  teamId: string,
+  messageId: string
+): Promise<void> => {
+  return await request<void>(`/teams/${teamId}/chat/messages/${messageId}`, {
+    method: "DELETE",
+  });
+};
+
+export const getRoomChatMembers = async (
+  teamId: string
+): Promise<ChatUser[]> => {
+  return await request<ChatUser[]>(`/teams/${teamId}/chat/members`);
+};

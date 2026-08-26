@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   Github,
@@ -19,6 +19,8 @@ import {
   Layers,
   Clock,
   Trash2,
+  MessageCircle,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,15 +48,20 @@ import {
   getTeamDiscussions,
   addTeamDiscussion,
   deleteTeamDiscussion,
+  getTeamRecentMessages,
 } from "@/lib/api";
+import { markRoomAsRead, checkIsMessageUnread } from "@/lib/chatUnread";
 import type { TeamDiscussion } from "@/types";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import TeamRoomChatModal from "@/components/TeamRoomChatModal";
+import { TeamRoomChatPanel } from "@/components/TeamRoomChatPanel";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 
 export default function CollabDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { triggerToggle } = useDebouncedToggle(400);
 
   const [team, setTeam] = useState<any>(null);
@@ -110,6 +117,30 @@ export default function CollabDetailPage() {
     return () => {
       alive = false;
     };
+  }, [id]);
+
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    getTeamRecentMessages(id, 1)
+      .then((msgs) => {
+        if (msgs && msgs.length > 0) {
+          const latest = msgs[msgs.length - 1];
+          setHasUnreadChat(checkIsMessageUnread(id, latest.createdAt, latest.senderId, user.id));
+        }
+      })
+      .catch(() => {});
+  }, [id, user.id]);
+
+  useEffect(() => {
+    const handleRoomRead = (e: any) => {
+      if (e.detail?.teamId === id) {
+        setHasUnreadChat(false);
+      }
+    };
+    window.addEventListener("cb_room_read", handleRoomRead);
+    return () => window.removeEventListener("cb_room_read", handleRoomRead);
   }, [id]);
 
   const handleAddDiscussion = async (e?: React.FormEvent) => {
@@ -219,7 +250,10 @@ export default function CollabDetailPage() {
     user &&
     team &&
     ((user.id && team.ownerId && team.ownerId === user.id) ||
-      (team.ownerName && (team.ownerName === user.name || team.ownerName === user.fullName)))
+      (team.ownerName && (team.ownerName === user.name || team.ownerName === user.fullName)) ||
+      (team.ownerHandle && user.handle && team.ownerHandle.replace(/^@/, "").toLowerCase() === user.handle.replace(/^@/, "").toLowerCase()) ||
+      team.canEdit ||
+      team.canComplete)
   );
 
   const isMember = Boolean(
@@ -229,7 +263,8 @@ export default function CollabDetailPage() {
     team.members.some(
       (m: any) =>
         (user.id && m.userId && m.userId === user.id) ||
-        (m.name && (m.name === user.name || m.name === user.fullName))
+        (m.name && (m.name === user.name || m.name === user.fullName)) ||
+        (m.handle && user.handle && m.handle.replace(/^@/, "").toLowerCase() === user.handle.replace(/^@/, "").toLowerCase())
     )
   );
 
@@ -336,24 +371,89 @@ export default function CollabDetailPage() {
     new Set([...(team.requiredExpertise || []), ...(team.skills || [])])
   );
 
+  const currentTab = searchParams.get("tab") === "chat" ? "chat" : "overview";
+  const canAccessRoomChat = isLead || isMember || team.canEdit || team.canComplete;
+
+  const handleOpenRoomChat = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", "chat");
+    setSearchParams(next);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6 pb-20">
-      {/* Top Back Navigation */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground pl-0"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-1.5 text-xs h-8">
-          <Share2 className="h-3.5 w-3.5" /> Share
-        </Button>
+      {/* Top Back Navigation & Workspace Tab Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground pl-0"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {canAccessRoomChat && (
+            <div className="flex items-center p-1 rounded-xl bg-muted/40 border border-border/60">
+              <Button
+                variant={currentTab === "overview" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete("tab");
+                  setSearchParams(next);
+                }}
+                className={`gap-1.5 text-xs font-semibold rounded-lg h-8 px-3 transition-colors ${
+                  currentTab === "overview"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" /> Project Overview
+              </Button>
+
+              <Button
+                variant={currentTab === "chat" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("tab", "chat");
+                  setSearchParams(next);
+                  if (id) markRoomAsRead(id);
+                }}
+                className={`gap-1.5 text-xs font-semibold rounded-lg h-8 px-3 relative transition-colors ${
+                  currentTab === "chat"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span>Room Chat</span>
+                {hasUnreadChat && currentTab !== "chat" && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-1.5 text-xs h-8">
+            <Share2 className="h-3.5 w-3.5" /> Share
+          </Button>
+        </div>
       </div>
 
-      {/* Main Project Header Card */}
+      {currentTab === "chat" && canAccessRoomChat ? (
+        /* Dedicated Team Room Chat Workspace */
+        <TeamRoomChatPanel team={team} currentUser={user} isLead={isLead} />
+      ) : (
+        <>
+          {/* Main Project Header Card */}
       <Card className="p-6 sm:p-8 shadow-card border-border/80 space-y-6 bg-card/80 backdrop-blur-sm">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2 flex-1">
@@ -415,6 +515,7 @@ export default function CollabDetailPage() {
         <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-border/50 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
+              <AvatarImage src={team.ownerAvatarUrl} alt={team.ownerName} />
               <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
                 {(team.ownerName || "L").slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -543,6 +644,7 @@ export default function CollabDetailPage() {
                 className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/70 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer group shadow-2xs"
               >
                 <Avatar className="h-8 w-8 group-hover:ring-2 group-hover:ring-primary/40 transition-all">
+                  <AvatarImage src={team.ownerAvatarUrl} alt={team.ownerName} />
                   <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
                     {(team.ownerName || "L").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -570,8 +672,9 @@ export default function CollabDetailPage() {
                     className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/70 hover:border-primary/40 hover:bg-muted/30 transition-all cursor-pointer group shadow-2xs"
                   >
                     <Avatar className="h-8 w-8 group-hover:ring-2 group-hover:ring-primary/40 transition-all">
+                      <AvatarImage src={m.avatarUrl} alt={m.name} />
                       <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
-                        {(m.name || "M").slice(0, 2).toUpperCase()}
+                        {m.initials || (m.name || "M").slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -624,22 +727,42 @@ export default function CollabDetailPage() {
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold select-none">
                     ✓ Hiring Completed
                   </Badge>
+                  {(isLead || isMember) && (
+                    <Button
+                      size="sm"
+                      onClick={handleOpenRoomChat}
+                      className="gap-1.5 text-xs h-9 px-3.5 bg-primary text-primary-foreground font-semibold shadow-xs hover:opacity-90"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Room Chat
+                    </Button>
+                  )}
+                </div>
+              ) : isLead ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 px-3.5 py-2 text-xs font-medium flex items-center select-none">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
+                  </Badge>
                   <Button
                     size="sm"
-                    onClick={() => setRoomChatOpen(true)}
+                    onClick={handleOpenRoomChat}
                     className="gap-1.5 text-xs h-9 px-3.5 bg-primary text-primary-foreground font-semibold shadow-xs hover:opacity-90"
                   >
                     <MessageSquare className="h-3.5 w-3.5" /> Room Chat
                   </Button>
                 </div>
-              ) : isLead ? (
-                <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 px-3.5 py-2 text-xs font-medium flex items-center select-none">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
-                </Badge>
               ) : isMember ? (
-                <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3.5 py-2 text-xs font-medium flex items-center select-none">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
-                </Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3.5 py-2 text-xs font-medium flex items-center select-none">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
+                  </Badge>
+                  <Button
+                    size="sm"
+                    onClick={handleOpenRoomChat}
+                    className="gap-1.5 text-xs h-9 px-3.5 bg-primary text-primary-foreground font-semibold shadow-xs hover:opacity-90"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> Room Chat
+                  </Button>
+                </div>
               ) : isPending ? (
                 <Badge variant="secondary" className="gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-3.5 py-2 text-xs font-medium flex items-center select-none">
                   <Clock className="h-3.5 w-3.5 text-amber-500" /> Pending Review
@@ -739,18 +862,15 @@ export default function CollabDetailPage() {
                     d.authorHandle &&
                     user.handle.replace(/^@/, "").toLowerCase() ===
                     d.authorHandle.replace(/^@/, "").toLowerCase()) ||
-                  (user.name && user.name === d.authorName));
+                  (user.name && d.authorName && user.name.toLowerCase() === d.authorName.toLowerCase()));
 
               return (
                 <div
                   key={d.id}
-                  className="flex items-start gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors group animate-in fade-in-50 duration-200"
+                  className="group relative flex gap-3 p-3.5 rounded-xl bg-muted/30 border border-border/60 hover:border-border transition-colors"
                 >
-                  <Link
-                    to={d.authorHandle ? `/student/${d.authorHandle}` : "#"}
-                    className="shrink-0 transition-transform active:scale-95 mt-0.5"
-                  >
-                    <Avatar className="h-8 w-8 border border-border">
+                  <Link to={d.authorHandle ? `/student/${d.authorHandle}` : "#"} className="shrink-0">
+                    <Avatar className="h-8 w-8 ring-1 ring-border">
                       {d.avatarUrl ? (
                         <AvatarImage src={d.avatarUrl} alt={d.authorName} />
                       ) : (
@@ -810,6 +930,8 @@ export default function CollabDetailPage() {
           )}
         </div>
       </Card>
+        </>
+      )}
 
       {/* Join Request Dialog (For Hackathon & Team Projects) */}
       <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
@@ -889,23 +1011,14 @@ export default function CollabDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Room Chat Feature Dialog */}
-      <Dialog open={roomChatOpen} onOpenChange={setRoomChatOpen}>
-        <DialogContent className="sm:max-w-md text-center p-6">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary">
-            <MessageSquare className="h-6 w-6" />
-          </div>
-          <DialogTitle className="text-lg font-bold">Team Room Chat</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground mt-2">
-            We will introduce room chat soon! Private real-time team channels, file sharing, and task coordination for completed teams will be available here.
-          </DialogDescription>
-          <DialogFooter className="mt-5 sm:justify-center">
-            <Button onClick={() => setRoomChatOpen(false)} className="rounded-xl px-6 font-semibold">
-              Got it
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Live Team Room Chat Modal */}
+      {team && (
+        <TeamRoomChatModal
+          open={roomChatOpen}
+          onOpenChange={setRoomChatOpen}
+          team={team}
+        />
+      )}
     </div>
   );
 }

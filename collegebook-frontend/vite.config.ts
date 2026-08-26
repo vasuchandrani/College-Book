@@ -4,14 +4,23 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
+  define: {
+    global: "window",
+  },
   server: {
     host: "::",
     port: 5000,
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: "http://localhost:8081",
         changeOrigin: true,
+        secure: false,
+      },
+      "/ws": {
+        target: "http://localhost:8081",
+        changeOrigin: true,
+        ws: true,
         secure: false,
       },
     },

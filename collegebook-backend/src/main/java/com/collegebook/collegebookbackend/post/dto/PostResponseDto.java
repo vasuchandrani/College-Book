@@ -21,6 +21,7 @@ public class PostResponseDto {
     private UUID authorId;
     private String authorName;
     private String authorHandle;
+    private String avatarUrl;
     private String initials;
     private String courseName;
     private String collegeName;

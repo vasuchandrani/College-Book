@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
   Code2,
@@ -58,6 +58,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { FormattedContent } from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import TeamRoomChatModal from "@/components/TeamRoomChatModal";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getMyCreatedTeams,
@@ -72,7 +73,9 @@ import {
   lookupStudent,
   markHiringComplete,
   toggleStarTeam,
+  getTeamRecentMessages,
 } from "@/lib/api";
+import { markRoomAsRead, checkIsMessageUnread } from "@/lib/chatUnread";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
 const commonTechSuggestions = [
@@ -122,6 +125,7 @@ interface MemberEntry {
 }
 
 export default function MyCollaborationPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [myTeams, setMyTeams] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -176,6 +180,7 @@ export default function MyCollaborationPage() {
   const [completeConfirm, setCompleteConfirm] = useState<string | null>(null);
   const [completingHiringId, setCompletingHiringId] = useState<string | null>(null);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const [selectedChatTeam, setSelectedChatTeam] = useState<any | null>(null);
 
   const { triggerToggle } = useDebouncedToggle(400);
 
@@ -186,6 +191,8 @@ export default function MyCollaborationPage() {
       return {};
     }
   }, []);
+
+  const [unreadRooms, setUnreadRooms] = useState<Set<string>>(new Set());
 
   const loadData = async () => {
     try {
@@ -199,6 +206,25 @@ export default function MyCollaborationPage() {
       setMyRequests(reqsData || []);
       setIncomingRequests(incomingData || []);
       window.dispatchEvent(new Event("cb_collab_updated"));
+
+      // Check unread messages for collaboration rooms
+      const unreadMap = new Set<string>();
+      await Promise.all(
+        (teamsData || []).map(async (t: any) => {
+          if (!t.id) return;
+          try {
+            const msgs = await getTeamRecentMessages(t.id, 1);
+            if (msgs && msgs.length > 0) {
+              const latest = msgs[msgs.length - 1];
+              const isUnread = checkIsMessageUnread(t.id, latest.createdAt, latest.senderId, user.id);
+              if (isUnread) {
+                unreadMap.add(t.id);
+              }
+            }
+          } catch {}
+        })
+      );
+      setUnreadRooms(unreadMap);
     } catch (err: any) {
       toast.error("Failed to load collaboration data");
     } finally {
@@ -208,6 +234,19 @@ export default function MyCollaborationPage() {
 
   useEffect(() => {
     loadData();
+
+    const handleRoomRead = (e: any) => {
+      const readTeamId = e.detail?.teamId;
+      if (readTeamId) {
+        setUnreadRooms((prev) => {
+          const next = new Set(prev);
+          next.delete(readTeamId);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("cb_room_read", handleRoomRead);
+    return () => window.removeEventListener("cb_room_read", handleRoomRead);
   }, []);
 
   // Split into Open Source, Active Teams, and Completed Teams
@@ -240,6 +279,18 @@ export default function MyCollaborationPage() {
       (r: any) => String(r.status).toUpperCase() === "PENDING"
     ).length;
   }, [incomingRequests]);
+
+  const activeTeamsUnreadCount = useMemo(() => {
+    return activeTeams.filter((t) => unreadRooms.has(t.id)).length;
+  }, [activeTeams, unreadRooms]);
+
+  const completedTeamsUnreadCount = useMemo(() => {
+    return completedTeams.filter((t) => unreadRooms.has(t.id)).length;
+  }, [completedTeams, unreadRooms]);
+
+  const openSourceUnreadCount = useMemo(() => {
+    return myOpenSourceProjects.filter((t) => unreadRooms.has(t.id)).length;
+  }, [myOpenSourceProjects, unreadRooms]);
 
   const isUserCreatorOf = (project: any) => {
     return (
@@ -763,34 +814,46 @@ export default function MyCollaborationPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
-        <TabsList className="bg-muted p-1 rounded-xl grid grid-cols-2 sm:grid-cols-4 max-w-2xl h-auto gap-1">
-          <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
-            <Code2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-            <span className="hidden sm:inline">Open source</span>
-            <span className="sm:hidden">Open-source</span>
-          </TabsTrigger>
-          <TabsTrigger value="my_requests" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
-            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-            <span className="hidden sm:inline">My request</span>
-            <span className="sm:hidden">My requests</span>
-          </TabsTrigger>
-          <TabsTrigger value="active_teams" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
-            <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-            <span className="hidden sm:inline">Active teams</span>
-            <span className="sm:hidden">Active</span>
-            {totalPendingRequests > 0 && (
+        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full max-w-4xl h-auto gap-1.5 shadow-2xs">
+          <TabsTrigger value="open_source" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+            <Code2 className="h-4 w-4 text-primary shrink-0" />
+            <span>Open source</span>
+            {openSourceUnreadCount > 0 && (
               <Badge
                 variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-0.5"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
               >
-                {totalPendingRequests}
+                {openSourceUnreadCount}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="completed_teams" className="gap-1.5 sm:gap-2 py-1.5 sm:py-2 text-[11px] sm:text-sm font-medium">
-            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
-            <span className="hidden sm:inline">Completed teams</span>
-            <span className="sm:hidden">Done</span>
+          <TabsTrigger value="my_requests" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+            <Users className="h-4 w-4 text-primary shrink-0" />
+            <span>My requests</span>
+          </TabsTrigger>
+          <TabsTrigger value="active_teams" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+            <Rocket className="h-4 w-4 text-primary shrink-0" />
+            <span>Active teams</span>
+            {totalPendingRequests + activeTeamsUnreadCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
+              >
+                {totalPendingRequests + activeTeamsUnreadCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="completed_teams" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+            <span>Completed teams</span>
+            {completedTeamsUnreadCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
+              >
+                {completedTeamsUnreadCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -1251,6 +1314,31 @@ export default function MyCollaborationPage() {
 
                             <Button
                               size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                markRoomAsRead(project.id);
+                                navigate(`/collab/${project.id}?tab=chat`);
+                              }}
+                              className={`gap-1.5 text-xs h-8 px-2.5 ${
+                                unreadRooms.has(project.id)
+                                  ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                                  : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                              } w-auto`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>Room Chat</span>
+                              {unreadRooms.has(project.id) && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
+                                >
+                                  New
+                                </Badge>
+                              )}
+                            </Button>
+
+                            <Button
+                              size="sm"
                               variant="ghost"
                               onClick={() => handleToggleStar(project.id)}
                               className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 w-auto ${
@@ -1405,7 +1493,7 @@ export default function MyCollaborationPage() {
                             asChild
                             variant="outline"
                             size="sm"
-                            className="gap-1 text-xs h-8"
+                            className="gap-1 text-xs h-8 px-2.5 w-auto"
                           >
                             <Link to={`/collab/${project.id}`}>
                               <Eye className="h-3.5 w-3.5" /> View Details
@@ -1415,14 +1503,14 @@ export default function MyCollaborationPage() {
                           {isUserCreatorOf(project) ? (
                             <Badge
                               variant="secondary"
-                              className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 font-medium select-none"
+                              className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 font-medium select-none w-auto"
                             >
                               Team Creator
                             </Badge>
                           ) : (
                             <Badge
                               variant="secondary"
-                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
+                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none w-auto"
                             >
                               ✓ Joined Member
                             </Badge>
@@ -1430,25 +1518,39 @@ export default function MyCollaborationPage() {
 
                           <Button
                             size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              markRoomAsRead(project.id);
+                              navigate(`/collab/${project.id}?tab=chat`);
+                            }}
+                            className={`gap-1.5 text-xs h-8 px-2.5 ${
+                              unreadRooms.has(project.id)
+                                ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                                : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                            } w-auto`}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>Room Chat</span>
+                            {unreadRooms.has(project.id) && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
+                              >
+                                New
+                              </Badge>
+                            )}
+                          </Button>
+
+                          <Button
+                            size="sm"
                             variant="ghost"
                             onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 w-auto ${
                               project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
                             }`}
                           >
                             <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
-                          </Button>
-                        </div>
-
-                        {/* Admin Actions (Owner Only) - When hiring complete: Room Chat button, NO Delete, NO Edit */}
-                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/40 justify-end flex-wrap">
-                          <Button
-                            size="sm"
-                            onClick={() => setRoomChatOpen(true)}
-                            className="gap-1.5 text-xs h-7 px-3 bg-primary text-primary-foreground font-semibold shadow-xs hover:opacity-90"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" /> Room Chat
                           </Button>
                         </div>
                       </div>
@@ -2487,23 +2589,14 @@ export default function MyCollaborationPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Room Chat Feature Dialog */}
-      <Dialog open={roomChatOpen} onOpenChange={setRoomChatOpen}>
-        <DialogContent className="sm:max-w-md text-center p-6">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary">
-            <MessageSquare className="h-6 w-6" />
-          </div>
-          <DialogTitle className="text-lg font-bold">Team Room Chat</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground mt-2">
-            We will introduce room chat soon! Private real-time team channels, file sharing, and task coordination for completed teams will be available here.
-          </DialogDescription>
-          <DialogFooter className="mt-5 sm:justify-center">
-            <Button onClick={() => setRoomChatOpen(false)} className="rounded-xl px-6 font-semibold">
-              Got it
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Live Team Room Chat Modal */}
+      {selectedChatTeam && (
+        <TeamRoomChatModal
+          open={roomChatOpen}
+          onOpenChange={setRoomChatOpen}
+          team={selectedChatTeam}
+        />
+      )}
     </div>
   );
 }

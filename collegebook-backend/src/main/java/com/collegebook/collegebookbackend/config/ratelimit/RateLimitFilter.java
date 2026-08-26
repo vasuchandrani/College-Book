@@ -36,11 +36,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Skip health checks, docs, preflight OPTIONS
+        // Skip health checks, docs, preflight OPTIONS, and WebSocket handshakes
         return "OPTIONS".equalsIgnoreCase(request.getMethod())
                 || path.startsWith("/actuator/")
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs")
+                || path.startsWith("/ws")
                 || path.equals("/favicon.ico");
     }
 
@@ -54,7 +55,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        LimitRule rule = resolveRule(path, method);
+        LimitRule rule = resolveRule(path, method, clientIp);
         String rateLimitKey = rule.category + ":" + clientIp;
 
         RateLimitResult result = rateLimitService.tryAcquire(rateLimitKey, rule.maxRequests, rule.window);
@@ -83,32 +84,38 @@ public class RateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private LimitRule resolveRule(String path, String method) {
+    private LimitRule resolveRule(String path, String method, String clientIp) {
+        boolean isLocal = clientIp == null || "127.0.0.1".equals(clientIp) || "::1".equals(clientIp) || "0:0:0:0:0:0:0:1".equals(clientIp) || "localhost".equalsIgnoreCase(clientIp);
+
         // 1. OTP sending endpoints (strict IP limit to prevent bot flooding)
         if (path.contains("/otp/send") || path.equals("/api/v1/auth/forgot-password")) {
-            return new LimitRule("otp_ip", 10, Duration.ofMinutes(15));
+            return new LimitRule("otp_ip", isLocal ? 120 : 15, Duration.ofMinutes(15));
         }
 
         // 2. Sensitive auth endpoints (login, signup, reset)
         if (path.startsWith("/api/v1/auth/login") || path.startsWith("/api/v1/auth/signup") || path.startsWith("/api/v1/auth/reset-password")) {
-            return new LimitRule("auth", 10, Duration.ofMinutes(1));
+            return new LimitRule("auth", isLocal ? 1000 : 30, Duration.ofMinutes(1));
         }
 
         // 3. Media storage upload & presign
         if (path.startsWith("/api/v1/storage")) {
-            return new LimitRule("storage", 30, Duration.ofMinutes(1));
+            return new LimitRule("storage", isLocal ? 1000 : 60, Duration.ofMinutes(1));
         }
 
-        // 4. Mutating write operations
+        // 4. Mutating write operations (includes chat messages HTTP fallback)
         if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) {
-            return new LimitRule("write", 60, Duration.ofMinutes(1));
+            return new LimitRule("write", isLocal ? 5000 : 200, Duration.ofMinutes(1));
         }
 
-        // 5. Global read / browsing
-        return new LimitRule("global", 120, Duration.ofMinutes(1));
+        // 5. Global read / browsing (high throughput for SPA data loading & campus Wi-Fi)
+        return new LimitRule("global", isLocal ? 10000 : 1200, Duration.ofMinutes(1));
     }
 
     private String extractClientIp(HttpServletRequest request) {
+        String cfConnectingIp = request.getHeader("CF-Connecting-IP");
+        if (cfConnectingIp != null && !cfConnectingIp.isBlank()) {
+            return cfConnectingIp.trim();
+        }
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
             return xForwardedFor.split(",")[0].trim();

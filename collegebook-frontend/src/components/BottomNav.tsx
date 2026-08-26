@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Newspaper, Compass, Users, UserCircle, FolderGit2 } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { getIncomingJoinRequests } from "@/lib/api";
+import { getIncomingJoinRequests, getMyCreatedTeams, getTeamChatMessages } from "@/lib/api";
+import { checkIsMessageUnread } from "@/lib/chatUnread";
 
 const navItems = [
   { title: "Feed", url: "/feed", icon: Newspaper },
@@ -21,11 +22,36 @@ export function BottomNav() {
       const token = localStorage.getItem("cb_token");
       if (!token) return;
       try {
-        const reqs = await getIncomingJoinRequests();
-        const count = (reqs || []).filter(
+        const [reqs, teams] = await Promise.all([
+          getIncomingJoinRequests().catch(() => []),
+          getMyCreatedTeams().catch(() => []),
+        ]);
+        const reqCount = (reqs || []).filter(
           (r: any) => String(r.status).toUpperCase() === "PENDING"
         ).length;
-        setPendingCount(count);
+
+        let unreadChatCount = 0;
+        let storedUser: any = {};
+        try {
+          storedUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
+        } catch {}
+
+        await Promise.all(
+          (teams || []).map(async (t: any) => {
+            if (!t.id) return;
+            try {
+              const msgs = await getTeamChatMessages(t.id, 1);
+              if (msgs && msgs.length > 0) {
+                const latest = msgs[msgs.length - 1];
+                if (checkIsMessageUnread(t.id, latest.createdAt, latest.senderId, storedUser?.id)) {
+                  unreadChatCount++;
+                }
+              }
+            } catch {}
+          })
+        );
+
+        setPendingCount(reqCount + unreadChatCount);
       } catch {
         // ignore
       }
@@ -35,13 +61,13 @@ export function BottomNav() {
 
     const handleUpdate = () => fetchCount();
     window.addEventListener("cb_collab_updated", handleUpdate);
-    window.addEventListener("focus", handleUpdate);
+    window.addEventListener("cb_room_read", handleUpdate);
 
     return () => {
       window.removeEventListener("cb_collab_updated", handleUpdate);
-      window.removeEventListener("focus", handleUpdate);
+      window.removeEventListener("cb_room_read", handleUpdate);
     };
-  }, [location.pathname]);
+  }, []);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-lg safe-area-bottom">
