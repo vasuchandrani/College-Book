@@ -199,7 +199,41 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Semantic static fallback for search engine crawlers before JS hydration -->
+      <header style="padding: 20px; text-align: center;">
+        <h1>CollegeBook — The Digital Campus Network & Student Collaboration Hub | College-Book</h1>
+        <p>A purpose-built digital campus platform for college and university students to connect, collaborate on projects, build hackathon teams, and preserve their college story.</p>
+      </header>
+      <main style="padding: 20px;">
+        <section>
+          <h2>Key Features of CollegeBook (College-Book)</h2>
+          <ul>
+            <li><strong>Clean Campus Feed:</strong> Authentic student posts, campus discussions, and anonymous appreciation.</li>
+            <li><strong>Cross-Campus Explore:</strong> Discover open-source projects, breakthroughs, and discussions across engineering colleges.</li>
+            <li><strong>Collab Hub:</strong> Assemble hackathon squads, recruit developers, and collaborate in private team channels.</li>
+            <li><strong>myCon Verified Skill Badges:</strong> Proof-backed technical credentials for competitive programming, web development, and machine learning.</li>
+            <li><strong>Graduation Memory Book:</strong> Time-bound accounts that package all your memories and achievements upon graduation.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Frequently Asked Questions</h2>
+          <article>
+            <h3>How does CollegeBook verify student identity?</h3>
+            <p>Students register with institutional college emails or select their verified campus from our comprehensive database of engineering colleges.</p>
+          </article>
+          <article>
+            <h3>Is CollegeBook free for students?</h3>
+            <p>Yes, CollegeBook is 100% free and student-focused.</p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <noscript>
+      <div style="padding: 20px; text-align: center;">
+        <p>CollegeBook requires JavaScript to run the interactive web application. Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

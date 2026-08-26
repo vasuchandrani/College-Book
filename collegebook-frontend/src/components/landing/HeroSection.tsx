@@ -7,7 +7,7 @@ import DownloadAppButton from "@/components/DownloadAppButton";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[calc(100vh-4rem)] flex items-center pt-20 pb-10 sm:pt-24 sm:pb-12 md:pt-28 md:pb-16 overflow-hidden">
+    <section className="relative min-h-[calc(100vh-4rem)] flex items-center pt-16 pb-8 sm:pt-24 sm:pb-12 md:pt-28 md:pb-16 overflow-hidden">
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
@@ -17,7 +17,7 @@ const HeroSection = () => {
         }}
       />
 
-      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* Left Content Column */}
           <motion.div
@@ -93,7 +93,7 @@ const HeroSection = () => {
               alt="CollegeBook - Digital Campus Network"
               width={1024}
               height={768}
-              className="w-full max-w-sm sm:max-w-md lg:max-w-lg drop-shadow-xl hover:scale-105 transition-transform duration-500"
+              className="w-full max-w-[260px] xs:max-w-xs sm:max-w-md lg:max-w-lg drop-shadow-xl hover:scale-105 transition-transform duration-500"
             />
           </motion.div>
         </div>

@@ -77,6 +77,7 @@ export interface AdData {
 export interface PostComment {
   id: string;
   postId: string | number;
+  authorId?: string | number;
   author: string;
   authorHandle?: string;
   avatarUrl?: string;
@@ -91,7 +92,7 @@ export interface PostComment {
 export interface TeamDiscussion {
   id: string;
   teamId: string;
-  authorId: string;
+  authorId?: string;
   authorName: string;
   authorHandle?: string;
   avatarUrl?: string;

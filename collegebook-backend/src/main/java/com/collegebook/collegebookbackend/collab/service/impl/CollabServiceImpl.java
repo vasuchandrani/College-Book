@@ -371,11 +371,17 @@ public class CollabServiceImpl implements CollabService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Join request not found"));
 
         Team team = joinReq.getTeam();
-        if (!team.getOwner().getId().equals(ownerId)) {
+        if (ownerId == null || !team.getOwner().getId().equals(ownerId)) {
             throw new AppException(ErrorCode.FORBIDDEN, "Only the team owner can respond to join requests");
         }
 
-        if (request.isAccept()) {
+        boolean isAccept = request.isAccept() || request.getStatus() == JoinRequestStatus.ACCEPTED;
+        boolean isUndoPending = request.getStatus() == JoinRequestStatus.PENDING;
+
+        if (isAccept) {
+            if (joinReq.getStatus() == JoinRequestStatus.ACCEPTED) {
+                return mapToJoinRequestDto(joinReq);
+            }
             if (team.getMaxMembers() > 0 && team.getCurrentMembersCount() >= team.getMaxMembers()) {
                 throw new AppException(ErrorCode.TEAM_FULL, "This team is already full");
             }
@@ -386,7 +392,16 @@ public class CollabServiceImpl implements CollabService {
             // Add member
             TeamMember newMember = new TeamMember(team, joinReq.getApplicant(), TeamMemberRole.MEMBER);
             teamMemberRepository.save(newMember);
+        } else if (isUndoPending) {
+            if (joinReq.getStatus() == JoinRequestStatus.ACCEPTED) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Accepted requests cannot be reverted to pending");
+            }
+            joinReq.setStatus(JoinRequestStatus.PENDING);
         } else {
+            // Rejection
+            if (joinReq.getStatus() == JoinRequestStatus.ACCEPTED) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Accepted requests cannot be rejected");
+            }
             joinReq.setStatus(JoinRequestStatus.REJECTED);
         }
 
@@ -423,12 +438,16 @@ public class CollabServiceImpl implements CollabService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new AppException(ErrorCode.TEAM_NOT_FOUND, "Team not found"));
 
-        if (!team.getOwner().getId().equals(ownerId)) {
+        if (ownerId == null || !team.getOwner().getId().equals(ownerId)) {
             throw new AppException(ErrorCode.FORBIDDEN, "Only the team owner can mark a project as complete");
         }
 
         team.setCompleted(true);
         Team saved = teamRepository.save(team);
+
+        // Delete all remaining join requests for this team upon completing hiring
+        joinRequestRepository.deleteByTeamId(teamId);
+
         return mapToTeamDto(saved, ownerId);
     }
 

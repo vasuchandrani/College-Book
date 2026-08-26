@@ -972,10 +972,16 @@ export const getMyIncomingRequests = async () => {
 
 export const getIncomingJoinRequests = getMyIncomingRequests;
 
-export const updateJoinRequestStatus = async (requestId: string | number, status: "ACCEPTED" | "REJECTED") => {
+export const updateJoinRequestStatus = async (
+  requestId: string | number,
+  status: "ACCEPTED" | "REJECTED" | "PENDING"
+) => {
   return await request<any>(`/join-requests/${requestId}`, {
     method: "PATCH",
-    body: JSON.stringify({ accept: status === "ACCEPTED" }),
+    body: JSON.stringify({
+      accept: status === "ACCEPTED",
+      status,
+    }),
   });
 };
 

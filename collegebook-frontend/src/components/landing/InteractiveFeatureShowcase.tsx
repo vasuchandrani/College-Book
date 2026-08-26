@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Newspaper,
@@ -8,7 +8,6 @@ import {
   Heart,
   Bookmark,
   Share2,
-  CheckCircle2,
   ArrowRight,
   Search,
   BookOpen,
@@ -29,6 +28,7 @@ import {
   Star,
   Clock,
   Check,
+  CheckCircle2,
   MessageSquare,
   ChevronUp,
 } from "lucide-react";
@@ -54,12 +54,35 @@ const InteractiveFeatureShowcase = () => {
   const [snehaLiked, setSnehaLiked] = useState(false);
   const [snehaLikesCount, setSnehaLikesCount] = useState(42);
   const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
-  const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ "city_store": true });
+  const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({ city_store: true });
 
   // Interactive Comments State
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [commentsMap, setCommentsMap] = useState<Record<string, ShowcaseComment[]>>(initialCommentsMap);
+
+  // Scroll Viewport Ref to reset scroll position on tab switch
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  const resetViewportScroll = useCallback(() => {
+    if (viewportRef.current) {
+      viewportRef.current.scrollTop = 0;
+    }
+  }, []);
+
+  useEffect(() => {
+    resetViewportScroll();
+    const f1 = requestAnimationFrame(resetViewportScroll);
+    const t1 = setTimeout(resetViewportScroll, 30);
+    const t2 = setTimeout(resetViewportScroll, 100);
+    const t3 = setTimeout(resetViewportScroll, 220);
+    return () => {
+      cancelAnimationFrame(f1);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [activeTab, collabSubTab, myCollabSubTab, resetViewportScroll]);
 
   const toggleComments = (postId: string) => {
     setExpandedComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
@@ -100,14 +123,16 @@ const InteractiveFeatureShowcase = () => {
   return (
     <section id="experience" className="py-14 sm:py-20 md:py-28 bg-background relative overflow-hidden">
       {/* Background Accent Mesh */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-gradient-to-b from-primary/10 via-accent/5 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+      <div className="absolute top-1/3 -left-32 w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/3 -right-32 w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-accent/10 blur-[100px] pointer-events-none" />
 
-      <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-        <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-center">
 
-          {/* Left Column: Descriptive Content & Actions */}
+          {/* Left Column: Context & Feature Highlights */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               <span>Full Interactive Mobile Preview</span>
             </div>
@@ -121,35 +146,105 @@ const InteractiveFeatureShowcase = () => {
               Experience all core features of CollegeBook. Test the live interactive mobile app on the right — switch tabs between <strong>Campus Feed</strong>, <strong>Cross-Campus Explore</strong>, <strong>Collab Hub</strong>, <strong>My Collaboration</strong>, and <strong>Student Profiles</strong>.
             </p>
 
-            {/* Pillar Feature Checklist */}
+            {/* Pillar Feature Checklist (Interactive Switchers) */}
             <div className="space-y-3 pt-2 text-left max-w-lg mx-auto lg:mx-0">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border/70 shadow-xs">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setActiveTab("feed");
+                  resetViewportScroll();
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                  activeTab === "feed"
+                    ? "bg-primary/10 border-primary/40 shadow-sm"
+                    : "bg-card border-border/70 shadow-xs hover:border-primary/30"
+                }`}
+              >
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                   <Newspaper className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-foreground">Dual-Scope Campus & Global Feed</h4>
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    Dual-Scope Campus & Global Feed
+                    {activeTab === "feed" && <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary text-primary-foreground font-semibold">Active</span>}
+                  </h4>
                   <p className="text-xs text-muted-foreground">Chronological, distraction-free campus updates with one-touch toggle between your university and cross-campus pulse.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border/70 shadow-xs">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setActiveTab("explore");
+                  resetViewportScroll();
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                  activeTab === "explore"
+                    ? "bg-accent/10 border-accent/40 shadow-sm"
+                    : "bg-card border-border/70 shadow-xs hover:border-accent/30"
+                }`}
+              >
                 <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0 mt-0.5">
                   <Compass className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-foreground">Cross-Campus Horizon</h4>
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    Cross-Campus Horizon & Events
+                    {activeTab === "explore" && <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent text-accent-foreground font-semibold">Active</span>}
+                  </h4>
                   <p className="text-xs text-muted-foreground">Discover hackathon, fest and events invites from top universities.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border/70 shadow-xs">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setActiveTab("collab");
+                  resetViewportScroll();
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                  activeTab === "collab" || activeTab === "mycollab"
+                    ? "bg-emerald-500/10 border-emerald-500/40 shadow-sm"
+                    : "bg-card border-border/70 shadow-xs hover:border-emerald-500/30"
+                }`}
+              >
                 <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
                   <Users className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-foreground">Collab Hub & Verified myCon Badges</h4>
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    Collab Hub & Team Assembly
+                    {(activeTab === "collab" || activeTab === "mycollab") && <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-600 text-white font-semibold">Active</span>}
+                  </h4>
                   <p className="text-xs text-muted-foreground">Assemble dream teams for hackathons, startups, and open-source projects.</p>
+                </div>
+              </div>
+
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setActiveTab("profile");
+                  resetViewportScroll();
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                  activeTab === "profile"
+                    ? "bg-primary/10 border-primary/40 shadow-sm"
+                    : "bg-card border-border/70 shadow-xs hover:border-primary/30"
+                }`}
+              >
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                  <BadgeCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                    Verified myCon Student Profiles
+                    {activeTab === "profile" && <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary text-primary-foreground font-semibold">Active</span>}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">Skill verification badges, projects, contact details, and proof-backed credentials.</p>
                 </div>
               </div>
             </div>
@@ -168,8 +263,8 @@ const InteractiveFeatureShowcase = () => {
           </div>
 
           {/* Right Column: Live Mobile App Frame */}
-          <div className="lg:col-span-6 flex justify-center items-center">
-            <div className="w-full max-w-[360px] sm:max-w-[390px] rounded-[2.5rem] bg-background border-[6px] border-border shadow-2xl overflow-hidden flex flex-col relative h-[680px] sm:h-[720px] ring-1 ring-primary/20">
+          <div className="lg:col-span-6 flex justify-center items-center w-full min-w-0">
+            <div className="w-full max-w-[340px] xs:max-w-[365px] sm:max-w-[390px] rounded-[2.5rem] bg-background border-[5px] sm:border-[6px] border-border shadow-2xl overflow-hidden flex flex-col relative h-[660px] sm:h-[720px] ring-1 ring-primary/20">
 
               {/* Smartphone Top Speaker / Notch simulation */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-3.5 bg-muted/80 rounded-full z-40" />
@@ -189,7 +284,7 @@ const InteractiveFeatureShowcase = () => {
                     onClick={() => {
                       toast.info("myCon verified proof badges: We will introduce it soon!");
                     }}
-                    className="flex items-center justify-center gap-1.5 px-2.5 h-7 rounded-full bg-muted text-foreground border border-border/40 text-[11px] font-semibold hover:bg-muted/80 transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-2.5 h-7 rounded-full bg-muted text-foreground border border-border/40 text-[11px] font-semibold hover:bg-muted/80 transition-colors cursor-pointer"
                   >
                     <BadgeCheck className="h-3.5 w-3.5 text-primary" />
                     <span>myCon</span>
@@ -202,7 +297,10 @@ const InteractiveFeatureShowcase = () => {
               </header>
 
               {/* Mobile Scrollable Viewport */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 pb-16 no-scrollbar">
+              <div
+                ref={viewportRef}
+                className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 pb-16 no-scrollbar"
+              >
                 <AnimatePresence mode="wait">
 
                   {/* 1. CAMPUS FEED TAB */}
@@ -213,15 +311,17 @@ const InteractiveFeatureShowcase = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
+                      onAnimationStart={resetViewportScroll}
+                      onAnimationComplete={resetViewportScroll}
                       className="space-y-3"
                     >
-                      {/* Page Header (Matches Explore layout) */}
+                      {/* Page Header */}
                       <div>
                         <h3 className="font-heading text-base font-bold text-foreground">Campus Feed</h3>
                         <p className="text-[11px] text-muted-foreground">What's happening at Dharmsinh Desai University</p>
                       </div>
 
-                      {/* Search Bar (Matches Explore) */}
+                      {/* Search Bar */}
                       <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <input
@@ -232,7 +332,7 @@ const InteractiveFeatureShowcase = () => {
                         />
                       </div>
 
-                      {/* Hashtag Filter Pills (Matches Explore) */}
+                      {/* Hashtag Filter Pills */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {["#campus", "#student", "#university", "#collaboration", "#mycon"].map((tag, idx) => (
                           <span
@@ -244,68 +344,86 @@ const InteractiveFeatureShowcase = () => {
                         ))}
                       </div>
 
-                      {/* Post Creator Box (Compact, mobile-friendly & overflow-proof) */}
+                      {/* Post Creator Box */}
                       <div className="rounded-xl border border-border bg-card p-2.5 shadow-xs space-y-2">
                         <div className="text-xs text-muted-foreground italic">
                           Share an idea, fun, or opportunity...
                         </div>
-                        <div className="flex items-center justify-between pt-1.5 border-t border-border/60 text-[10px] gap-1">
-                          <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer transition-colors">
-                              <ImageIcon className="h-3 w-3" /> Media
-                            </span>
-                            <span className="flex items-center gap-0.5 hover:text-foreground cursor-pointer transition-colors">
-                              <Hash className="h-3 w-3" /> Tag
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAllowComments(!allowComments);
-                                toast.info(!allowComments ? "Comments enabled for new post" : "Comments turned off for new post");
-                              }}
-                              className={`flex items-center gap-0.5 transition-colors cursor-pointer ${
-                                allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
-                              }`}
-                              title={allowComments ? "Comments: On" : "Comments: Off"}
-                            >
-                              <MessageSquare className="h-3 w-3" />
-                              <span>{allowComments ? "On" : "Off"}</span>
-                            </button>
+
+                        {/* Options & Action Rows */}
+                        <div className="pt-2 border-t border-border/60 space-y-2">
+                          {/* Row 1: Media, Tag, Comments */}
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toast.info("Attach photos & videos in the full app!")}
+                                className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors"
+                              >
+                                <ImageIcon className="h-3.5 w-3.5 text-primary/80" />
+                                <span>Media</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toast.info("Add hashtags to categorize your post!")}
+                                className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors"
+                              >
+                                <Hash className="h-3.5 w-3.5 text-primary/80" />
+                                <span>Tag</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAllowComments(!allowComments);
+                                  toast.info(!allowComments ? "Comments enabled for new post" : "Comments turned off for new post");
+                                }}
+                                className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                                  allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
+                                }`}
+                                title={allowComments ? "Comments: On" : "Comments: Off"}
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span>Comments: {allowComments ? "On" : "Off"}</span>
+                              </button>
+                            </div>
                           </div>
 
-                          {/* Both Campus and Global buttons shown compactly */}
-                          <div className="flex items-center gap-1 shrink-0">
-                            <div className="inline-flex items-center bg-muted/80 p-0.5 rounded-md border border-border/40">
+                          {/* Row 2: Campus/Global Scope Switcher & Post Button */}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-border/40 text-[10px]">
+                            <div className="inline-flex items-center bg-muted/80 p-0.5 rounded-lg border border-border/50">
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("campus")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
+                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                                   feedMode === "campus"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                <Building2 className="h-2.5 w-2.5" /> Campus
+                                <Building2 className="h-3 w-3" />
+                                <span>Campus</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("global")}
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-semibold transition-all flex items-center gap-0.5 ${
+                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                                   feedMode === "global"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                <Globe className="h-2.5 w-2.5" /> Global
+                                <Globe className="h-3 w-3" />
+                                <span>Global</span>
                               </button>
                             </div>
 
                             <button
                               type="button"
                               onClick={() => toast.success("Sign up to publish live posts!")}
-                              className="px-2 py-0.5 rounded-md bg-primary text-primary-foreground font-semibold text-[10px] flex items-center gap-0.5 hover:opacity-90 shadow-xs shrink-0"
+                              className="px-3 py-1 rounded-lg bg-primary text-primary-foreground font-semibold text-[11px] flex items-center gap-1 hover:opacity-90 shadow-xs cursor-pointer transition-all active:scale-95"
                             >
-                              <Send className="h-2.5 w-2.5" /> Post
+                              <Send className="h-3 w-3" />
+                              <span>Post</span>
                             </button>
                           </div>
                         </div>
@@ -321,7 +439,7 @@ const InteractiveFeatureShowcase = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Vatsal Chandrani</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">@vatsalchandrani • B.Tech Information Technology</div>
+                            <div className="text-[10px] text-muted-foreground truncate">@vatsalchandrani • B.Tech Information Technology</div>
                             <div className="text-[10px] text-primary font-semibold">Founder @ CollegeBook</div>
                           </div>
                         </div>
@@ -357,7 +475,7 @@ const InteractiveFeatureShowcase = () => {
                                 setFeedLiked(!feedLiked);
                                 setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
                               }}
-                              className={`flex items-center gap-1 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
                             >
                               <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
                               <span>{feedLikesCount}</span>
@@ -366,7 +484,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleComments("vatsal_post")}
-                              className={`flex items-center gap-1 transition-colors ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               <span>{(commentsMap["vatsal_post"] || []).length}</span>
@@ -375,7 +493,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleSave("vatsal_feed_post")}
-                              className={`flex items-center gap-1 transition-colors ${savedPosts["vatsal_feed_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["vatsal_feed_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_feed_post"] ? "fill-primary" : ""}`} />
                               <span>{savedPosts["vatsal_feed_post"] ? "Saved" : "Save"}</span>
@@ -384,7 +502,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Post link copied to clipboard!")}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                               <span>Share</span>
@@ -413,7 +531,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="button"
                                     onClick={() => toggleComments("vatsal_post")}
-                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 cursor-pointer"
                                   >
                                     Hide <ChevronUp className="w-2.5 h-2.5" />
                                   </button>
@@ -453,7 +571,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="submit"
                                     disabled={!(commentInputs["vatsal_post"] || "").trim()}
-                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50 cursor-pointer"
                                   >
                                     <Send className="w-2.5 h-2.5" />
                                   </button>
@@ -474,7 +592,7 @@ const InteractiveFeatureShowcase = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Ronak</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">@ronak • B.Tech Information Technology</div>
+                            <div className="text-[10px] text-muted-foreground truncate">@ronak • B.Tech Information Technology</div>
                           </div>
                         </div>
 
@@ -501,7 +619,7 @@ const InteractiveFeatureShowcase = () => {
                                 setRonakLiked(!ronakLiked);
                                 setRonakLikesCount((c) => (ronakLiked ? c - 1 : c + 1));
                               }}
-                              className={`flex items-center gap-1 transition-colors ${ronakLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${ronakLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
                             >
                               <Heart className={`h-3.5 w-3.5 ${ronakLiked ? "fill-red-500" : ""}`} />
                               <span>{ronakLikesCount}</span>
@@ -510,7 +628,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleComments("ronak_post")}
-                              className={`flex items-center gap-1 transition-colors ${expandedComments["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${expandedComments["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               <span>{(commentsMap["ronak_post"] || []).length}</span>
@@ -519,7 +637,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleSave("ronak_post")}
-                              className={`flex items-center gap-1 transition-colors ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["ronak_post"] ? "fill-primary" : ""}`} />
                               <span>{savedPosts["ronak_post"] ? "Saved" : "Save"}</span>
@@ -528,7 +646,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Post link copied to clipboard!")}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                               <span>Share</span>
@@ -557,7 +675,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="button"
                                     onClick={() => toggleComments("ronak_post")}
-                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 cursor-pointer"
                                   >
                                     Hide <ChevronUp className="w-2.5 h-2.5" />
                                   </button>
@@ -597,7 +715,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="submit"
                                     disabled={!(commentInputs["ronak_post"] || "").trim()}
-                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50 cursor-pointer"
                                   >
                                     <Send className="w-2.5 h-2.5" />
                                   </button>
@@ -659,7 +777,7 @@ const InteractiveFeatureShowcase = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Jaykrishna Gadhavi</span>
                             </div>
-                            <div className="text-[10px] text-amber-600 font-semibold">@jaykrishnagadhavi • IIT Bombay</div>
+                            <div className="text-[10px] text-amber-600 font-semibold truncate">@jaykrishnagadhavi • IIT Bombay</div>
                           </div>
                         </div>
 
@@ -692,7 +810,7 @@ const InteractiveFeatureShowcase = () => {
                                 setExploreLiked(!exploreLiked);
                                 setExploreLikesCount((c) => (exploreLiked ? c - 1 : c + 1));
                               }}
-                              className={`flex items-center gap-1 transition-colors ${exploreLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${exploreLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
                             >
                               <Heart className={`h-3.5 w-3.5 ${exploreLiked ? "fill-red-500" : ""}`} />
                               <span>{exploreLikesCount}</span>
@@ -701,7 +819,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleComments("jaykrishna_post")}
-                              className={`flex items-center gap-1 transition-colors ${expandedComments["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${expandedComments["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               <span>{(commentsMap["jaykrishna_post"] || []).length}</span>
@@ -710,7 +828,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleSave("jaykrishna_post")}
-                              className={`flex items-center gap-1 transition-colors ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["jaykrishna_post"] ? "fill-primary" : ""}`} />
                               <span>{savedPosts["jaykrishna_post"] ? "Saved" : "Save"}</span>
@@ -719,7 +837,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Post link copied to clipboard!")}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                               <span>Share</span>
@@ -748,7 +866,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="button"
                                     onClick={() => toggleComments("jaykrishna_post")}
-                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 cursor-pointer"
                                   >
                                     Hide <ChevronUp className="w-2.5 h-2.5" />
                                   </button>
@@ -788,7 +906,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="submit"
                                     disabled={!(commentInputs["jaykrishna_post"] || "").trim()}
-                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50 cursor-pointer"
                                   >
                                     <Send className="w-2.5 h-2.5" />
                                   </button>
@@ -809,7 +927,7 @@ const InteractiveFeatureShowcase = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Vatsal Chandrani</span>
                             </div>
-                            <div className="text-[10px] text-primary font-semibold">@vatsalchandrani • Dharmsinh Desai University</div>
+                            <div className="text-[10px] text-primary font-semibold truncate">@vatsalchandrani • Dharmsinh Desai University</div>
                             <div className="text-[10px] text-muted-foreground">Founder @ CollegeBook</div>
                           </div>
                         </div>
@@ -845,7 +963,7 @@ const InteractiveFeatureShowcase = () => {
                                 setFeedLiked(!feedLiked);
                                 setFeedLikesCount((c) => (feedLiked ? c - 1 : c + 1));
                               }}
-                              className={`flex items-center gap-1 transition-colors ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${feedLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
                             >
                               <Heart className={`h-3.5 w-3.5 ${feedLiked ? "fill-red-500" : ""}`} />
                               <span>{feedLikesCount}</span>
@@ -854,7 +972,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleComments("vatsal_post")}
-                              className={`flex items-center gap-1 transition-colors ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${expandedComments["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               <span>{(commentsMap["vatsal_post"] || []).length}</span>
@@ -863,7 +981,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleSave("vatsal_explore_post")}
-                              className={`flex items-center gap-1 transition-colors ${savedPosts["vatsal_explore_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["vatsal_explore_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_explore_post"] ? "fill-primary" : ""}`} />
                               <span>{savedPosts["vatsal_explore_post"] ? "Saved" : "Save"}</span>
@@ -872,7 +990,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Post link copied to clipboard!")}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                               <span>Share</span>
@@ -901,7 +1019,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="button"
                                     onClick={() => toggleComments("vatsal_post")}
-                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 cursor-pointer"
                                   >
                                     Hide <ChevronUp className="w-2.5 h-2.5" />
                                   </button>
@@ -941,7 +1059,7 @@ const InteractiveFeatureShowcase = () => {
                                   <button
                                     type="submit"
                                     disabled={!(commentInputs["vatsal_post"] || "").trim()}
-                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                    className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold flex items-center gap-0.5 disabled:opacity-50 cursor-pointer"
                                   >
                                     <Send className="w-2.5 h-2.5" />
                                   </button>
@@ -962,14 +1080,14 @@ const InteractiveFeatureShowcase = () => {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-foreground truncate">Sneha Mukherjee</span>
                             </div>
-                            <div className="text-[10px] text-blue-600 font-medium">@snehamukherjee • BITS Pilani</div>
+                            <div className="text-[10px] text-blue-600 font-medium truncate">@snehamukherjee • BITS Pilani</div>
                           </div>
                         </div>
                         <p className="text-xs text-foreground/90 leading-relaxed">
                           Inter-College Hackathon registrations are live! Looking for 2 backend specialists to assemble our squad on Collab Hub. 💻🏆
                         </p>
 
-                        {/* Action Bar (Comments off - no comment button shown) */}
+                        {/* Action Bar */}
                         <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground gap-1.5 flex-wrap">
                           <div className="flex items-center gap-2.5">
                             <button
@@ -978,7 +1096,7 @@ const InteractiveFeatureShowcase = () => {
                                 setSnehaLiked(!snehaLiked);
                                 setSnehaLikesCount((c) => (snehaLiked ? c - 1 : c + 1));
                               }}
-                              className={`flex items-center gap-1 transition-colors ${snehaLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${snehaLiked ? "text-red-500 font-semibold" : "hover:text-foreground"}`}
                             >
                               <Heart className={`h-3.5 w-3.5 ${snehaLiked ? "fill-red-500" : ""}`} />
                               <span>{snehaLikesCount}</span>
@@ -987,7 +1105,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toggleSave("sneha_post")}
-                              className={`flex items-center gap-1 transition-colors ${savedPosts["sneha_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["sneha_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["sneha_post"] ? "fill-primary" : ""}`} />
                               <span>{savedPosts["sneha_post"] ? "Saved" : "Save"}</span>
@@ -996,7 +1114,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Post link copied to clipboard!")}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                               <span>Share</span>
@@ -1029,30 +1147,33 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("open_source")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "open_source"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            collabSubTab === "open_source"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           <Code2 className="h-3 w-3" /> Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("hackathon")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "hackathon"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            collabSubTab === "hackathon"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           <Rocket className="h-3 w-3" /> Hackathons
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("project")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 ${collabSubTab === "project"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                            collabSubTab === "project"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           <Users className="h-3 w-3" /> Projects
                         </button>
@@ -1067,10 +1188,11 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleStar("city_store")}
-                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors ${starredProjects["city_store"]
-                                  ? "bg-amber-500/15 text-amber-600 border border-amber-500/20"
-                                  : "bg-muted text-muted-foreground"
-                                  }`}
+                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors cursor-pointer ${
+                                  starredProjects["city_store"]
+                                    ? "bg-amber-500/15 text-amber-600 border border-amber-500/20"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
                               >
                                 <Star className={`h-3 w-3 ${starredProjects["city_store"] ? "fill-amber-500 text-amber-500" : ""}`} />
                                 <span>{starredProjects["city_store"] ? "54" : "53"}</span>
@@ -1136,7 +1258,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Sign up to submit your join request with reason & role!")}
-                              className="w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity shadow-xs"
+                              className="w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity shadow-xs cursor-pointer"
                             >
                               Request to Join Team
                             </button>
@@ -1173,7 +1295,7 @@ const InteractiveFeatureShowcase = () => {
                             <button
                               type="button"
                               onClick={() => toast.success("Sign up to submit your join request!")}
-                              className="w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 shadow-xs"
+                              className="w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 shadow-xs cursor-pointer"
                             >
                               Apply as Contributor
                             </button>
@@ -1203,40 +1325,44 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("open_source")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "open_source"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
+                            myCollabSubTab === "open_source"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("requests")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "requests"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
+                            myCollabSubTab === "requests"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           My Requests
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("active")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "active"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
+                            myCollabSubTab === "active"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           Active
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("completed")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate ${myCollabSubTab === "completed"
-                            ? "bg-background text-primary shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
+                            myCollabSubTab === "completed"
+                              ? "bg-background text-primary shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
                         >
                           Done
                         </button>
@@ -1394,7 +1520,7 @@ const InteractiveFeatureShowcase = () => {
                         </div>
                       </div>
 
-                      {/* Contact Details Card (Discord removed, Portfolio clickable) */}
+                      {/* Contact Details Card */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2">
                         <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <Mail className="h-3.5 w-3.5 text-primary" />
@@ -1424,7 +1550,7 @@ const InteractiveFeatureShowcase = () => {
                         </div>
                       </div>
 
-                      {/* Social & Portfolio Links (Codolio updated to vatsalchandrani) */}
+                      {/* Social & Portfolio Links */}
                       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2">
                         <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <Globe className="h-3.5 w-3.5 text-primary" />
@@ -1478,8 +1604,9 @@ const InteractiveFeatureShowcase = () => {
                         key={item.id}
                         type="button"
                         onClick={() => setActiveTab(item.id as any)}
-                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors ${isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                          }`}
+                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors cursor-pointer ${
+                          isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                        }`}
                       >
                         <Icon className={`h-4 w-4 transition-transform ${isActive ? "scale-110 stroke-[2.5]" : "stroke-[2]"}`} />
                         <span>{item.title}</span>

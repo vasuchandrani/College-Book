@@ -27,7 +27,7 @@ public class BrevoEmailServiceImpl implements EmailService {
     @Value("${brevo.sender-name:CollegeBook}")
     private String senderName;
 
-    @Value("${app.frontend-url:http://localhost:8081}")
+    @Value("${app.frontend-url:http://localhost:5000}")
     private String frontendUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -69,7 +69,7 @@ public class BrevoEmailServiceImpl implements EmailService {
 
     @Override
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
-        String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "http://localhost:8081";
+        String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "http://localhost:5000";
         String resetUrl = base.replaceAll("/+$", "") + "/reset-password?token=" + resetToken;
         String htmlContent = "<!DOCTYPE html>" +
                 "<html>" +

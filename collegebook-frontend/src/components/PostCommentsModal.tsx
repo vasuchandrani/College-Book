@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Send, Lock, Trash2 } from "lucide-react";
+import { Send, Lock, Trash2, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,

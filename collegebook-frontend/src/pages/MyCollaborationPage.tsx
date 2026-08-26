@@ -19,6 +19,7 @@ import {
   Check,
   Building2,
   FolderGit2,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +58,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { FormattedContent } from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
+import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getMyCreatedTeams,
   getMyJoinedRequests,
@@ -172,7 +174,10 @@ export default function MyCollaborationPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteReqConfirm, setDeleteReqConfirm] = useState<string | null>(null);
   const [completeConfirm, setCompleteConfirm] = useState<string | null>(null);
+  const [completingHiringId, setCompletingHiringId] = useState<string | null>(null);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+
+  const { triggerToggle } = useDebouncedToggle(400);
 
   const user = useMemo(() => {
     try {
@@ -477,33 +482,57 @@ export default function MyCollaborationPage() {
     }
   };
 
-  // Toggle Star
-  const handleToggleStar = async (projectId: string) => {
-    try {
-      const res = await toggleStarTeam(projectId);
-      setMyTeams((prev) =>
-        prev.map((p) =>
-          p.id === projectId
-            ? { ...p, starred: res.starred, starsCount: res.starsCount }
-            : p
-        )
-      );
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to update star");
-    }
+  // Toggle Star (Debounced with instant optimistic UI matching Collab Hub)
+  const handleToggleStar = (projectId: string) => {
+    const target = myTeams.find((p) => p.id === projectId);
+    if (!target) return;
+    const currentStarred = !!target.starred;
+
+    triggerToggle(
+      projectId,
+      currentStarred,
+      (newStarred) => {
+        setMyTeams((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  starred: newStarred,
+                  starsCount: newStarred
+                    ? target.starred
+                      ? target.starsCount
+                      : (target.starsCount || 0) + 1
+                    : target.starred
+                    ? Math.max(0, (target.starsCount || 0) - 1)
+                    : target.starsCount || 0,
+                }
+              : p
+          )
+        );
+      },
+      (signal) => toggleStarTeam(projectId, signal)
+    );
   };
 
   // Mark Hiring Complete
   const handleCompleteHiring = async (projectId: string) => {
     try {
+      setCompletingHiringId(projectId);
       await markHiringComplete(projectId);
       toast.success("Hiring marked as complete! Team is now locked.");
       setCompleteConfirm(null);
       setMyTeams((prev) =>
         prev.map((t) => (t.id === projectId ? { ...t, completed: true } : t))
       );
+      // Remove all join requests for this team from state since backend deleted them
+      setIncomingRequests((prev) =>
+        prev.filter((r) => r.teamId !== projectId && r.projectId !== projectId)
+      );
+      window.dispatchEvent(new Event("cb_collab_updated"));
     } catch (e: any) {
       toast.error(e?.message || "Failed to complete hiring");
+    } finally {
+      setCompletingHiringId(null);
     }
   };
 
@@ -648,20 +677,32 @@ export default function MyCollaborationPage() {
     }
   };
 
-  // View Requests & Manage
+  // View Requests & Manage (Creator Only)
   const handleOpenViewRequests = (project: any) => {
+    if (!isUserCreatorOf(project)) {
+      toast.error("Only the team creator can view join requests.");
+      return;
+    }
+    if (project.completed) {
+      toast.info("Hiring is completed for this team. All join requests have been cleared.");
+      return;
+    }
     setViewRequestsTeam(project);
   };
 
   const handleRequestStatusChange = async (
     reqId: string,
-    status: "ACCEPTED" | "REJECTED"
+    status: "ACCEPTED" | "REJECTED" | "PENDING"
   ) => {
     try {
       setActionLoadingId(reqId);
       await updateJoinRequestStatus(reqId, status);
       toast.success(
-        status === "ACCEPTED" ? "Applicant accepted into team!" : "Request declined"
+        status === "ACCEPTED"
+          ? "Applicant accepted into team!"
+          : status === "PENDING"
+          ? "Rejection undone. Request restored to Pending."
+          : "Request declined."
       );
       setIncomingRequests((prev) =>
         prev.map((r) => (r.id === reqId ? { ...r, status } : r))
@@ -1372,14 +1413,12 @@ export default function MyCollaborationPage() {
                           </Button>
 
                           {isUserCreatorOf(project) ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 text-xs h-8"
-                              onClick={() => handleOpenViewRequests(project)}
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 font-medium select-none"
                             >
-                              <UsersRound className="h-3.5 w-3.5" /> View Requests
-                            </Button>
+                              Team Creator
+                            </Badge>
                           ) : (
                             <Badge
                               variant="secondary"
@@ -1977,6 +2016,25 @@ export default function MyCollaborationPage() {
                           </Button>
                         </div>
                       )}
+
+                      {isRejected && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-primary hover:bg-primary/10 gap-1 px-2.5 border-primary/30"
+                            disabled={actionLoadingId === req.id}
+                            onClick={() => handleRequestStatusChange(req.id, "PENDING")}
+                          >
+                            {actionLoadingId === req.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Undo2 className="h-3 w-3" />
+                            )}
+                            Undo Rejection
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     {(req.message || req.reason) && (
@@ -2338,7 +2396,7 @@ export default function MyCollaborationPage() {
       {/* Confirm Complete Hiring Dialog */}
       <AlertDialog
         open={!!completeConfirm}
-        onOpenChange={(open) => !open && setCompleteConfirm(null)}
+        onOpenChange={(open) => !open && !completingHiringId && setCompleteConfirm(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -2347,20 +2405,31 @@ export default function MyCollaborationPage() {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs leading-relaxed space-y-2">
               <span className="block text-muted-foreground">
-                Once you complete hiring, this team will be locked and will no longer accept new join requests or appear in the open Collab Hub recruitment lists.
+                Completing hiring will close recruitment, lock team member slots, remove the project from public Collab Hub listings, and permanently delete all remaining pending and rejected join requests.
               </span>
-              <span className="block text-foreground font-medium">
-                Note: Completed teams cannot be edited or deleted.
+              <span className="block text-destructive font-medium">
+                ⚠️ All pending and rejected join requests for this team will be permanently deleted. This action cannot be undone.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!completingHiringId}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-              onClick={() => completeConfirm && handleCompleteHiring(completeConfirm)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold min-w-[150px]"
+              disabled={!!completingHiringId}
+              onClick={(e) => {
+                e.preventDefault();
+                if (completeConfirm) handleCompleteHiring(completeConfirm);
+              }}
             >
-              Yes, Complete Hiring
+              {completingHiringId ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Completing...</span>
+                </div>
+              ) : (
+                "Yes, Complete Hiring"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

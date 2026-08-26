@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from "react";
 
 interface PendingToggle {
-  timer: NodeJS.Timeout;
+  timer: ReturnType<typeof setTimeout>;
   abortController?: AbortController;
   finalTargetState: boolean;
 }

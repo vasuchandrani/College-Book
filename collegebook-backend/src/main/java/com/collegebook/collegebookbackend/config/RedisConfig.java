@@ -65,6 +65,8 @@ public class RedisConfig implements CachingConfigurer {
         cacheConfigs.put("feed", defaultConfig.entryTtl(Duration.ofSeconds(feedCacheTtlSeconds)));
         cacheConfigs.put("explore", defaultConfig.entryTtl(Duration.ofSeconds(feedCacheTtlSeconds)));
         cacheConfigs.put("collab_teams", defaultConfig.entryTtl(Duration.ofSeconds(collabCacheTtlSeconds)));
+        cacheConfigs.put("profiles", defaultConfig.entryTtl(Duration.ofDays(1)));
+        cacheConfigs.put("publicProfiles", defaultConfig.entryTtl(Duration.ofDays(1)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

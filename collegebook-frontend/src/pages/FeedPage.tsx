@@ -355,6 +355,7 @@ const FeedPage = () => {
     try {
       const mediaKeys: Array<{
         objectKey?: string;
+        url?: string;
         mediaType: string;
         storageProvider: string;
         videoId?: string;

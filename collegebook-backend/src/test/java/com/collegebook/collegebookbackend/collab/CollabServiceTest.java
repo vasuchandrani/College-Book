@@ -39,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -851,5 +853,86 @@ public class CollabServiceTest {
 
         AppException ex = assertThrows(AppException.class, () -> collabService.deleteDiscussion(authorId, teamId, discussionId));
         assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void testMarkCompleteDeletesRequestsAndCompletesTeam() {
+        UUID ownerId = UUID.randomUUID();
+        UUID teamId = UUID.randomUUID();
+
+        User owner = new User();
+        owner.setId(ownerId);
+
+        Team team = new Team();
+        team.setId(teamId);
+        team.setOwner(owner);
+        team.setCompleted(false);
+
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(team));
+        when(teamRepository.save(any(Team.class))).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(joinRequestRepository).deleteByTeamId(teamId);
+
+        TeamResponseDto resp = collabService.markComplete(ownerId, teamId);
+
+        assertTrue(resp.isCompleted());
+        verify(joinRequestRepository, times(1)).deleteByTeamId(teamId);
+    }
+
+    @Test
+    void testRespondJoinRequestRejectAcceptedThrowsBadRequest() {
+        UUID ownerId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+
+        User owner = new User();
+        owner.setId(ownerId);
+
+        User applicant = new User();
+        applicant.setId(UUID.randomUUID());
+
+        Team team = new Team();
+        team.setId(UUID.randomUUID());
+        team.setOwner(owner);
+
+        JoinRequest joinReq = new JoinRequest();
+        joinReq.setId(requestId);
+        joinReq.setTeam(team);
+        joinReq.setApplicant(applicant);
+        joinReq.setStatus(JoinRequestStatus.ACCEPTED);
+
+        when(joinRequestRepository.findById(requestId)).thenReturn(Optional.of(joinReq));
+
+        RespondJoinRequestDto req = new RespondJoinRequestDto(false, JoinRequestStatus.REJECTED);
+        AppException ex = assertThrows(AppException.class, () -> collabService.respondJoinRequest(ownerId, requestId, req));
+        assertEquals(ErrorCode.BAD_REQUEST, ex.getErrorCode());
+    }
+
+    @Test
+    void testRespondJoinRequestUndoRejectionToPending() {
+        UUID ownerId = UUID.randomUUID();
+        UUID requestId = UUID.randomUUID();
+
+        User owner = new User();
+        owner.setId(ownerId);
+
+        User applicant = new User();
+        applicant.setId(UUID.randomUUID());
+
+        Team team = new Team();
+        team.setId(UUID.randomUUID());
+        team.setOwner(owner);
+
+        JoinRequest joinReq = new JoinRequest();
+        joinReq.setId(requestId);
+        joinReq.setTeam(team);
+        joinReq.setApplicant(applicant);
+        joinReq.setStatus(JoinRequestStatus.REJECTED);
+
+        when(joinRequestRepository.findById(requestId)).thenReturn(Optional.of(joinReq));
+        when(joinRequestRepository.save(any(JoinRequest.class))).thenAnswer(i -> i.getArgument(0));
+
+        RespondJoinRequestDto req = new RespondJoinRequestDto(false, JoinRequestStatus.PENDING);
+        JoinRequestResponseDto resp = collabService.respondJoinRequest(ownerId, requestId, req);
+
+        assertEquals(JoinRequestStatus.PENDING, resp.getStatus());
     }
 }

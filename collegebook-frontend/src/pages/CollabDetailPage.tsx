@@ -122,6 +122,7 @@ export default function CollabDetailPage() {
     const optimisticDiscussion: TeamDiscussion = {
       id: tempId,
       teamId: id,
+      authorId: user.id || "current-user",
       authorName: user.name || "You",
       authorHandle: user.handle || user.username,
       avatarUrl: user.avatarUrl,
@@ -645,7 +646,17 @@ export default function CollabDetailPage() {
                 </Badge>
               ) : (
                 <Button
-                  onClick={() => setJoinOpen(true)}
+                  onClick={() => {
+                    const openRoles =
+                      team?.requiredRoles && team.requiredRoles.length > 0
+                        ? team.requiredRoles
+                        : team?.requiredExpertise && team.requiredExpertise.length > 0
+                        ? team.requiredExpertise
+                        : [];
+                    setJoinRole(openRoles[0] || (openRoles.length === 0 ? "Contributor" : ""));
+                    setJoinReason("");
+                    setJoinOpen(true);
+                  }}
                   size="sm"
                   className="gap-1.5 text-xs h-9 px-4 bg-gradient-hero text-primary-foreground font-semibold"
                 >
@@ -820,25 +831,14 @@ export default function CollabDetailPage() {
                   <SelectValue placeholder="Select your preferred role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from(
-                    new Set([
-                      ...(team?.requiredRoles || team?.requiredExpertise || []),
-                      "Frontend Developer",
-                      "Backend Developer",
-                      "Full Stack Developer",
-                      "UI/UX Designer",
-                      "Mobile App Developer",
-                      "Machine Learning / AI Engineer",
-                      "Data Scientist",
-                      "DevOps / Cloud Engineer",
-                      "Product / Project Manager",
-                      "Cybersecurity Analyst",
-                    ])
-                  ).map((role) => (
+                  {(team?.requiredRoles && team.requiredRoles.length > 0
+                    ? team.requiredRoles
+                    : team?.requiredExpertise && team.requiredExpertise.length > 0
+                    ? team.requiredExpertise
+                    : ["Contributor"]
+                  ).map((role: string) => (
                     <SelectItem key={role} value={role} className="text-xs">
-                      {(team?.requiredRoles || team?.requiredExpertise || []).includes(role)
-                        ? `⭐ ${role} (Requested by Team)`
-                        : role}
+                      {role}
                     </SelectItem>
                   ))}
                 </SelectContent>

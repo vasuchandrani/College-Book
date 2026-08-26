@@ -139,6 +139,7 @@ const CollabPage = () => {
   const [joinRole, setJoinRole] = useState("");
   const [joinReason, setJoinReason] = useState("");
   const [joinTargetId, setJoinTargetId] = useState<string | number | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
   const [myRequests, setMyRequests] = useState<any[]>([]);
 
   const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}');
@@ -444,10 +445,12 @@ const CollabPage = () => {
     const openRoles =
       targetTeam?.requiredRoles && targetTeam.requiredRoles.length > 0
         ? targetTeam.requiredRoles
-        : targetTeam?.requiredExpertise || [];
+        : targetTeam?.requiredExpertise && targetTeam.requiredExpertise.length > 0
+        ? targetTeam.requiredExpertise
+        : [];
     setJoinTargetId(id);
     setJoinTarget({ name, type, openRoles });
-    setJoinRole(openRoles[0] || "");
+    setJoinRole(openRoles[0] || (openRoles.length === 0 ? "Contributor" : ""));
     setJoinReason("");
     setJoinOpen(true);
   };
@@ -483,12 +486,15 @@ const CollabPage = () => {
     }
 
     try {
+      setSendingRequest(true);
       const newReq: any = await sendJoinRequest(joinTargetId, joinRole, joinReason.trim());
       toast.success(`Request sent to join "${joinTarget?.name}"!`);
       setMyRequests((prev) => [...prev, newReq || { teamId: joinTargetId, status: "PENDING" }]);
       setJoinOpen(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to send join request");
+    } finally {
+      setSendingRequest(false);
     }
   };
 
@@ -1865,11 +1871,17 @@ const CollabPage = () => {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roleOptions.map((r) => (
-                    <SelectItem key={r} value={r} className="text-xs">
-                      {r}
+                  {joinTarget?.openRoles && joinTarget.openRoles.length > 0 ? (
+                    joinTarget.openRoles.map((r: string) => (
+                      <SelectItem key={r} value={r} className="text-xs">
+                        {r}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="Contributor" className="text-xs">
+                      Contributor
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1884,15 +1896,23 @@ const CollabPage = () => {
             </div>
           </div>
           <DialogFooter className="gap-2 sm:justify-end">
-            <Button variant="outline" size="sm" onClick={() => setJoinOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setJoinOpen(false)} disabled={sendingRequest}>
               Cancel
             </Button>
             <Button
-              className="bg-gradient-hero text-primary-foreground font-semibold text-xs"
+              className="bg-gradient-hero text-primary-foreground font-semibold text-xs min-w-[120px]"
               size="sm"
               onClick={handleSendRequest}
+              disabled={sendingRequest}
             >
-              Send Application
+              {sendingRequest ? (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Sending...</span>
+                </div>
+              ) : (
+                "Send Application"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

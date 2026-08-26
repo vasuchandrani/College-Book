@@ -154,6 +154,7 @@ const SignupPage = () => {
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [selectingCollege, setSelectingCollege] = useState<string | null>(null);
 
   // Request College Dialog State
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -309,57 +310,86 @@ const SignupPage = () => {
   }, [colleges, collegeSearch, selectedCategory]);
 
   const selectCollege = async (name: string) => {
-    const college = colleges.find(c => c.name === name || c.short === name);
-    let collegeUuid = college?.uuid || "";
-    let collegeDomain = college?.domain || "ddu.ac.in";
-    let collegeShort = college?.short || "DDU";
-    let collegeName = college?.name || name;
+    if (selectingCollege) return;
+    setSelectingCollege(name);
+    setError("");
 
-    if (!collegeUuid) {
-      try {
-        const fetched = await getColleges();
-        if (fetched && fetched.length > 0) {
-          const matched = fetched.find(
-            f => f.name.toLowerCase().includes(name.toLowerCase()) ||
-                 f.short.toLowerCase() === name.toLowerCase() ||
-                 name.toLowerCase().includes(f.short.toLowerCase())
-          );
-          if (matched) {
-            collegeUuid = matched.uuid;
-            collegeName = matched.name;
-            collegeShort = matched.short;
-            collegeDomain = matched.emailDomain || collegeDomain;
+    try {
+      const college = colleges.find(c => c.name === name || c.short === name);
+      let collegeUuid = college?.uuid || "";
+      let collegeDomain = college?.domain || "ddu.ac.in";
+      let collegeShort = college?.short || "DDU";
+      let collegeName = college?.name || name;
+
+      if (!collegeUuid) {
+        try {
+          const fetched = await getColleges();
+          if (fetched && fetched.length > 0) {
+            const matched = fetched.find(
+              f => f.name.toLowerCase().includes(name.toLowerCase()) ||
+                   f.short.toLowerCase() === name.toLowerCase() ||
+                   name.toLowerCase().includes(f.short.toLowerCase())
+            );
+            if (matched) {
+              collegeUuid = matched.uuid;
+              collegeName = matched.name;
+              collegeShort = matched.short;
+              collegeDomain = matched.emailDomain || collegeDomain;
+            }
           }
+        } catch {
+          // Ignore fallback error
         }
-      } catch {
-        // Ignore fallback error
       }
-    }
 
-    setForm(prev => ({
-      ...prev,
-      collegeUuid,
-      college: collegeName,
-      collegeShort,
-      collegeDomain,
-      email: "",
-    }));
-    setOtpSent(false);
-    setOtpVerified(false);
-    setOtp("");
+      setForm(prev => ({
+        ...prev,
+        collegeUuid,
+        college: collegeName,
+        collegeShort,
+        collegeDomain,
+        email: "",
+      }));
+      setOtpSent(false);
+      setOtpVerified(false);
+      setOtp("");
 
-    if (collegeUuid) {
-      try {
-        const cList = await getCoursesByCollege(collegeUuid);
-        setCoursesList(cList);
-        if (cList.length > 0) {
-          setForm(prev => ({ ...prev, courseUuid: cList[0].id, course: cList[0].name, year: "1" }));
+      if (collegeUuid) {
+        try {
+          const cList = await getCoursesByCollege(collegeUuid);
+          setCoursesList(cList);
+          if (cList.length > 0) {
+            const initialCourse = cList[0];
+            try {
+              const dList = await getDepartmentsByCourse(initialCourse.id);
+              setDepartmentsList(dList);
+              setForm(prev => ({
+                ...prev,
+                courseUuid: initialCourse.id,
+                course: initialCourse.name,
+                departmentUuid: dList?.[0]?.id || "",
+                department: dList?.[0]?.name || "",
+                year: "1",
+              }));
+            } catch {
+              setForm(prev => ({
+                ...prev,
+                courseUuid: initialCourse.id,
+                course: initialCourse.name,
+                year: "1",
+              }));
+            }
+          }
+        } catch {
+          // Fallback gracefully
         }
-      } catch {
-        // Fallback gracefully
       }
+      setStep(2);
+    } catch {
+      toast.error("Failed to load college configuration. Please try again.");
+    } finally {
+      setSelectingCollege(null);
     }
-    setStep(2);
   };
 
   const handleSendOtp = async () => {
@@ -655,21 +685,42 @@ const SignupPage = () => {
 
                 <div className="space-y-1.5 max-h-[290px] overflow-y-auto pr-1">
                   {filteredColleges.length > 0 ? (
-                    filteredColleges.map(college => (
-                      <button
-                        key={college.name}
-                        onClick={() => selectCollege(college.name)}
-                        className={`w-full text-left px-3.5 py-2.5 rounded-lg border transition-colors hover:border-primary hover:bg-primary/5 ${
-                          form.college === college.name ? "border-primary bg-primary/5" : "border-border"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-medium text-sm leading-snug line-clamp-1">{college.name}</p>
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{college.short}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">@{college.domain}</p>
-                      </button>
-                    ))
+                    filteredColleges.map(college => {
+                      const isSelected = selectingCollege === college.name || form.college === college.name;
+                      const isLoadingThis = selectingCollege === college.name;
+
+                      return (
+                        <button
+                          key={college.name}
+                          disabled={!!selectingCollege}
+                          onClick={() => selectCollege(college.name)}
+                          className={`w-full text-left px-3.5 py-2.5 rounded-lg border transition-all ${
+                            isLoadingThis
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/20 shadow-sm"
+                              : isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary hover:bg-primary/5"
+                          } ${selectingCollege && !isLoadingThis ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium text-sm leading-snug line-clamp-1 flex-1">{college.name}</p>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isLoadingThis ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              ) : (
+                                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{college.short}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <p className="text-xs text-muted-foreground">@{college.domain}</p>
+                            {isLoadingThis && (
+                              <span className="text-[11px] font-medium text-primary animate-pulse">Setting up campus...</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
                   ) : (
                     <div className="text-center py-6 px-4 bg-muted/30 rounded-lg border border-dashed">
                       <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />

@@ -23,6 +23,8 @@ import {
   Shield,
   Award,
   Bookmark,
+  Heart,
+  Share2,
   UsersRound,
   ExternalLink,
   Eye,
@@ -38,6 +40,7 @@ import {
   Phone,
   MessageSquare,
   User,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -72,13 +75,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import InlineCommentsSection from "@/components/InlineCommentsSection";
+import { formatSmartDate } from "@/lib/dateUtils";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
   getProfile,
@@ -86,7 +91,9 @@ import {
   getMyPosts,
   getSavedPosts,
   deletePost as apiDeletePost,
+  likePost as apiLikePost,
   savePost as apiSavePost,
+  sharePostLink,
   getMyTeams,
   getMyOpenSourceProjects,
   updateTeam,
@@ -207,6 +214,7 @@ const ProfilePage = () => {
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [starredProjects, setStarredProjects] = useState<any[]>([]);
   const [savedPostsList, setSavedPostsList] = useState<any[]>([]);
+  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const [campusStudents, setCampusStudents] = useState<PublicStudentProfile[]>([]);
   const [confirmAction, setConfirmAction] = useState<{
     projectId: string | number;
@@ -837,46 +845,114 @@ const ProfilePage = () => {
     }
   };
 
-  const unsavePost = async (id: string | number) => {
-    try {
-      await apiSavePost(id);
-      setSavedPostsList((prev) => prev.filter((p) => p.id !== id));
-      toast.success("Removed from saved posts");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to unsave post");
-    }
+  const togglePostLike = (id: string | number) => {
+    const postInActivity = activityPosts.find((p) => p.id === id);
+    const postInSaved = savedPostsList.find((p) => p.id === id);
+    const targetPost = postInActivity || postInSaved;
+    if (!targetPost) return;
+    const currentLiked = !!targetPost.liked;
+
+    triggerToggle(
+      id,
+      currentLiked,
+      (newLiked) => {
+        const updatePostItem = (p: any) =>
+          p.id === id
+            ? {
+                ...p,
+                liked: newLiked,
+                likes: newLiked
+                  ? p.liked
+                    ? p.likes
+                    : (p.likes || 0) + 1
+                  : p.liked
+                  ? Math.max(0, (p.likes || 0) - 1)
+                  : p.likes || 0,
+              }
+            : p;
+
+        setActivityPosts((prev) => prev.map(updatePostItem));
+        setSavedPostsList((prev) => prev.map(updatePostItem));
+      },
+      (signal) => apiLikePost(id, signal)
+    );
   };
 
-  const handleToggleStarProject = async (projectId: string | number) => {
-    try {
-      const res = await starProject(projectId);
-      if (!res.starred) {
-        setStarredProjects((prev) => prev.filter((p) => p.id !== projectId));
-        toast.success("Removed from Starred");
-      } else {
-        toast.success("Project starred!");
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update star");
-    }
+  const togglePostSave = (id: string | number) => {
+    const postInActivity = activityPosts.find((p) => p.id === id);
+    const postInSaved = savedPostsList.find((p) => p.id === id);
+    const targetPost = postInActivity || postInSaved;
+    if (!targetPost) return;
+    const currentSaved = !!targetPost.saved;
+
+    triggerToggle(
+      id,
+      currentSaved,
+      (newSaved) => {
+        setActivityPosts((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, saved: newSaved } : p))
+        );
+        setSavedPostsList((prev) => {
+          if (!newSaved) {
+            return prev.filter((p) => p.id !== id);
+          }
+          return prev.map((p) => (p.id === id ? { ...p, saved: newSaved } : p));
+        });
+        if (newSaved) {
+          toast.success("Post saved!");
+        } else {
+          toast.success("Removed from saved posts");
+        }
+      },
+      (signal) => apiSavePost(id, signal)
+    );
+  };
+
+  const handleSharePost = async (id: string | number) => {
+    await sharePostLink(id);
+    toast.success("Post link copied to clipboard!");
+  };
+
+  const handleToggleStarProject = (projectId: string | number) => {
+    const target = starredProjects.find((p) => p.id === projectId);
+    const currentStarred = true;
+
+    triggerToggle(
+      projectId,
+      currentStarred,
+      (newStarred) => {
+        if (!newStarred) {
+          setStarredProjects((prev) => prev.filter((p) => p.id !== projectId));
+          toast.success("Removed from Starred");
+        }
+      },
+      (signal) => starProject(projectId, signal)
+    );
   };
 
   const handleRespondRequest = async (
     requestId: string | number,
-    accept: boolean,
+    statusOrAccept: boolean | "ACCEPTED" | "REJECTED" | "PENDING",
     projectId: string | number
   ) => {
     try {
       setRespondingReqId(requestId);
-      await respondJoinRequest(requestId, accept);
+      const newStatus =
+        typeof statusOrAccept === "boolean"
+          ? statusOrAccept
+            ? "ACCEPTED"
+            : "REJECTED"
+          : statusOrAccept;
+
+      await respondJoinRequest(requestId, newStatus === "ACCEPTED");
       setIncomingRequests((prev) =>
         prev.map((r) =>
           r.id === requestId
-            ? { ...r, status: accept ? "ACCEPTED" : "REJECTED" }
+            ? { ...r, status: newStatus }
             : r
         )
       );
-      if (accept) {
+      if (newStatus === "ACCEPTED") {
         setCreatedProjects((prev) =>
           prev.map((p) =>
             p.id === projectId
@@ -885,7 +961,13 @@ const ProfilePage = () => {
           )
         );
       }
-      toast.success(accept ? "Applicant accepted! Team member added." : "Join request rejected.");
+      toast.success(
+        newStatus === "ACCEPTED"
+          ? "Applicant accepted! Team member added."
+          : newStatus === "PENDING"
+          ? "Rejection undone. Request restored to Pending."
+          : "Join request rejected."
+      );
     } catch (e: any) {
       toast.error(e.message || "Failed to respond to join request");
     } finally {
@@ -908,6 +990,10 @@ const ProfilePage = () => {
       toast.error("Only the team creator/lead can view join requests.");
       return;
     }
+    if (project.completed) {
+      toast.info("Hiring is completed for this team. All join requests have been cleared.");
+      return;
+    }
     setViewRequestsProject(project);
   };
 
@@ -925,7 +1011,11 @@ const ProfilePage = () => {
       setCreatedProjects((prev) =>
         prev.map((p) => (p.id === completeConfirm ? { ...p, completed: true } : p))
       );
-      toast.success("Hiring completed! Team is now locked and no longer accepts requests.");
+      // Remove all join requests for this team from state since backend deleted them
+      setIncomingRequests((prev) =>
+        prev.filter((r) => r.teamId !== completeConfirm && r.projectId !== completeConfirm)
+      );
+      toast.success("Hiring completed! Team is now locked and all join requests deleted.");
     } catch (e: any) {
       toast.error(e.message || "Failed to complete hiring");
     } finally {
@@ -2436,21 +2526,112 @@ const ProfilePage = () => {
                           </div>
                         )}
 
-                        <div className="flex items-center gap-3 mt-3 flex-wrap">
-                          <span className="text-xs text-muted-foreground">❤️ {post.likes || 0}</span>
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex gap-1.5 flex-wrap">
-                              {post.tags.map((t: string) => (
-                                <span
-                                  key={t}
-                                  className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
-                                >
-                                  #{t.replace(/^#/, "")}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap mt-3">
+                            {post.tags.map((t: string) => (
+                              <span
+                                key={t}
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                              >
+                                #{t.replace(/^#/, "")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Interactive Post Actions */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/40 gap-2 flex-wrap">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostLike(post.id)}
+                              className={`gap-1.5 text-xs transition-colors ${
+                                post.liked
+                                  ? "text-rose-500 hover:text-rose-600 bg-rose-50/50 dark:bg-rose-950/20"
+                                  : "text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <Heart
+                                className={`h-4 w-4 ${
+                                  post.liked ? "fill-rose-500 text-rose-500" : ""
+                                }`}
+                              />
+                              <span className="font-semibold">{post.likes || 0}</span>
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostSave(post.id)}
+                              className={`gap-1.5 text-xs transition-colors ${
+                                post.saved ? "text-accent font-semibold" : "text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <Bookmark
+                                className={`h-4 w-4 ${
+                                  post.saved ? "fill-current" : ""
+                                }`}
+                              />
+                              <span>{post.saved ? "Saved" : "Save"}</span>
+                            </Button>
+
+                            {post.commentsEnabled !== false && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setExpandedCommentsPostId((prev) =>
+                                    prev === post.id ? null : post.id
+                                  )
+                                }
+                                className={`gap-1.5 text-xs transition-colors ${
+                                  expandedCommentsPostId === post.id
+                                    ? "text-primary bg-primary/10 font-semibold"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span>{post.commentsCount || 0}</span>
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSharePost(post.id);
+                              }}
+                            >
+                              <Share2 className="h-4 w-4" /> Share
+                            </Button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                            {formatSmartDate(post.createdAt || post.time || post.date)}
+                          </span>
                         </div>
+
+                        {/* Inline Expandable Comments Stream */}
+                        <AnimatePresence>
+                          {expandedCommentsPostId === post.id && (
+                            <InlineCommentsSection
+                              post={post}
+                              onCommentCountChange={(newCount) => {
+                                setActivityPosts((prev) =>
+                                  prev.map((p) =>
+                                    p.id === post.id
+                                      ? { ...p, commentsCount: newCount }
+                                      : p
+                                  )
+                                );
+                              }}
+                              onClose={() => setExpandedCommentsPostId(null)}
+                            />
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                     <Button
@@ -2760,20 +2941,108 @@ const ProfilePage = () => {
                           </div>
                         )}
 
-                        <div className="flex items-center gap-3 mt-3">
-                          <span className="text-xs text-muted-foreground">❤️ {post.likes || 0}</span>
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap mt-3">
+                            {post.tags.map((t: string) => (
+                              <span
+                                key={t}
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                              >
+                                #{t.replace(/^#/, "")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Interactive Post Actions */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/40 gap-2 flex-wrap">
+                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostLike(post.id)}
+                              className={`gap-1.5 text-xs transition-colors ${
+                                post.liked
+                                  ? "text-rose-500 hover:text-rose-600 bg-rose-50/50 dark:bg-rose-950/20"
+                                  : "text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              <Heart
+                                className={`h-4 w-4 ${
+                                  post.liked ? "fill-rose-500 text-rose-500" : ""
+                                }`}
+                              />
+                              <span className="font-semibold">{post.likes || 0}</span>
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostSave(post.id)}
+                              className="gap-1.5 text-xs transition-colors text-accent font-semibold"
+                            >
+                              <Bookmark className="h-4 w-4 fill-current" />
+                              <span>Saved</span>
+                            </Button>
+
+                            {post.commentsEnabled !== false && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setExpandedCommentsPostId((prev) =>
+                                    prev === post.id ? null : post.id
+                                  )
+                                }
+                                className={`gap-1.5 text-xs transition-colors ${
+                                  expandedCommentsPostId === post.id
+                                    ? "text-primary bg-primary/10 font-semibold"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span>{post.commentsCount || 0}</span>
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSharePost(post.id);
+                              }}
+                            >
+                              <Share2 className="h-4 w-4" /> Share
+                            </Button>
+                          </div>
+
+                          <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                            {formatSmartDate(post.createdAt || post.time || post.date)}
+                          </span>
                         </div>
+
+                        {/* Inline Expandable Comments Stream */}
+                        <AnimatePresence>
+                          {expandedCommentsPostId === post.id && (
+                            <InlineCommentsSection
+                              post={post}
+                              onCommentCountChange={(newCount) => {
+                                setSavedPostsList((prev) =>
+                                  prev.map((p) =>
+                                    p.id === post.id
+                                      ? { ...p, commentsCount: newCount }
+                                      : p
+                                  )
+                                );
+                              }}
+                              onClose={() => setExpandedCommentsPostId(null)}
+                            />
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => unsavePost(post.id)}
-                      title="Unsave"
-                    >
-                      <Bookmark className="h-4 w-4 fill-current" />
-                    </Button>
                   </div>
                 </Card>
               </motion.div>
@@ -3323,7 +3592,7 @@ const ProfilePage = () => {
                           className="text-destructive hover:bg-destructive/10 border-destructive/30 gap-1 text-xs h-8"
                           disabled={respondingReqId === r.id}
                           onClick={() =>
-                            handleRespondRequest(r.id, false, viewRequestsProject.id)
+                            handleRespondRequest(r.id, "REJECTED", viewRequestsProject.id)
                           }
                         >
                           {respondingReqId === r.id ? (
@@ -3338,7 +3607,7 @@ const ProfilePage = () => {
                           className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-xs h-8 font-semibold"
                           disabled={respondingReqId === r.id}
                           onClick={() =>
-                            handleRespondRequest(r.id, true, viewRequestsProject.id)
+                            handleRespondRequest(r.id, "ACCEPTED", viewRequestsProject.id)
                           }
                         >
                           {respondingReqId === r.id ? (
@@ -3349,17 +3618,33 @@ const ProfilePage = () => {
                           Accept Teammate
                         </Button>
                       </div>
+                    ) : isRejected ? (
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs">
+                        <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted/60 border border-border/40 px-2.5 py-1 rounded-md">
+                          <XCircle className="h-3.5 w-3.5 text-rose-500/70" /> Application Declined
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-primary hover:bg-primary/10 border-primary/30 gap-1 text-xs h-7"
+                          disabled={respondingReqId === r.id}
+                          onClick={() =>
+                            handleRespondRequest(r.id, "PENDING", viewRequestsProject.id)
+                          }
+                        >
+                          {respondingReqId === r.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Undo2 className="h-3 w-3" />
+                          )}
+                          Undo Rejection
+                        </Button>
+                      </div>
                     ) : (
                       <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/40 text-xs">
-                        {isAccepted ? (
-                          <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Teammate Accepted
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted/60 border border-border/40 px-2.5 py-1 rounded-md">
-                            <XCircle className="h-3.5 w-3.5 text-rose-500/70" /> Application Declined
-                          </span>
-                        )}
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Teammate Accepted
+                        </span>
                       </div>
                     )}
                   </Card>
@@ -3384,15 +3669,20 @@ const ProfilePage = () => {
       {/* 3. Complete Hiring Confirmation Dialog */}
       <AlertDialog
         open={!!completeConfirm}
-        onOpenChange={(open) => !open && setCompleteConfirm(null)}
+        onOpenChange={(open) => !open && !completingProject && setCompleteConfirm(null)}
       >
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-bold text-foreground">
               Complete Team Hiring?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs leading-relaxed text-muted-foreground">
-              Once you complete hiring, this team will be locked and will no longer appear in the open Collab Hub listings or accept new join requests. Existing members and discussions will remain intact.
+            <AlertDialogDescription className="text-xs leading-relaxed space-y-2 text-muted-foreground">
+              <span className="block">
+                Completing hiring will close recruitment, lock team member slots, remove the project from public Collab Hub listings, and permanently delete all remaining pending and rejected join requests.
+              </span>
+              <span className="block text-destructive font-medium">
+                ⚠️ All pending and rejected join requests for this team will be permanently deleted. This action cannot be undone.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:justify-end">
@@ -3401,8 +3691,11 @@ const ProfilePage = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={completingProject}
-              onClick={executeCompleteHiring}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 font-semibold"
+              onClick={(e) => {
+                e.preventDefault();
+                executeCompleteHiring();
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 font-semibold min-w-[140px]"
             >
               {completingProject ? (
                 <div className="flex items-center gap-1.5">
@@ -3412,7 +3705,7 @@ const ProfilePage = () => {
               ) : (
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Complete Hiring</span>
+                  <span>Yes, Complete Hiring</span>
                 </div>
               )}
             </AlertDialogAction>
