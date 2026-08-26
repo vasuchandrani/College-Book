@@ -99,7 +99,7 @@ public class ProfileServiceImpl implements ProfileService {
             profile.setBioExtra(updateDto.getBioExtra());
         }
         if (updateDto.getAvatarUrl() != null) {
-            profile.setAvatarUrl(updateDto.getAvatarUrl());
+            profile.setAvatarUrl(updateDto.getAvatarUrl().isBlank() ? null : updateDto.getAvatarUrl().trim());
         }
         if (updateDto.getGithubUrl() != null) {
             profile.setGithubUrl(updateDto.getGithubUrl());

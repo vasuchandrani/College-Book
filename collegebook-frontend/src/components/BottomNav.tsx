@@ -75,7 +75,14 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive =
             location.pathname === item.url ||
-            (item.url !== "/" && location.pathname.startsWith(item.url));
+            (item.url === "/collab" && (location.pathname === "/collab" || location.pathname.startsWith("/collab/"))) ||
+            (item.url === "/my-collaboration" && (
+              location.pathname === "/my-collaboration" ||
+              location.pathname.startsWith("/my-collaboration/") ||
+              location.pathname === "/my-collab" ||
+              location.pathname.startsWith("/my-collab/")
+            )) ||
+            (item.url !== "/collab" && item.url !== "/my-collaboration" && item.url !== "/" && location.pathname.startsWith(item.url));
           const isCollab = item.url === "/my-collaboration";
           const showDot = isCollab && pendingCount > 0;
 

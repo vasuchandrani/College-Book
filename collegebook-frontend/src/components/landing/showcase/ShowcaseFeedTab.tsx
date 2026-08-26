@@ -248,9 +248,9 @@ export const ShowcaseFeedTab: React.FC<ShowcaseFeedTabProps> = ({
               type="button"
               onClick={() => toggleSave("vatsal_post")}
               className={`flex items-center gap-0.5 transition-colors ${savedPosts["vatsal_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+              title={savedPosts["vatsal_post"] ? "Unsave post" : "Save post"}
             >
               <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${savedPosts["vatsal_post"] ? "fill-primary" : ""}`} />
-              <span>{savedPosts["vatsal_post"] ? "Saved" : "Save"}</span>
             </button>
 
             <button
@@ -366,9 +366,9 @@ export const ShowcaseFeedTab: React.FC<ShowcaseFeedTabProps> = ({
               type="button"
               onClick={() => toggleSave("ronak_post")}
               className={`flex items-center gap-0.5 transition-colors ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+              title={savedPosts["ronak_post"] ? "Unsave post" : "Save post"}
             >
               <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${savedPosts["ronak_post"] ? "fill-primary" : ""}`} />
-              <span>{savedPosts["ronak_post"] ? "Saved" : "Save"}</span>
             </button>
 
             <button

@@ -238,7 +238,10 @@ export default function CollabDetailPage() {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    if (!team?.id && !id) return;
+    const projectId = team?.id || id;
+    const publicUrl = `${window.location.origin}/collab/${projectId}`;
+    navigator.clipboard.writeText(publicUrl);
     toast.success("Project link copied to clipboard!");
   };
 
@@ -372,12 +375,22 @@ export default function CollabDetailPage() {
   );
 
   const currentTab = searchParams.get("tab") === "chat" ? "chat" : "overview";
-  const canAccessRoomChat = isLead || isMember || team.canEdit || team.canComplete;
+  const canAccessRoomChat = !isOpenSource && Boolean(isLead || isMember || team.canEdit || team.canComplete);
 
   const handleOpenRoomChat = () => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", "chat");
     setSearchParams(next);
+  };
+
+  const handleBack = () => {
+    if (location.pathname.startsWith("/my-collaboration") || location.pathname.startsWith("/my-collab")) {
+      navigate("/my-collaboration");
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/collab");
+    }
   };
 
   return (
@@ -388,7 +401,7 @@ export default function CollabDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="gap-1.5 text-xs text-muted-foreground hover:text-foreground pl-0"
           >
             <ArrowLeft className="h-4 w-4" /> Back
@@ -443,7 +456,8 @@ export default function CollabDetailPage() {
           )}
 
           <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-1.5 text-xs h-8">
-            <Share2 className="h-3.5 w-3.5" /> Share
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Share</span>
           </Button>
         </div>
       </div>
@@ -487,7 +501,7 @@ export default function CollabDetailPage() {
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground break-words min-w-0">
               {team.title}
             </h1>
           </div>

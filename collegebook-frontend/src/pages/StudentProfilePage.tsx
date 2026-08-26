@@ -685,7 +685,7 @@ const StudentProfilePage = () => {
               <p className="text-muted-foreground text-sm">No posts published yet by {displayName}.</p>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="max-w-2xl mx-auto space-y-4">
               {studentPosts.map((post, i) => (
                 <motion.div
                   key={post.id}
@@ -759,16 +759,6 @@ const StudentProfilePage = () => {
                             <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} />{" "}
                             {post.likes}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleSave(post.id)}
-                            className={`gap-1.5 text-xs ${
-                              post.saved ? "text-accent" : "text-muted-foreground"
-                            }`}
-                          >
-                            <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} /> Save
-                          </Button>
                           {post.commentsEnabled !== false && (
                             <Button
                               variant="ghost"
@@ -788,6 +778,17 @@ const StudentProfilePage = () => {
                               <span>{post.commentsCount || 0}</span>
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleSave(post.id)}
+                            className={`text-xs px-2.5 ${
+                              post.saved ? "text-accent" : "text-muted-foreground"
+                            }`}
+                            title={post.saved ? "Unsave post" : "Save post"}
+                          >
+                            <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

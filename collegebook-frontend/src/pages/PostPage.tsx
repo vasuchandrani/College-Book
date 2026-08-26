@@ -422,30 +422,30 @@ const PostPage = () => {
                   <span>{post.likes}</span>
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleSave}
-                  className={`gap-1.5 text-xs transition-colors ${
-                    post.saved
-                      ? "text-accent hover:text-accent"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Bookmark
-                    className={`h-4 w-4 ${
-                      post.saved ? "fill-current" : ""
-                    }`}
-                  />
-                  <span>Save</span>
-                </Button>
-
                 {post.commentsEnabled !== false && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2.5 py-1 font-medium select-none">
                     <MessageSquare className="h-4 w-4" />
                     <span>{post.commentsCount || 0}</span>
                   </div>
                 )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSave}
+                  className={`text-xs px-2.5 transition-colors ${
+                    post.saved
+                      ? "text-accent hover:text-accent"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={post.saved ? "Unsave post" : "Save post"}
+                >
+                  <Bookmark
+                    className={`h-4 w-4 ${
+                      post.saved ? "fill-current" : ""
+                    }`}
+                  />
+                </Button>
 
                 <Button
                   variant="ghost"

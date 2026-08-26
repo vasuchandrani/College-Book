@@ -66,7 +66,9 @@ const App = () => (
               <Route path="/collab" element={<CollabPage />} />
               <Route path="/collab/:id" element={<CollabDetailPage />} />
               <Route path="/my-collaboration" element={<MyCollaborationPage />} />
+              <Route path="/my-collaboration/:id" element={<CollabDetailPage />} />
               <Route path="/my-collab" element={<MyCollaborationPage />} />
+              <Route path="/my-collab/:id" element={<CollabDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/mycon" element={<MyConPage />} />
               <Route path="/student/:name" element={<StudentProfilePage />} />

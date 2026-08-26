@@ -113,15 +113,25 @@ export function AppSidebar() {
               {mainNav.map((item) => {
                 const isCollab = item.url === "/my-collaboration";
                 const showBadge = isCollab && pendingCollabCount > 0;
+                const isActive =
+                  location.pathname === item.url ||
+                  (item.url === "/collab" && (location.pathname === "/collab" || location.pathname.startsWith("/collab/"))) ||
+                  (item.url === "/my-collaboration" && (
+                    location.pathname === "/my-collaboration" ||
+                    location.pathname.startsWith("/my-collaboration/") ||
+                    location.pathname === "/my-collab" ||
+                    location.pathname.startsWith("/my-collab/")
+                  )) ||
+                  (item.url !== "/collab" && item.url !== "/my-collaboration" && item.url !== "/" && location.pathname.startsWith(item.url));
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
+                    <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
                       <NavLink
                         to={item.url}
-                        end
-                        className="hover:bg-muted/50 relative flex items-center justify-between"
-                        activeClassName="bg-primary/10 text-primary font-medium"
+                        className={`hover:bg-muted/50 relative flex items-center justify-between ${
+                          isActive ? "bg-primary/10 text-primary font-medium" : ""
+                        }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="relative">

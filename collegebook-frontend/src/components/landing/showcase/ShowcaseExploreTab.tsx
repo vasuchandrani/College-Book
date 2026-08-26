@@ -165,9 +165,9 @@ export const ShowcaseExploreTab: React.FC<ShowcaseExploreTabProps> = ({
               type="button"
               onClick={() => toggleSave("jaykrishna_post")}
               className={`flex items-center gap-0.5 transition-colors ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+              title={savedPosts["jaykrishna_post"] ? "Unsave post" : "Save post"}
             >
               <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${savedPosts["jaykrishna_post"] ? "fill-primary" : ""}`} />
-              <span>{savedPosts["jaykrishna_post"] ? "Saved" : "Save"}</span>
             </button>
 
             <button
@@ -274,9 +274,9 @@ export const ShowcaseExploreTab: React.FC<ShowcaseExploreTabProps> = ({
               type="button"
               onClick={() => toggleSave("sneha_post")}
               className={`flex items-center gap-0.5 transition-colors ${savedPosts["sneha_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+              title={savedPosts["sneha_post"] ? "Unsave post" : "Save post"}
             >
               <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${savedPosts["sneha_post"] ? "fill-primary" : ""}`} />
-              <span>{savedPosts["sneha_post"] ? "Saved" : "Save"}</span>
             </button>
 
             <button
@@ -338,9 +338,9 @@ export const ShowcaseExploreTab: React.FC<ShowcaseExploreTabProps> = ({
               type="button"
               onClick={() => toggleSave("devansh_post")}
               className={`flex items-center gap-0.5 transition-colors ${savedPosts["devansh_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+              title={savedPosts["devansh_post"] ? "Unsave post" : "Save post"}
             >
               <Bookmark className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${savedPosts["devansh_post"] ? "fill-primary" : ""}`} />
-              <span>{savedPosts["devansh_post"] ? "Saved" : "Save"}</span>
             </button>
 
             <button

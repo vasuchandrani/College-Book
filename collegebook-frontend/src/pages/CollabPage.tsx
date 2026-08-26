@@ -1212,21 +1212,18 @@ const CollabPage = () => {
 
       {/* Tabs in Exact Order without numbers: 1. Open Source -> 2. Hackathon -> 3. Team Project */}
       <Tabs defaultValue="open_source" className="space-y-5">
-        <TabsList className="grid grid-cols-3 bg-muted/80 p-1 rounded-xl h-auto">
-          <TabsTrigger value="open_source" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
-            <Code2 className="h-4 w-4 hidden sm:block shrink-0" />
-            <span className="sm:hidden">Open-source</span>
-            <span className="hidden sm:inline">Open-source Projects</span>
+        <TabsList className="grid grid-cols-3 bg-muted/80 p-1 rounded-xl h-auto w-full min-w-0">
+          <TabsTrigger value="open_source" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
+            <Code2 className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+            <span className="truncate">Open-source</span>
           </TabsTrigger>
-          <TabsTrigger value="hackathon" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
-            <Users className="h-4 w-4 hidden sm:block shrink-0" />
-            <span className="sm:hidden">Hackathon</span>
-            <span className="hidden sm:inline">Hackathon Teams</span>
+          <TabsTrigger value="hackathon" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
+            <Users className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+            <span className="truncate">Hackathons</span>
           </TabsTrigger>
-          <TabsTrigger value="project" className="gap-1.5 text-xs sm:text-sm font-semibold px-1 py-2 sm:px-3">
-            <Rocket className="h-4 w-4 hidden sm:block shrink-0" />
-            <span className="sm:hidden">Projects</span>
-            <span className="hidden sm:inline">Team Projects</span>
+          <TabsTrigger value="project" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
+            <Rocket className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+            <span className="truncate">Team Projects</span>
           </TabsTrigger>
         </TabsList>
 

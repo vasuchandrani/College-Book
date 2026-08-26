@@ -494,9 +494,9 @@ const InteractiveFeatureShowcase = () => {
                               type="button"
                               onClick={() => toggleSave("vatsal_feed_post")}
                               className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["vatsal_feed_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              title={savedPosts["vatsal_feed_post"] ? "Unsave post" : "Save post"}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_feed_post"] ? "fill-primary" : ""}`} />
-                              <span>{savedPosts["vatsal_feed_post"] ? "Saved" : "Save"}</span>
                             </button>
 
                             <button
@@ -638,9 +638,9 @@ const InteractiveFeatureShowcase = () => {
                               type="button"
                               onClick={() => toggleSave("ronak_post")}
                               className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["ronak_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              title={savedPosts["ronak_post"] ? "Unsave post" : "Save post"}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["ronak_post"] ? "fill-primary" : ""}`} />
-                              <span>{savedPosts["ronak_post"] ? "Saved" : "Save"}</span>
                             </button>
 
                             <button
@@ -829,9 +829,9 @@ const InteractiveFeatureShowcase = () => {
                               type="button"
                               onClick={() => toggleSave("jaykrishna_post")}
                               className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["jaykrishna_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              title={savedPosts["jaykrishna_post"] ? "Unsave post" : "Save post"}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["jaykrishna_post"] ? "fill-primary" : ""}`} />
-                              <span>{savedPosts["jaykrishna_post"] ? "Saved" : "Save"}</span>
                             </button>
 
                             <button
@@ -982,9 +982,9 @@ const InteractiveFeatureShowcase = () => {
                               type="button"
                               onClick={() => toggleSave("vatsal_explore_post")}
                               className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["vatsal_explore_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              title={savedPosts["vatsal_explore_post"] ? "Unsave post" : "Save post"}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["vatsal_explore_post"] ? "fill-primary" : ""}`} />
-                              <span>{savedPosts["vatsal_explore_post"] ? "Saved" : "Save"}</span>
                             </button>
 
                             <button
@@ -1106,9 +1106,9 @@ const InteractiveFeatureShowcase = () => {
                               type="button"
                               onClick={() => toggleSave("sneha_post")}
                               className={`flex items-center gap-1 transition-colors cursor-pointer ${savedPosts["sneha_post"] ? "text-primary font-semibold" : "hover:text-foreground"}`}
+                              title={savedPosts["sneha_post"] ? "Unsave post" : "Save post"}
                             >
                               <Bookmark className={`h-3.5 w-3.5 ${savedPosts["sneha_post"] ? "fill-primary" : ""}`} />
-                              <span>{savedPosts["sneha_post"] ? "Saved" : "Save"}</span>
                             </button>
 
                             <button
@@ -1353,7 +1353,7 @@ const InteractiveFeatureShowcase = () => {
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Active
+                          Recruiting
                         </button>
                         <button
                           type="button"
@@ -1364,7 +1364,7 @@ const InteractiveFeatureShowcase = () => {
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Done
+                          Formed Teams
                         </button>
                       </div>
 

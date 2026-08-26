@@ -814,42 +814,34 @@ export default function MyCollaborationPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
-        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full max-w-4xl h-auto gap-1.5 shadow-2xs">
-          <TabsTrigger value="open_source" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 lg:grid-cols-4 w-full max-w-4xl h-auto gap-1.5 shadow-2xs">
+          <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Code2 className="h-4 w-4 text-primary shrink-0" />
-            <span>Open source</span>
-            {openSourceUnreadCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
-              >
-                {openSourceUnreadCount}
-              </Badge>
-            )}
+            <span className="truncate">Open source</span>
           </TabsTrigger>
-          <TabsTrigger value="my_requests" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+          <TabsTrigger value="my_requests" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Users className="h-4 w-4 text-primary shrink-0" />
-            <span>My requests</span>
+            <span className="truncate">My requests</span>
           </TabsTrigger>
-          <TabsTrigger value="active_teams" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+          <TabsTrigger value="active_teams" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Rocket className="h-4 w-4 text-primary shrink-0" />
-            <span>Active teams</span>
+            <span className="truncate">Recruiting</span>
             {totalPendingRequests + activeTeamsUnreadCount > 0 && (
               <Badge
                 variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full shrink-0 ml-1"
               >
                 {totalPendingRequests + activeTeamsUnreadCount}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="completed_teams" className="gap-2 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg">
+          <TabsTrigger value="completed_teams" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-            <span>Completed teams</span>
+            <span className="truncate">Formed Teams</span>
             {completedTeamsUnreadCount > 0 && (
               <Badge
                 variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full ml-1"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full shrink-0 ml-1"
               >
                 {completedTeamsUnreadCount}
               </Badge>
@@ -884,104 +876,103 @@ export default function MyCollaborationPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
                 >
-                  <Card className="p-3 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <Link
-                            to={`/collab/${project.id}`}
-                            className="font-semibold text-base hover:text-primary hover:underline transition-colors"
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <Link
+                          to={`/my-collaboration/${project.id}`}
+                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                        >
+                          {project.title}
+                        </Link>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-primary/10 text-primary border border-primary/20 shrink-0"
+                        >
+                          Open Source
+                        </Badge>
+                      </div>
+
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                          {project.description}
+                        </p>
+                      )}
+
+                      {project.githubLink && (
+                        <div>
+                          <a
+                            href={
+                              project.githubLink.startsWith("http")
+                                ? project.githubLink
+                                : `https://${project.githubLink}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20 max-w-full"
                           >
-                            {project.title}
-                          </Link>
-                          <Badge
-                            variant="secondary"
-                            className="text-xs bg-primary/10 text-primary border border-primary/20"
-                          >
-                            Open Source
-                          </Badge>
+                            <Github className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate max-w-[220px] sm:max-w-[360px]">
+                              {project.githubLink.replace(/^https?:\/\//, "")}
+                            </span>
+                            <ExternalLink className="h-3 w-3 ml-0.5 opacity-70 shrink-0" />
+                          </a>
                         </div>
+                      )}
 
-                        {project.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
-                            {project.description}
-                          </p>
-                        )}
-
-                        {project.githubLink && (
-                          <div>
-                            <a
-                              href={
-                                project.githubLink.startsWith("http")
-                                  ? project.githubLink
-                                  : `https://${project.githubLink}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline inline-flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20"
-                            >
-                              <Github className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[180px] sm:max-w-[280px]">
-                                {project.githubLink.replace(/^https?:\/\//, "")}
-                              </span>
-                              <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
-                            </a>
+                      <div className="space-y-2 pt-1">
+                        {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                          (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                              <Users className="h-3 w-3" /> Looking for roles:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(project.requiredRoles || project.requiredExpertise || []).map(
+                                (role: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-os-role-${role}-${idx}`}
+                                    variant="secondary"
+                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                  >
+                                    {role}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
                           </div>
                         )}
 
-                        <div className="space-y-2 pt-1">
-                          {((project.requiredRoles && project.requiredRoles.length > 0) ||
-                            (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                <Users className="h-3 w-3" /> Looking for roles:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(project.requiredRoles || project.requiredExpertise || []).map(
-                                  (role: string, idx: number) => (
-                                    <Badge
-                                      key={`${project.id}-os-role-${role}-${idx}`}
-                                      variant="secondary"
-                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                    >
-                                      {role}
-                                    </Badge>
-                                  )
-                                )}
-                              </div>
+                        {project.skills && project.skills.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                              <Code2 className="h-3 w-3" /> Tech Stack:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {project.skills.map((tech: string, idx: number) => (
+                                <Badge
+                                  key={`${project.id}-os-tech-${tech}-${idx}`}
+                                  variant="outline"
+                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                                >
+                                  {tech}
+                                </Badge>
+                              ))}
                             </div>
-                          )}
-
-                          {project.skills && project.skills.length > 0 && (
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                                <Code2 className="h-3 w-3" /> Tech Stack:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {project.skills.map((tech: string, idx: number) => (
-                                  <Badge
-                                    key={`${project.id}-os-tech-${tech}-${idx}`}
-                                    variant="outline"
-                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
-                                  >
-                                    {tech}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <div className="flex items-center gap-2">
+                      {/* Action Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Button
                             asChild
                             variant="outline"
                             size="sm"
-                            className="gap-1 text-xs h-8"
+                            className="gap-1 text-xs h-8 px-2.5"
                           >
-                            <Link to={`/collab/${project.id}`}>
+                            <Link to={`/my-collaboration/${project.id}`}>
                               <Eye className="h-3.5 w-3.5" /> View Details
                             </Link>
                           </Button>
@@ -999,7 +990,7 @@ export default function MyCollaborationPage() {
                         </div>
 
                         {isUserCreatorOf(project) && (
-                          <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/40 justify-end">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1057,11 +1048,11 @@ export default function MyCollaborationPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06 }}
                   >
-                    <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 space-y-2 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-base">
+                            <h3 className="font-semibold text-base break-words">
                               {req.projectTitle || req.teamTitle || "Collaboration Team"}
                             </h3>
                             <Badge
@@ -1072,7 +1063,7 @@ export default function MyCollaborationPage() {
                                   ? "destructive"
                                   : "secondary"
                               }
-                              className={`text-xs capitalize ${
+                              className={`text-xs capitalize shrink-0 ${
                                 isAccepted
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                                   : isPending
@@ -1095,19 +1086,19 @@ export default function MyCollaborationPage() {
                               <FormattedContent
                                 content={req.message || req.reason}
                                 maxEnters={2}
-                                className="text-xs text-foreground/90 p-3 rounded-lg bg-muted/40 border border-border/50"
+                                className="text-xs text-foreground/90 p-3 rounded-lg bg-muted/40 border border-border/50 break-words"
                               />
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {isPending && (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1.5 text-xs h-8"
+                                className="gap-1.5 text-xs h-8 px-2.5"
                                 onClick={() => openEditReq(req)}
                               >
                                 <Pencil className="h-3.5 w-3.5" /> Edit Request
@@ -1115,7 +1106,7 @@ export default function MyCollaborationPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="gap-1 text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                className="gap-1 text-xs h-8 px-2.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => setDeleteReqConfirm(req.id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" /> Withdraw
@@ -1132,12 +1123,12 @@ export default function MyCollaborationPage() {
           )}
         </TabsContent>
 
-        {/* 3. Active Teams (Hiring Open) */}
+        {/* 3. Recruiting Teams (Hiring Open) */}
         <TabsContent value="active_teams" className="space-y-4">
           {activeTeams.length === 0 ? (
             <Card className="p-10 text-center shadow-card space-y-3 border-dashed">
               <Rocket className="h-10 w-10 text-muted-foreground/60 mx-auto" />
-              <h3 className="font-semibold text-base">No Active Teams or Projects</h3>
+              <h3 className="font-semibold text-base">No Recruiting Teams Yet</h3>
               <p className="text-muted-foreground text-xs max-w-md mx-auto">
                 Assemble a hackathon crew or find contributors for your project opening on Collab Hub.
               </p>
@@ -1167,350 +1158,147 @@ export default function MyCollaborationPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06 }}
                   >
-                    <Card className="p-3 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <Link
-                              to={`/collab/${project.id}`}
-                              className="font-semibold text-base hover:text-primary hover:underline transition-colors"
-                            >
-                              {project.title}
-                            </Link>
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <Link
+                          to={`/my-collaboration/${project.id}`}
+                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                        >
+                          {project.title}
+                        </Link>
 
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs capitalize ${
-                                project.type === "HACKATHON" || project.type === "hackathon"
-                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                              }`}
-                            >
-                              {project.type === "HACKATHON" || project.type === "hackathon"
-                                ? "Hackathon Team"
-                                : "Team Project"}
-                            </Badge>
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs capitalize shrink-0 ${
+                            project.type === "HACKATHON" || project.type === "hackathon"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          }`}
+                        >
+                          {project.type === "HACKATHON" || project.type === "hackathon"
+                            ? "Hackathon Team"
+                            : "Team Project"}
+                        </Badge>
 
-                            <Badge variant="secondary" className="text-xs">
-                              {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
-                            </Badge>
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
+                        </Badge>
 
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              Hiring Open
-                            </Badge>
-                          </div>
+                        <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
+                          Hiring Open
+                        </Badge>
+                      </div>
 
-                          {project.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
-                              {project.description}
-                            </p>
-                          )}
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                          {project.description}
+                        </p>
+                      )}
 
-                          {project.githubLink && (
-                            <div>
-                              <a
-                                href={
-                                  project.githubLink.startsWith("http")
-                                    ? project.githubLink
-                                    : `https://${project.githubLink}`
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" /> {project.githubLink.replace(/^https?:\/\//, "")}
-                              </a>
-                            </div>
-                          )}
-
-                          <div className="space-y-2 pt-1">
-                            {((project.requiredRoles && project.requiredRoles.length > 0) ||
-                              (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                              <div className="space-y-1">
-                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                  <Users className="h-3 w-3" /> Looking for roles:
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {(project.requiredRoles || project.requiredExpertise || []).map(
-                                    (role: string, idx: number) => (
-                                      <Badge
-                                        key={`${project.id}-act-role-${role}-${idx}`}
-                                        variant="secondary"
-                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                      >
-                                        {role}
-                                      </Badge>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {project.skills && project.skills.length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                                  <Code2 className="h-3 w-3" /> Tech Stack:
-                                </span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {project.skills.map((tech: string, idx: number) => (
-                                    <Badge
-                                      key={`${project.id}-act-tech-${tech}-${idx}`}
-                                      variant="outline"
-                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
-                                    >
-                                      {tech}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                      {project.githubLink && (
+                        <div>
+                          <a
+                            href={
+                              project.githubLink.startsWith("http")
+                                ? project.githubLink
+                                : `https://${project.githubLink}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 max-w-full"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[220px] sm:max-w-[360px]">
+                              {project.githubLink.replace(/^https?:\/\//, "")}
+                            </span>
+                          </a>
                         </div>
+                      )}
 
-                        {/* Actions Block */}
-                        <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-                          {/* Primary Actions */}
-                          <div className="flex flex-wrap items-center gap-1.5 w-full justify-start">
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              className="gap-1 text-xs h-8 px-2.5 w-auto"
-                            >
-                              <Link to={`/collab/${project.id}`}>
-                                <Eye className="h-3.5 w-3.5" /> View Details
-                              </Link>
-                            </Button>
-
-                            {isUserCreatorOf(project) ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={`gap-1.5 text-xs h-8 px-2.5 w-auto ${
-                                  pendingRequests.length > 0
-                                    ? "border-primary text-primary bg-primary/5 font-semibold"
-                                    : ""
-                                }`}
-                                onClick={() => handleOpenViewRequests(project)}
-                              >
-                                <UsersRound className="h-3.5 w-3.5" /> View Requests
-                                {pendingRequests.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                          (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                              <Users className="h-3 w-3" /> Looking for roles:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(project.requiredRoles || project.requiredExpertise || []).map(
+                                (role: string, idx: number) => (
                                   <Badge
+                                    key={`${project.id}-act-role-${role}-${idx}`}
                                     variant="secondary"
-                                    className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-primary text-primary-foreground font-semibold"
+                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
                                   >
-                                    {pendingRequests.length}
+                                    {role}
                                   </Badge>
-                                )}
-                              </Button>
-                            ) : (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none w-auto"
-                              >
-                                ✓ Joined Member
-                              </Badge>
-                            )}
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                markRoomAsRead(project.id);
-                                navigate(`/collab/${project.id}?tab=chat`);
-                              }}
-                              className={`gap-1.5 text-xs h-8 px-2.5 ${
-                                unreadRooms.has(project.id)
-                                  ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
-                                  : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
-                              } w-auto`}
-                            >
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              <span>Room Chat</span>
-                              {unreadRooms.has(project.id) && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
-                                >
-                                  New
-                                </Badge>
+                                )
                               )}
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleToggleStar(project.id)}
-                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 w-auto ${
-                                project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                              }`}
-                            >
-                              <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
-                              <span className="font-semibold text-xs">{project.starsCount || 0}</span>
-                            </Button>
-                          </div>
-
-                          {/* Admin Actions (Owner Only) */}
-                          {isUserCreatorOf(project) && (
-                            <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40 w-full justify-start sm:justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5 text-xs h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 w-auto"
-                                onClick={() => setCompleteConfirm(project.id)}
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground w-auto"
-                                onClick={() => openEditTeam(project)}
-                              >
-                                <Pencil className="h-3 w-3" /> Edit
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10 w-auto"
-                                onClick={() => setDeleteConfirm(project.id)}
-                              >
-                                <Trash2 className="h-3 w-3" /> Delete
-                              </Button>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* 4. Completed Teams (Hiring Completed - No button in empty state) */}
-        <TabsContent value="completed_teams" className="space-y-4">
-          {completedTeams.length === 0 ? (
-            <Card className="p-10 text-center shadow-card space-y-3 border-dashed">
-              <CheckCircle2 className="h-10 w-10 text-muted-foreground/60 mx-auto" />
-              <h3 className="font-semibold text-base">No Completed Teams Yet</h3>
-              <p className="text-muted-foreground text-xs max-w-md mx-auto">
-                When you finish recruitment and complete hiring for your teams, they will appear here with team room access.
-              </p>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {completedTeams.map((project, i) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow border-emerald-500/20">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <Link
-                            to={`/collab/${project.id}`}
-                            className="font-semibold text-base hover:text-primary hover:underline transition-colors"
-                          >
-                            {project.title}
-                          </Link>
-
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs capitalize ${
-                              project.type === "HACKATHON" || project.type === "hackathon"
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            }`}
-                          >
-                            {project.type === "HACKATHON" || project.type === "hackathon"
-                              ? "Hackathon Team"
-                              : "Team Project"}
-                          </Badge>
-
-                          <Badge variant="secondary" className="text-xs">
-                            {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
-                          </Badge>
-
-                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-                            ✓ Hiring Completed
-                          </Badge>
-                        </div>
-
-                        {project.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
-                            {project.description}
-                          </p>
-                        )}
-
-                        {project.githubLink && (
-                          <div>
-                            <a
-                              href={
-                                project.githubLink.startsWith("http")
-                                  ? project.githubLink
-                                  : `https://${project.githubLink}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                            >
-                              <ExternalLink className="h-3 w-3" /> {project.githubLink.replace(/^https?:\/\//, "")}
-                            </a>
                           </div>
                         )}
 
-                        {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
-                          (project.skills && project.skills.length > 0)) && (
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {(project.requiredExpertise && project.requiredExpertise.length > 0
-                              ? project.requiredExpertise
-                              : project.skills || []
-                            ).map((tech: string, idx: number) => (
-                              <Badge
-                                key={`${project.id}-comp-tech-${tech}-${idx}`}
-                                variant="secondary"
-                                className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
+                        {project.skills && project.skills.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                              <Code2 className="h-3 w-3" /> Tech Stack:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {project.skills.map((tech: string, idx: number) => (
+                                <Badge
+                                  key={`${project.id}-act-tech-${tech}-${idx}`}
+                                  variant="outline"
+                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                                >
+                                  {tech}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
 
-                      {/* Actions Block */}
-                      <div className="flex flex-col gap-2 shrink-0">
+                      {/* Responsive Action Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
                         {/* Primary Actions */}
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Button
                             asChild
                             variant="outline"
                             size="sm"
-                            className="gap-1 text-xs h-8 px-2.5 w-auto"
+                            className="gap-1 text-xs h-8 px-2.5"
                           >
-                            <Link to={`/collab/${project.id}`}>
+                            <Link to={`/my-collaboration/${project.id}`}>
                               <Eye className="h-3.5 w-3.5" /> View Details
                             </Link>
                           </Button>
 
                           {isUserCreatorOf(project) ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 font-medium select-none w-auto"
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`gap-1.5 text-xs h-8 px-2.5 ${
+                                pendingRequests.length > 0
+                                  ? "border-primary text-primary bg-primary/5 font-semibold"
+                                  : ""
+                              }`}
+                              onClick={() => handleOpenViewRequests(project)}
                             >
-                              Team Creator
-                            </Badge>
+                              <UsersRound className="h-3.5 w-3.5" /> View Requests
+                              {pendingRequests.length > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-primary text-primary-foreground font-semibold"
+                                >
+                                  {pendingRequests.length}
+                                </Badge>
+                              )}
+                            </Button>
                           ) : (
                             <Badge
                               variant="secondary"
-                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none w-auto"
+                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
                             >
                               ✓ Joined Member
                             </Badge>
@@ -1521,13 +1309,13 @@ export default function MyCollaborationPage() {
                             variant="outline"
                             onClick={() => {
                               markRoomAsRead(project.id);
-                              navigate(`/collab/${project.id}?tab=chat`);
+                              navigate(`/my-collaboration/${project.id}?tab=chat`);
                             }}
                             className={`gap-1.5 text-xs h-8 px-2.5 ${
                               unreadRooms.has(project.id)
                                 ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
                                 : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
-                            } w-auto`}
+                            }`}
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
                             <span>Room Chat</span>
@@ -1545,7 +1333,212 @@ export default function MyCollaborationPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 w-auto ${
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                              project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                            }`}
+                          >
+                            <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                            <span className="font-semibold text-xs">{project.starsCount || 0}</span>
+                          </Button>
+                        </div>
+
+                        {/* Admin Actions (Owner Only) */}
+                        {isUserCreatorOf(project) && (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-xs h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                              onClick={() => setCompleteConfirm(project.id)}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
+                              onClick={() => openEditTeam(project)}
+                            >
+                              <Pencil className="h-3 w-3" /> Edit
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteConfirm(project.id)}
+                            >
+                              <Trash2 className="h-3 w-3" /> Delete
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* 4. Formed Teams (Hiring Completed - No button in empty state) */}
+        <TabsContent value="completed_teams" className="space-y-4">
+          {completedTeams.length === 0 ? (
+            <Card className="p-10 text-center shadow-card space-y-3 border-dashed">
+              <CheckCircle2 className="h-10 w-10 text-muted-foreground/60 mx-auto" />
+              <h3 className="font-semibold text-base">No Formed Teams Yet</h3>
+              <p className="text-muted-foreground text-xs max-w-md mx-auto">
+                When you finish recruitment and complete hiring for your teams, they will appear here with team room access.
+              </p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {completedTeams.map((project, i) => (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                  >
+                    <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow border-emerald-500/20">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <Link
+                          to={`/my-collaboration/${project.id}`}
+                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                        >
+                          {project.title}
+                        </Link>
+
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs capitalize shrink-0 ${
+                            project.type === "HACKATHON" || project.type === "hackathon"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          }`}
+                        >
+                          {project.type === "HACKATHON" || project.type === "hackathon"
+                            ? "Hackathon Team"
+                            : "Team Project"}
+                        </Badge>
+
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
+                        </Badge>
+
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold shrink-0">
+                          ✓ Hiring Completed
+                        </Badge>
+                      </div>
+
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                          {project.description}
+                        </p>
+                      )}
+
+                      {project.githubLink && (
+                        <div>
+                          <a
+                            href={
+                              project.githubLink.startsWith("http")
+                                ? project.githubLink
+                                : `https://${project.githubLink}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 max-w-full"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <span className="truncate max-w-[220px] sm:max-w-[360px]">
+                              {project.githubLink.replace(/^https?:\/\//, "")}
+                            </span>
+                          </a>
+                        </div>
+                      )}
+
+                      {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
+                        (project.skills && project.skills.length > 0)) && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {(project.requiredExpertise && project.requiredExpertise.length > 0
+                            ? project.requiredExpertise
+                            : project.skills || []
+                          ).map((tech: string, idx: number) => (
+                            <Badge
+                              key={`${project.id}-comp-tech-${tech}-${idx}`}
+                              variant="secondary"
+                              className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                            >
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Responsive Action Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                        {/* Primary Actions */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs h-8 px-2.5"
+                          >
+                            <Link to={`/my-collaboration/${project.id}`}>
+                              <Eye className="h-3.5 w-3.5" /> View Details
+                            </Link>
+                          </Button>
+
+                          {isUserCreatorOf(project) ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 font-medium select-none"
+                            >
+                              Team Creator
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
+                            >
+                              ✓ Joined Member
+                            </Badge>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              markRoomAsRead(project.id);
+                              navigate(`/my-collaboration/${project.id}?tab=chat`);
+                            }}
+                            className={`gap-1.5 text-xs h-8 px-2.5 ${
+                              unreadRooms.has(project.id)
+                                ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                                : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                            }`}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>Room Chat</span>
+                            {unreadRooms.has(project.id) && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
+                              >
+                                New
+                              </Badge>
+                            )}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleStar(project.id)}
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
                               project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
                             }`}
                           >

@@ -570,21 +570,6 @@ const FeedPage = () => {
                     />{" "}
                     {post.likes}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleSave(post.id)}
-                    className={`gap-1.5 text-xs ${
-                      post.saved ? "text-accent" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Bookmark
-                      className={`h-4 w-4 ${
-                        post.saved ? "fill-current" : ""
-                      }`}
-                    />{" "}
-                    Save
-                  </Button>
                   {post.commentsEnabled !== false && (
                     <Button
                       variant="ghost"
@@ -604,6 +589,21 @@ const FeedPage = () => {
                       <span>{post.commentsCount || 0}</span>
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleSave(post.id)}
+                    className={`text-xs px-2.5 ${
+                      post.saved ? "text-accent" : "text-muted-foreground"
+                    }`}
+                    title={post.saved ? "Unsave post" : "Save post"}
+                  >
+                    <Bookmark
+                      className={`h-4 w-4 ${
+                        post.saved ? "fill-current" : ""
+                      }`}
+                    />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

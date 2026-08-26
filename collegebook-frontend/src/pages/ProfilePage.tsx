@@ -552,14 +552,14 @@ const ProfilePage = () => {
   const handleSaveProfile = async () => {
     try {
       setSavingProfile(true);
-      let finalAvatarUrl = editForm.avatarUrl;
+      let finalAvatarUrl = editForm.avatarUrl || "";
 
       if (avatarFile) {
         const uploadRes = await uploadImageFile(avatarFile, "AVATAR");
         finalAvatarUrl = uploadRes.publicUrl || uploadRes.url || uploadRes.objectKey;
       }
 
-      const updatedRes = await updateProfile({
+      await updateProfile({
         fullName: editForm.name,
         courseId: editForm.courseId || undefined,
         departmentId: editForm.departmentId || undefined,
@@ -592,7 +592,7 @@ const ProfilePage = () => {
         departmentName: dName,
         year: yStr,
         yearNum: yNum,
-        avatarUrl: finalAvatarUrl,
+        avatarUrl: finalAvatarUrl || "",
       };
       setProfile(updated);
 
@@ -607,8 +607,10 @@ const ProfilePage = () => {
         currentYear: yNum,
         defaultBio: bioUpdated,
         bioExtra: editForm.customBio.slice(0, 250),
+        avatarUrl: finalAvatarUrl || "",
       };
       localStorage.setItem("cb_user", JSON.stringify(updatedUser));
+      localStorage.setItem("cb_profile", JSON.stringify(updated));
 
       setAvatarFile(null);
       setEditOpen(false);
@@ -1504,7 +1506,7 @@ const ProfilePage = () => {
 
           <div className="space-y-4 py-2">
             <div className="flex items-center gap-4">
-              <div className="relative">
+              <div className="relative shrink-0">
                 <Avatar className="h-16 w-16 border-2 border-primary/20">
                   {editForm.avatarUrl ? (
                     <AvatarImage src={editForm.avatarUrl} alt="Preview" />
@@ -1514,12 +1516,38 @@ const ProfilePage = () => {
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <label className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm">
+                <label
+                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm"
+                  title="Upload new photo"
+                >
                   <Camera className="h-3.5 w-3.5 text-primary-foreground" />
                   <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </label>
               </div>
-              <div className="text-xs text-muted-foreground">Click the camera badge to update your avatar photo</div>
+              <div className="space-y-1.5 min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer transition-colors border border-primary/20">
+                    <Camera className="h-3.5 w-3.5" />
+                    <span>Change Photo</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                  </label>
+                  {(editForm.avatarUrl || avatarFile) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAvatarFile(null);
+                        setEditForm((prev) => ({ ...prev, avatarUrl: "" }));
+                      }}
+                      className="h-8 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive gap-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">Upload a profile photo or remove to show initials avatar.</p>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -2480,7 +2508,7 @@ const ProfilePage = () => {
 
         {/* 2. Posts Tab */}
         <TabsContent value="posts">
-          <div className="space-y-3">
+          <div className="max-w-2xl mx-auto space-y-4">
             {activityPosts.length === 0 && (
               <Card className="p-8 text-center shadow-card">
                 <p className="text-muted-foreground text-sm">No posts yet. Share something with your campus!</p>
@@ -2493,10 +2521,13 @@ const ProfilePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
+                <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                        {profile.avatarUrl ? (
+                          <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                        ) : null}
                         <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">
                           {initials}
                         </AvatarFallback>
@@ -2560,22 +2591,6 @@ const ProfilePage = () => {
                               <span className="font-semibold">{post.likes || 0}</span>
                             </Button>
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostSave(post.id)}
-                              className={`gap-1.5 text-xs transition-colors ${
-                                post.saved ? "text-accent font-semibold" : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              <Bookmark
-                                className={`h-4 w-4 ${
-                                  post.saved ? "fill-current" : ""
-                                }`}
-                              />
-                              <span>{post.saved ? "Saved" : "Save"}</span>
-                            </Button>
-
                             {post.commentsEnabled !== false && (
                               <Button
                                 variant="ghost"
@@ -2595,6 +2610,22 @@ const ProfilePage = () => {
                                 <span>{post.commentsCount || 0}</span>
                               </Button>
                             )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostSave(post.id)}
+                              className={`text-xs px-2.5 transition-colors ${
+                                post.saved ? "text-accent font-semibold" : "text-muted-foreground hover:text-foreground"
+                              }`}
+                              title={post.saved ? "Unsave post" : "Save post"}
+                            >
+                              <Bookmark
+                                className={`h-4 w-4 ${
+                                  post.saved ? "fill-current" : ""
+                                }`}
+                              />
+                            </Button>
 
                             <Button
                               variant="ghost"
@@ -2884,7 +2915,7 @@ const ProfilePage = () => {
 
         {/* 6. Saved Tab */}
         <TabsContent value="saved">
-          <div className="space-y-3">
+          <div className="max-w-2xl mx-auto space-y-4">
             {savedPostsList.length === 0 && (
               <Card className="p-8 text-center shadow-card">
                 <p className="text-muted-foreground text-sm">No saved posts</p>
@@ -2897,10 +2928,13 @@ const ProfilePage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="p-5 shadow-card hover:shadow-elevated transition-shadow">
+                <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                        {post.avatarUrl && (
+                          <AvatarImage src={post.avatarUrl} alt={post.author || post.authorName} />
+                        )}
                         <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
                           {post.initials || "U"}
                         </AvatarFallback>
@@ -2975,16 +3009,6 @@ const ProfilePage = () => {
                               <span className="font-semibold">{post.likes || 0}</span>
                             </Button>
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostSave(post.id)}
-                              className="gap-1.5 text-xs transition-colors text-accent font-semibold"
-                            >
-                              <Bookmark className="h-4 w-4 fill-current" />
-                              <span>Saved</span>
-                            </Button>
-
                             {post.commentsEnabled !== false && (
                               <Button
                                 variant="ghost"
@@ -3004,6 +3028,16 @@ const ProfilePage = () => {
                                 <span>{post.commentsCount || 0}</span>
                               </Button>
                             )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => togglePostSave(post.id)}
+                              className="text-xs px-2.5 transition-colors text-accent font-semibold"
+                              title="Unsave post"
+                            >
+                              <Bookmark className="h-4 w-4 fill-current" />
+                            </Button>
 
                             <Button
                               variant="ghost"
