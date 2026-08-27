@@ -1,4 +1,4 @@
-# robots.txt for CollegeBook (https://collegebook.vercel.app)
+# robots.txt for CollegeBook (https://collegebook.live)
 User-agent: Googlebot
 Allow: /
 Allow: /explore
@@ -29,4 +29,4 @@ Disallow: /admin
 Disallow: /api/
 Disallow: /reset-password
 
-Sitemap: https://collegebook.vercel.app/sitemap.xml
+Sitemap: https://collegebook.live/sitemap.xml

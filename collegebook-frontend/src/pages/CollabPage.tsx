@@ -52,6 +52,8 @@ import { ThemedLoader } from "@/components/ThemedLoader";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
+import { clientCache } from "@/lib/clientCache";
+
 const commonTechSuggestions = [
   "React",
   "TypeScript",
@@ -98,8 +100,12 @@ interface MemberEntry {
 
 const CollabPage = () => {
   const [search, setSearch] = useState("");
-  const [teams, setTeams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const cachedTeams = clientCache.get<any[]>("collab_teams");
+  const cachedReqs = clientCache.get<any[]>("collab_my_requests");
+
+  const [teams, setTeams] = useState<any[]>(() => cachedTeams || []);
+  const [myRequests, setMyRequests] = useState<any[]>(() => cachedReqs || []);
+  const [loading, setLoading] = useState(() => !cachedTeams);
   const { triggerToggle } = useDebouncedToggle(400);
 
   // 3 Filters (No Sort By)
@@ -140,25 +146,31 @@ const CollabPage = () => {
   const [joinReason, setJoinReason] = useState("");
   const [joinTargetId, setJoinTargetId] = useState<string | number | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
-  const [myRequests, setMyRequests] = useState<any[]>([]);
 
   const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}');
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const existingTeams = clientCache.get<any[]>("collab_teams");
+    if (!existingTeams) {
+      setLoading(true);
+    }
     Promise.all([
       getCollabTeams().catch(() => []),
       getMyJoinedRequests().catch(() => []),
     ])
       .then(([teamsData, reqsData]) => {
         if (alive) {
-          setTeams(teamsData || []);
-          setMyRequests(reqsData || []);
+          const freshTeams = teamsData || [];
+          const freshReqs = reqsData || [];
+          setTeams(freshTeams);
+          setMyRequests(freshReqs);
+          clientCache.set("collab_teams", freshTeams, 120_000);
+          clientCache.set("collab_my_requests", freshReqs, 120_000);
         }
       })
       .catch(() => {
-        if (alive) toast.error("Failed to load collaboration projects");
+        if (alive && !existingTeams) toast.error("Failed to load collaboration projects");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -181,16 +193,16 @@ const CollabPage = () => {
           prev.map((t) =>
             t.id === teamId
               ? {
-                  ...t,
-                  starred: newStarred,
-                  starsCount: newStarred
-                    ? t.starred
-                      ? t.starsCount
-                      : (t.starsCount || 0) + 1
-                    : t.starred
+                ...t,
+                starred: newStarred,
+                starsCount: newStarred
+                  ? t.starred
+                    ? t.starsCount
+                    : (t.starsCount || 0) + 1
+                  : t.starred
                     ? Math.max(0, (t.starsCount || 0) - 1)
                     : t.starsCount || 0,
-                }
+              }
               : t
           )
         );
@@ -388,8 +400,8 @@ const CollabPage = () => {
         createType === "open_source"
           ? "Open-source project published!"
           : createType === "hackathon"
-          ? "Hackathon team created!"
-          : "Team project created!"
+            ? "Hackathon team created!"
+            : "Team project created!"
       );
       resetCreateForm();
       setCreateOpen(false);
@@ -446,8 +458,8 @@ const CollabPage = () => {
       targetTeam?.requiredRoles && targetTeam.requiredRoles.length > 0
         ? targetTeam.requiredRoles
         : targetTeam?.requiredExpertise && targetTeam.requiredExpertise.length > 0
-        ? targetTeam.requiredExpertise
-        : [];
+          ? targetTeam.requiredExpertise
+          : [];
     setJoinTargetId(id);
     setJoinTarget({ name, type, openRoles });
     setJoinRole(openRoles[0] || (openRoles.length === 0 ? "Contributor" : ""));
@@ -629,7 +641,7 @@ const CollabPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
+    <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
       <SEO
         title="Collab Hub — Build Teams & Open Source"
         description="Discover open-source repositories, find hackathon teammates, and build student software together on CollegeBook Collab Hub."
@@ -639,7 +651,7 @@ const CollabPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1 flex items-center gap-2">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> Collab Hub
+            Collab Hub
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm">
             Discover open-source gems, assemble hackathon teams, and collaborate with peers.
@@ -667,445 +679,445 @@ const CollabPage = () => {
                 <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Create
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-xl max-h-[90vh] p-0 flex flex-col overflow-hidden rounded-2xl border shadow-2xl">
-            <DialogHeader className="px-6 py-4 border-b border-border/50 bg-muted/30 shrink-0">
-              <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                {createType === "open_source" && <Code2 className="h-5 w-5 text-primary" />}
-                {createType === "hackathon" && <Users className="h-5 w-5 text-primary" />}
-                {createType === "project" && <Rocket className="h-5 w-5 text-primary" />}
-                Create New{" "}
-                {createType === "open_source"
-                  ? "Open-Source Project"
-                  : createType === "hackathon"
-                  ? "Hackathon Team"
-                  : "Team Project"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                {createType === "open_source"
-                  ? "Publish your repository to gain reach and invite open contributions from all campus students."
-                  : createType === "hackathon"
-                  ? "Assemble a dedicated team for an upcoming hackathon challenge."
-                  : "Create a project collaboration to build with a capped team."}
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent className="max-w-xl max-h-[90vh] p-0 flex flex-col overflow-hidden rounded-2xl border shadow-2xl">
+              <DialogHeader className="px-6 py-4 border-b border-border/50 bg-muted/30 shrink-0">
+                <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                  {createType === "open_source" && <Code2 className="h-5 w-5 text-primary" />}
+                  {createType === "hackathon" && <Users className="h-5 w-5 text-primary" />}
+                  {createType === "project" && <Rocket className="h-5 w-5 text-primary" />}
+                  Create New{" "}
+                  {createType === "open_source"
+                    ? "Open-Source Project"
+                    : createType === "hackathon"
+                      ? "Hackathon Team"
+                      : "Team Project"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  {createType === "open_source"
+                    ? "Publish your repository to gain reach and invite open contributions from all campus students."
+                    : createType === "hackathon"
+                      ? "Assemble a dedicated team for an upcoming hackathon challenge."
+                      : "Create a project collaboration to build with a capped team."}
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 max-h-[70vh] [scrollbar-width:thin]">
-              {/* Type Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Collab Category</Label>
-                  <Select
-                    value={createType}
-                    onValueChange={(v) => setCreateType(v as "open_source" | "hackathon" | "project")}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open_source">Open-Source Project</SelectItem>
-                      <SelectItem value="hackathon">Hackathon Team</SelectItem>
-                      <SelectItem value="project">Team Project</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 max-h-[70vh] [scrollbar-width:thin]">
+                {/* Type Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Collab Category</Label>
+                    <Select
+                      value={createType}
+                      onValueChange={(v) => setCreateType(v as "open_source" | "hackathon" | "project")}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open_source">Open-Source Project</SelectItem>
+                        <SelectItem value="hackathon">Hackathon Team</SelectItem>
+                        <SelectItem value="project">Team Project</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Max Members (hidden/disabled for open source) */}
+                  {createType !== "open_source" ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Max Members Limit</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={15}
+                        value={createForm.maxMembers}
+                        onChange={(e) => setCreateForm({ ...createForm, maxMembers: e.target.value })}
+                        className="h-9"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Contributors</Label>
+                      <div className="h-9 flex items-center px-3 rounded-md bg-muted/60 text-xs text-muted-foreground font-medium border border-border/40">
+                        Open to all contributors
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Max Members (hidden/disabled for open source) */}
-                {createType !== "open_source" ? (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Max Members Limit</Label>
-                    <Input
-                      type="number"
-                      min={2}
-                      max={15}
-                      value={createForm.maxMembers}
-                      onChange={(e) => setCreateForm({ ...createForm, maxMembers: e.target.value })}
-                      className="h-9"
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Contributors</Label>
-                    <div className="h-9 flex items-center px-3 rounded-md bg-muted/60 text-xs text-muted-foreground font-medium border border-border/40">
-                      Open to all contributors
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Title / Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  {createType === "open_source"
-                    ? "Repository / Project Name"
-                    : createType === "hackathon"
-                    ? "Team Name"
-                    : "Project Title"}
-                </Label>
-                <Input
-                  placeholder={
-                    createType === "open_source"
-                      ? "e.g. AwesomeCampusLib or StudyBot-AI"
-                      : createType === "hackathon"
-                      ? "e.g. Neural Nexus"
-                      : "e.g. PeerMatch"
-                  }
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  className="h-9"
-                />
-              </div>
-
-              {/* Hackathon Specific: Hackathon Name */}
-              {createType === "hackathon" && (
+                {/* Title / Name */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Hackathon Name & Edition</Label>
+                  <Label className="text-xs font-semibold">
+                    {createType === "open_source"
+                      ? "Repository / Project Name"
+                      : createType === "hackathon"
+                        ? "Team Name"
+                        : "Project Title"}
+                  </Label>
                   <Input
-                    placeholder="e.g. Smart India Hackathon 2025 or HackDU"
-                    value={createForm.hackathon}
-                    onChange={(e) => setCreateForm({ ...createForm, hackathon: e.target.value })}
+                    placeholder={
+                      createType === "open_source"
+                        ? "e.g. AwesomeCampusLib or StudyBot-AI"
+                        : createType === "hackathon"
+                          ? "e.g. Neural Nexus"
+                          : "e.g. PeerMatch"
+                    }
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                     className="h-9"
                   />
                 </div>
-              )}
 
-              {/* Description */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Description & Goals</Label>
-                <Textarea
-                  placeholder={
-                    createType === "open_source"
-                      ? "What does this repo do? What problems does it solve? How can students contribute?"
-                      : "What are you aiming to build? What makes this project exciting?"
-                  }
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  rows={3}
-                  className="text-sm resize-y"
-                />
-              </div>
-
-              {/* GitHub URL (Mandatory for Open Source, Optional for Team Project) */}
-              {(createType === "open_source" || createType === "project") && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>GitHub Repository URL</span>
-                    {createType === "open_source" && (
-                      <span className="text-[11px] font-medium text-destructive">* Required</span>
-                    )}
-                  </Label>
-                  <div className="relative">
-                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                {/* Hackathon Specific: Hackathon Name */}
+                {createType === "hackathon" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Hackathon Name & Edition</Label>
                     <Input
-                      placeholder="https://github.com/username/repository"
-                      value={createForm.githubLink}
-                      onChange={(e) => setCreateForm({ ...createForm, githubLink: e.target.value })}
-                      className="pl-9 h-9 text-xs"
+                      placeholder="e.g. Smart India Hackathon 2025 or HackDU"
+                      value={createForm.hackathon}
+                      onChange={(e) => setCreateForm({ ...createForm, hackathon: e.target.value })}
+                      className="h-9"
                     />
                   </div>
-                </div>
-              )}
-
-              {/* 1. Required Roles (Looking for Roles) */}
-              <div className="space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
-                    <Briefcase className="h-3.5 w-3.5" />
-                    Required Roles (Looking for)
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">{roleTags.length} added</span>
-                </div>
-
-                {/* Role Tag Pills */}
-                {roleTags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {roleTags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="gap-1 px-2.5 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeRoleTag(tag)}
-                          className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none ml-0.5"
-                        >
-                          <XIcon className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">
-                    Add the roles you need in this team (e.g. Frontend Dev, ML Engineer).
-                  </p>
                 )}
 
-                {/* Role Input */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type role and press Enter (e.g. Frontend Dev, UI/UX Designer)..."
-                    value={roleTagInput}
-                    onChange={(e) => setRoleTagInput(e.target.value)}
-                    onKeyDown={handleRoleTagKeyDown}
-                    className="h-8 text-xs bg-background"
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Description & Goals</Label>
+                  <Textarea
+                    placeholder={
+                      createType === "open_source"
+                        ? "What does this repo do? What problems does it solve? How can students contribute?"
+                        : "What are you aiming to build? What makes this project exciting?"
+                    }
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    rows={3}
+                    className="text-sm resize-y"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs shrink-0 gap-1"
-                    onClick={() => addRoleTag(roleTagInput)}
-                    disabled={!roleTagInput.trim()}
-                  >
-                    <Plus className="h-3 w-3" /> Add Role
-                  </Button>
                 </div>
 
-                {/* Quick Role Suggestions */}
-                <div className="space-y-1 pt-1">
-                  <span className="text-[11px] font-medium text-muted-foreground block">
-                    Quick role suggestions:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {roleOptions
-                      .filter((s) => !roleTags.some((t) => t.toLowerCase() === s.toLowerCase()))
-                      .slice(0, 8)
-                      .map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => addRoleTag(suggestion)}
-                          className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-foreground border border-border/60 transition-colors"
-                        >
-                          + {suggestion}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Technologies & Required Skills */}
-              <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold flex items-center gap-1.5">
-                    <Code2 className="h-3.5 w-3.5 text-primary" />
-                    Required Skills & Tech Stack
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">{skillTags.length} added</span>
-                </div>
-
-                {/* Skill Tag Pills */}
-                {skillTags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {skillTags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="gap-1 px-2.5 py-1 text-xs bg-muted text-foreground border border-border hover:bg-muted/80 transition-all"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeSkillTag(tag)}
-                          className="text-muted-foreground hover:text-destructive focus:outline-none ml-0.5"
-                        >
-                          <XIcon className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">
-                    Add tech stack tools and frameworks (e.g. React, Python, Docker).
-                  </p>
-                )}
-
-                {/* Skill Input */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type skill/tech and press Enter (e.g. React, Docker, Python)..."
-                    value={skillTagInput}
-                    onChange={(e) => setSkillTagInput(e.target.value)}
-                    onKeyDown={handleSkillTagKeyDown}
-                    className="h-8 text-xs bg-background"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs shrink-0 gap-1"
-                    onClick={() => addSkillTag(skillTagInput)}
-                    disabled={!skillTagInput.trim()}
-                  >
-                    <Plus className="h-3 w-3" /> Add Skill
-                  </Button>
-                </div>
-
-                {/* Popular Quick Suggestions */}
-                <div className="space-y-1 pt-1">
-                  <span className="text-[11px] font-medium text-muted-foreground block">
-                    Quick skill suggestions:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {commonTechSuggestions
-                      .filter((s) => !skillTags.some((t) => t.toLowerCase() === s.toLowerCase()))
-                      .slice(0, 8)
-                      .map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => addSkillTag(suggestion)}
-                          className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors"
-                        >
-                          + {suggestion}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Team Members Section (For Hackathon & Team Projects) */}
-              {createType !== "open_source" && (
-                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold flex items-center gap-1.5">
-                      <Users className="h-3.5 w-3.5 text-primary" /> Current Team Members
+                {/* GitHub URL (Mandatory for Open Source, Optional for Team Project) */}
+                {(createType === "open_source" || createType === "project") && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span>GitHub Repository URL</span>
+                      {createType === "open_source" && (
+                        <span className="text-[11px] font-medium text-destructive">* Required</span>
+                      )}
                     </Label>
-                    <span className="text-[11px] text-muted-foreground">
-                      {memberEntries.length + 1} / {createForm.maxMembers} members
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                    {/* Lead */}
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-semibold">
-                          {user.initials || "YO"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-medium truncate block">{user.name || "You"}</span>
-                        {user.handle && (
-                          <span className="text-[10px] text-muted-foreground font-mono truncate block">
-                            @{user.handle}
-                          </span>
-                        )}
-                      </div>
-                      <Badge variant="secondary" className="text-[10px] h-5">
-                        Lead
-                      </Badge>
+                    <div className="relative">
+                      <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="https://github.com/username/repository"
+                        value={createForm.githubLink}
+                        onChange={(e) => setCreateForm({ ...createForm, githubLink: e.target.value })}
+                        className="pl-9 h-9 text-xs"
+                      />
                     </div>
+                  </div>
+                )}
 
-                    {/* Added Members */}
-                    {memberEntries.map((m) => (
-                      <div
-                        key={m.id || m.handle || m.name}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50"
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-semibold">
-                            {m.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-medium truncate block">{m.name}</span>
-                          {m.handle && (
-                            <span className="text-[10px] text-muted-foreground font-mono truncate block">
-                              @{m.handle}
-                            </span>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="text-[10px] h-5 shrink-0">
-                          {m.role}
-                        </Badge>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-                          onClick={() => removeMember(m.id)}
-                        >
-                          <XIcon className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                {/* 1. Required Roles (Looking for Roles) */}
+                <div className="space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      Required Roles (Looking for)
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">{roleTags.length} added</span>
                   </div>
 
-                  <div className="grid grid-cols-[1fr_130px_auto] gap-2 pt-1">
+                  {/* Role Tag Pills */}
+                  {roleTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {roleTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="gap-1 px-2.5 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeRoleTag(tag)}
+                            className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none ml-0.5"
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      Add the roles you need in this team (e.g. Frontend Dev, ML Engineer).
+                    </p>
+                  )}
+
+                  {/* Role Input */}
+                  <div className="flex gap-2">
                     <Input
-                      placeholder="Student handle (e.g. vasuchandrani)"
-                      value={newMemberName}
-                      onChange={(e) => setNewMemberName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addMember();
-                        }
-                      }}
-                      disabled={verifyingMember}
+                      placeholder="Type role and press Enter (e.g. Frontend Dev, UI/UX Designer)..."
+                      value={roleTagInput}
+                      onChange={(e) => setRoleTagInput(e.target.value)}
+                      onKeyDown={handleRoleTagKeyDown}
                       className="h-8 text-xs bg-background"
                     />
-                    <Select value={newMemberRole} onValueChange={setNewMemberRole} disabled={verifyingMember}>
-                      <SelectTrigger className="h-8 text-xs bg-background">
-                        <SelectValue placeholder="Role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roleOptions.map((r) => (
-                          <SelectItem key={r} value={r} className="text-xs">
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-8 text-xs gap-1"
-                      onClick={addMember}
-                      disabled={verifyingMember || !newMemberName.trim()}
+                      className="h-8 text-xs shrink-0 gap-1"
+                      onClick={() => addRoleTag(roleTagInput)}
+                      disabled={!roleTagInput.trim()}
                     >
-                      {verifyingMember ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Plus className="h-3 w-3" />
-                      )}
-                      <span>{verifyingMember ? "Checking..." : "Add"}</span>
+                      <Plus className="h-3 w-3" /> Add Role
                     </Button>
                   </div>
-                </div>
-              )}
-            </div>
 
-            <DialogFooter className="px-6 py-3.5 border-t border-border/50 bg-muted/30 shrink-0 flex gap-2 sm:justify-end">
-              <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} disabled={creating}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreate}
-                size="sm"
-                disabled={creating}
-                className="bg-gradient-hero text-primary-foreground font-semibold min-w-[140px]"
-              >
-                {creating ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Publishing...</span>
+                  {/* Quick Role Suggestions */}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[11px] font-medium text-muted-foreground block">
+                      Quick role suggestions:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {roleOptions
+                        .filter((s) => !roleTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                        .slice(0, 8)
+                        .map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => addRoleTag(suggestion)}
+                            className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-foreground border border-border/60 transition-colors"
+                          >
+                            + {suggestion}
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                ) : (
-                  `Publish ${createType === "open_source" ? "Open-Source Project" : "Collab"}`
+                </div>
+
+                {/* 2. Technologies & Required Skills */}
+                <div className="space-y-2.5 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Code2 className="h-3.5 w-3.5 text-primary" />
+                      Required Skills & Tech Stack
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">{skillTags.length} added</span>
+                  </div>
+
+                  {/* Skill Tag Pills */}
+                  {skillTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="gap-1 px-2.5 py-1 text-xs bg-muted text-foreground border border-border hover:bg-muted/80 transition-all"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeSkillTag(tag)}
+                            className="text-muted-foreground hover:text-destructive focus:outline-none ml-0.5"
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      Add tech stack tools and frameworks (e.g. React, Python, Docker).
+                    </p>
+                  )}
+
+                  {/* Skill Input */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Type skill/tech and press Enter (e.g. React, Docker, Python)..."
+                      value={skillTagInput}
+                      onChange={(e) => setSkillTagInput(e.target.value)}
+                      onKeyDown={handleSkillTagKeyDown}
+                      className="h-8 text-xs bg-background"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs shrink-0 gap-1"
+                      onClick={() => addSkillTag(skillTagInput)}
+                      disabled={!skillTagInput.trim()}
+                    >
+                      <Plus className="h-3 w-3" /> Add Skill
+                    </Button>
+                  </div>
+
+                  {/* Popular Quick Suggestions */}
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[11px] font-medium text-muted-foreground block">
+                      Quick skill suggestions:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {commonTechSuggestions
+                        .filter((s) => !skillTags.some((t) => t.toLowerCase() === s.toLowerCase()))
+                        .slice(0, 8)
+                        .map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => addSkillTag(suggestion)}
+                            className="text-[11px] px-2 py-0.5 rounded-md bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 transition-colors"
+                          >
+                            + {suggestion}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Members Section (For Hackathon & Team Projects) */}
+                {createType !== "open_source" && (
+                  <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-primary" /> Current Team Members
+                      </Label>
+                      <span className="text-[11px] text-muted-foreground">
+                        {memberEntries.length + 1} / {createForm.maxMembers} members
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                      {/* Lead */}
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-semibold">
+                            {user.initials || "YO"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium truncate block">{user.name || "You"}</span>
+                          {user.handle && (
+                            <span className="text-[10px] text-muted-foreground font-mono truncate block">
+                              @{user.handle}
+                            </span>
+                          )}
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] h-5">
+                          Lead
+                        </Badge>
+                      </div>
+
+                      {/* Added Members */}
+                      {memberEntries.map((m) => (
+                        <div
+                          key={m.id || m.handle || m.name}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-semibold">
+                              {m.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                                .slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium truncate block">{m.name}</span>
+                            {m.handle && (
+                              <span className="text-[10px] text-muted-foreground font-mono truncate block">
+                                @{m.handle}
+                              </span>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-[10px] h-5 shrink-0">
+                            {m.role}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => removeMember(m.id)}
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_130px_auto] gap-2 pt-1">
+                      <Input
+                        placeholder="Student handle (e.g. vasuchandrani)"
+                        value={newMemberName}
+                        onChange={(e) => setNewMemberName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addMember();
+                          }
+                        }}
+                        disabled={verifyingMember}
+                        className="h-8 text-xs bg-background"
+                      />
+                      <Select value={newMemberRole} onValueChange={setNewMemberRole} disabled={verifyingMember}>
+                        <SelectTrigger className="h-8 text-xs bg-background">
+                          <SelectValue placeholder="Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roleOptions.map((r) => (
+                            <SelectItem key={r} value={r} className="text-xs">
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1"
+                        onClick={addMember}
+                        disabled={verifyingMember || !newMemberName.trim()}
+                      >
+                        {verifyingMember ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Plus className="h-3 w-3" />
+                        )}
+                        <span>{verifyingMember ? "Checking..." : "Add"}</span>
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </div>
+
+              <DialogFooter className="px-6 py-3.5 border-t border-border/50 bg-muted/30 shrink-0 flex gap-2 sm:justify-end">
+                <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)} disabled={creating}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  size="sm"
+                  disabled={creating}
+                  className="bg-gradient-hero text-primary-foreground font-semibold min-w-[140px]"
+                >
+                  {creating ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Publishing...</span>
+                    </div>
+                  ) : (
+                    `Publish ${createType === "open_source" ? "Open-Source Project" : "Collab"}`
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -1211,18 +1223,18 @@ const CollabPage = () => {
       </Card>
 
       {/* Tabs in Exact Order without numbers: 1. Open Source -> 2. Hackathon -> 3. Team Project */}
-      <Tabs defaultValue="open_source" className="space-y-5">
-        <TabsList className="grid grid-cols-3 bg-muted/80 p-1 rounded-xl h-auto w-full min-w-0">
-          <TabsTrigger value="open_source" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
-            <Code2 className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+      <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
+        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-3 w-full h-auto gap-1.5 shadow-2xs">
+          <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
+            <Code2 className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">Open-source</span>
           </TabsTrigger>
-          <TabsTrigger value="hackathon" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
-            <Users className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+          <TabsTrigger value="hackathon" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
+            <Users className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">Hackathons</span>
           </TabsTrigger>
-          <TabsTrigger value="project" className="gap-1 sm:gap-1.5 text-xs sm:text-xs md:text-sm font-semibold px-1 py-2 sm:px-2 md:px-3 min-w-0">
-            <Rocket className="h-3.5 w-3.5 md:h-4 md:w-4 hidden sm:block shrink-0" />
+          <TabsTrigger value="project" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
+            <Rocket className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">Team Projects</span>
           </TabsTrigger>
         </TabsList>
@@ -1317,25 +1329,25 @@ const CollabPage = () => {
                         <div className="space-y-2 pt-1">
                           {((project.requiredRoles && project.requiredRoles.length > 0) ||
                             (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                <Briefcase className="h-3 w-3" /> Looking for roles:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(project.requiredRoles || project.requiredExpertise || []).map(
-                                  (role: string, idx: number) => (
-                                    <Badge
-                                      key={`${project.id}-role-${role}-${idx}`}
-                                      variant="secondary"
-                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                    >
-                                      {role}
-                                    </Badge>
-                                  )
-                                )}
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(project.requiredRoles || project.requiredExpertise || []).map(
+                                    (role: string, idx: number) => (
+                                      <Badge
+                                        key={`${project.id}-role-${role}-${idx}`}
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                      >
+                                        {role}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {project.skills && project.skills.length > 0 && (
                             <div className="space-y-1">
@@ -1390,11 +1402,10 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
-                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${
-                            project.starred
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${project.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           <Star className={`h-4 w-4 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                           <span className="font-semibold">{project.starsCount || 0}</span>
@@ -1499,25 +1510,25 @@ const CollabPage = () => {
                         <div className="space-y-2 pt-1">
                           {((team.requiredRoles && team.requiredRoles.length > 0) ||
                             (team.requiredExpertise && team.requiredExpertise.length > 0)) && (
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                <Briefcase className="h-3 w-3" /> Looking for roles:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(team.requiredRoles || team.requiredExpertise || []).map(
-                                  (role: string, idx: number) => (
-                                    <Badge
-                                      key={`${team.id}-req-${role}-${idx}`}
-                                      variant="secondary"
-                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                    >
-                                      {role}
-                                    </Badge>
-                                  )
-                                )}
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(team.requiredRoles || team.requiredExpertise || []).map(
+                                    (role: string, idx: number) => (
+                                      <Badge
+                                        key={`${team.id}-req-${role}-${idx}`}
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                      >
+                                        {role}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {team.skills && team.skills.length > 0 && (
                             <div className="space-y-1">
@@ -1588,11 +1599,10 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(team.id)}
-                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${
-                            team.starred
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${team.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                           <span className="font-semibold">{team.starsCount || 0}</span>
@@ -1722,25 +1732,25 @@ const CollabPage = () => {
                         <div className="space-y-2 pt-1">
                           {((project.requiredRoles && project.requiredRoles.length > 0) ||
                             (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                            <div className="space-y-1">
-                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                <Briefcase className="h-3 w-3" /> Looking for roles:
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(project.requiredRoles || project.requiredExpertise || []).map(
-                                  (role: string, idx: number) => (
-                                    <Badge
-                                      key={`${project.id}-role-${role}-${idx}`}
-                                      variant="secondary"
-                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                    >
-                                      {role}
-                                    </Badge>
-                                  )
-                                )}
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(project.requiredRoles || project.requiredExpertise || []).map(
+                                    (role: string, idx: number) => (
+                                      <Badge
+                                        key={`${project.id}-role-${role}-${idx}`}
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                      >
+                                        {role}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {project.skills && project.skills.length > 0 && (
                             <div className="space-y-1">
@@ -1811,11 +1821,10 @@ const CollabPage = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
-                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto inline-flex ${
-                            project.starred
+                          className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto inline-flex ${project.starred
                               ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                               : "text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           <Star className={`h-4 w-4 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                           <span className="font-semibold">{project.starsCount || 0}</span>

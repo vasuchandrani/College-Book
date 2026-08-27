@@ -20,4 +20,7 @@ public interface TeamStarRepository extends JpaRepository<TeamStar, TeamStarId> 
 
     @Query("SELECT ts.id.userId FROM TeamStar ts WHERE ts.id.teamId = :teamId")
     List<UUID> findUserIdsByTeamId(@Param("teamId") UUID teamId);
+
+    @Query("SELECT ts.id.teamId FROM TeamStar ts WHERE ts.id.userId = :userId AND ts.id.teamId IN :teamIds")
+    List<UUID> findStarredTeamIdsByUserIdAndTeamIdIn(@Param("userId") UUID userId, @Param("teamIds") java.util.Collection<UUID> teamIds);
 }

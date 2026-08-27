@@ -18,7 +18,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5000,http://localhost:8080,http://localhost:8081,https://*.vercel.app}")
+    @Value("${app.cors.allowed-origins:http://localhost:5000,http://localhost:5173,http://localhost:8080,http://localhost:8081,https://collegebook.live,https://www.collegebook.live,https://*.collegebook.live,https://collegebook.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
     @Override

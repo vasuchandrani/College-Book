@@ -33,6 +33,7 @@ import {
   sharePostLink,
 } from "@/lib/api";
 import type { ExplorePost } from "@/types";
+import { clientCache } from "@/lib/clientCache";
 
 const PAGE_SIZE = 15;
 
@@ -40,34 +41,49 @@ const ExplorePage = () => {
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
-  const [posts, setPosts] = useState<ExplorePost[]>([]);
+
+  const cacheKey = "explore_page_0_" + (selectedTag || "all");
+  const cachedExplore = clientCache.get<{ posts: ExplorePost[]; hasNext: boolean }>(cacheKey);
+
+  const [posts, setPosts] = useState<ExplorePost[]>(() => cachedExplore?.posts || []);
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
-  const [ads, setAds] = useState<AdData[]>([]);
+  const [ads, setAds] = useState<AdData[]>(() => clientCache.get<AdData[]>("explore_ads") || []);
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [hasMore, setHasMore] = useState(() => (cachedExplore ? cachedExplore.hasNext : true));
+  const [loadingInitial, setLoadingInitial] = useState(() => !cachedExplore);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const { triggerToggle } = useDebouncedToggle(400);
 
-  // Initial fetch / tag filter change
+  // Initial fetch / tag filter change (Stale-While-Revalidate)
   useEffect(() => {
     let alive = true;
-    setLoadingInitial(true);
+    const currentKey = "explore_page_0_" + (selectedTag || "all");
+    const existing = clientCache.get<{ posts: ExplorePost[]; hasNext: boolean }>(currentKey);
+
+    if (existing) {
+      setPosts(existing.posts || []);
+      setHasMore(existing.hasNext);
+      setLoadingInitial(false);
+    } else {
+      setLoadingInitial(true);
+    }
     setPage(0);
-    setHasMore(true);
 
     getExplorePosts(0, PAGE_SIZE, selectedTag || undefined)
       .then((res) => {
         if (alive) {
-          setPosts(res.posts || []);
-          setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+          const freshPosts = res.posts || [];
+          const nextVal = Boolean(res.hasNext && freshPosts.length > 0);
+          setPosts(freshPosts);
+          setHasMore(nextVal);
+          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 120_000);
         }
       })
       .catch(() => {
-        if (alive) {
+        if (alive && !existing) {
           setPosts([]);
           setHasMore(false);
         }
@@ -77,7 +93,12 @@ const ExplorePage = () => {
       });
 
     getExploreAds()
-      .then((data) => alive && setAds(data || []))
+      .then((data) => {
+        if (alive && data) {
+          setAds(data);
+          clientCache.set("explore_ads", data, 300_000);
+        }
+      })
       .catch(() => {});
 
     return () => {

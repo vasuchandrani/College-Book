@@ -90,17 +90,17 @@ cloudflare:
     api-token: ${CLOUDFLARE_STREAM_API_TOKEN:}
 
 app:
-  frontend-url: ${APP_FRONTEND_URL:http://localhost:5000}
+  frontend-url: ${APP_FRONTEND_URL:https://collegebook.live}
   otp:
     bypass: ${APP_OTP_BYPASS:false}
   cors:
-    allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5000}
+    allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5000,http://localhost:5173,http://localhost:8080,http://localhost:8081,https://collegebook.live,https://www.collegebook.live,https://*.collegebook.live,https://collegebook.vercel.app,https://*.vercel.app}
   ads:
     every-n-posts: 5
   social:
     sync-interval-ms: ${SOCIAL_SYNC_INTERVAL_MS:15000}
-    feed-cache-ttl-seconds: ${FEED_CACHE_TTL_SECONDS:30}
-    collab-cache-ttl-seconds: ${COLLAB_CACHE_TTL_SECONDS:60}
+    feed-cache-ttl-seconds: ${FEED_CACHE_TTL_SECONDS:120}
+    collab-cache-ttl-seconds: ${COLLAB_CACHE_TTL_SECONDS:120}
     interaction-ttl-hours: ${INTERACTION_TTL_HOURS:168}
 
 springdoc:

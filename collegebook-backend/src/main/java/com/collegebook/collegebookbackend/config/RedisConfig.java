@@ -32,10 +32,10 @@ public class RedisConfig implements CachingConfigurer {
 
     private static final Logger log = LoggerFactory.getLogger(RedisConfig.class);
 
-    @Value("${app.social.feed-cache-ttl-seconds:30}")
+    @Value("${app.social.feed-cache-ttl-seconds:120}")
     private long feedCacheTtlSeconds;
 
-    @Value("${app.social.collab-cache-ttl-seconds:60}")
+    @Value("${app.social.collab-cache-ttl-seconds:120}")
     private long collabCacheTtlSeconds;
 
     @Bean

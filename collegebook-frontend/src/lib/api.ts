@@ -1517,6 +1517,159 @@ export interface PublicStudentProfile {
   contactDetails?: string;
 }
 
+export interface ProfileHeaderData {
+  userId: string;
+  handle: string;
+  name: string;
+  fullName: string;
+  initials: string;
+  gender?: string;
+  collegeId?: string;
+  college: string;
+  collegeName: string;
+  collegeShort: string;
+  collegeShortName: string;
+  collegeSlug?: string;
+  courseId?: string;
+  course: string;
+  courseName: string;
+  courseShortName: string;
+  departmentId?: string;
+  department?: string;
+  departmentName?: string;
+  departmentShortName?: string;
+  currentYear?: number;
+  defaultBio: string;
+  avatarUrl?: string;
+  isPublic: boolean;
+}
+
+export interface ProfileAboutData {
+  userId: string;
+  bioExtra?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+  memoryBookEmail?: string;
+  customLinks?: string;
+  contactDetails?: string;
+}
+
+export interface PublicStudentHeaderData {
+  userId: string;
+  handle: string;
+  slug: string;
+  name: string;
+  fullName: string;
+  initials: string;
+  courseName: string;
+  courseShortName?: string;
+  departmentName?: string;
+  departmentShortName?: string;
+  collegeName: string;
+  collegeShortName?: string;
+  collegeSlug?: string;
+  currentYear?: number;
+  defaultBio: string;
+  avatarUrl?: string;
+}
+
+export interface PublicStudentAboutData {
+  userId: string;
+  handle: string;
+  bioExtra?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+  websiteUrl?: string;
+  customLinks?: string;
+  contactDetails?: string;
+}
+
+export const getMyProfileHeader = async (): Promise<ProfileHeaderData> => {
+  const p = await request<any>("/profiles/me/header");
+  const collegeName = p.collegeName || "Dharmsinh Desai University";
+  const collegeShort = p.collegeShortName || (collegeName === "Dharmsinh Desai University" ? "DDU" : collegeName.split(" ").map((w: string) => w[0]).join(""));
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
+
+  return {
+    userId: p.userId,
+    handle: p.handle || "",
+    name: p.fullName || "User",
+    fullName: p.fullName || "User",
+    initials: p.initials || "U",
+    gender: p.gender,
+    collegeId: p.collegeId,
+    college: collegeName,
+    collegeName: collegeName,
+    collegeShort: collegeShort,
+    collegeShortName: collegeShort,
+    collegeSlug: p.collegeSlug,
+    courseId: p.courseId,
+    course: shortCourse,
+    courseName: shortCourse,
+    courseShortName: shortCourse,
+    departmentId: p.departmentId,
+    department: p.departmentName,
+    departmentName: p.departmentName,
+    departmentShortName: p.departmentShortName,
+    currentYear: p.currentYear,
+    defaultBio: p.defaultBio || "",
+    avatarUrl: p.avatarUrl,
+    isPublic: p.public !== undefined ? p.public : true,
+  };
+};
+
+export const getMyProfileAbout = async (): Promise<ProfileAboutData> => {
+  const p = await request<any>("/profiles/me/about");
+  return {
+    userId: p.userId,
+    bioExtra: p.bioExtra || "",
+    githubUrl: p.githubUrl,
+    linkedinUrl: p.linkedinUrl,
+    websiteUrl: p.websiteUrl,
+    memoryBookEmail: p.memoryBookEmail || "",
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
+  };
+};
+
+export const getStudentHeaderBySlug = async (slug: string): Promise<PublicStudentHeaderData> => {
+  const p = await request<any>(`/students/${encodeURIComponent(slug)}/header`);
+  const shortCourse = normalizeCourseShort(p.courseName, p.courseShortName);
+  return {
+    userId: p.userId,
+    handle: p.handle || p.slug || slug,
+    slug: p.slug || p.handle || slug,
+    fullName: p.fullName || "Student",
+    name: p.fullName || "Student",
+    initials: p.initials || "U",
+    courseName: shortCourse,
+    courseShortName: shortCourse,
+    departmentName: p.departmentName,
+    departmentShortName: p.departmentShortName,
+    collegeName: p.collegeName || "Dharmsinh Desai University",
+    collegeShortName: p.collegeShortName || "DDU",
+    collegeSlug: p.collegeSlug,
+    currentYear: p.currentYear,
+    defaultBio: p.defaultBio || "",
+    avatarUrl: p.avatarUrl,
+  };
+};
+
+export const getStudentAboutBySlug = async (slug: string): Promise<PublicStudentAboutData> => {
+  const p = await request<any>(`/students/${encodeURIComponent(slug)}/about`);
+  return {
+    userId: p.userId,
+    handle: p.handle || slug,
+    bioExtra: p.bioExtra || "",
+    githubUrl: p.githubUrl,
+    linkedinUrl: p.linkedinUrl,
+    websiteUrl: p.websiteUrl,
+    customLinks: p.customLinks,
+    contactDetails: p.contactDetails,
+  };
+};
+
 export const getProfile = async (): Promise<UserProfileData> => {
   const p = await request<any>("/profiles/me");
   const collegeName = p.collegeName || "Dharmsinh Desai University";

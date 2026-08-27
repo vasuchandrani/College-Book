@@ -133,7 +133,6 @@ const InteractiveFeatureShowcase = () => {
           {/* Left Column: Context & Feature Highlights */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
               <span>Full Interactive Mobile Preview</span>
             </div>
 
@@ -155,11 +154,10 @@ const InteractiveFeatureShowcase = () => {
                   setActiveTab("feed");
                   resetViewportScroll();
                 }}
-                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                  activeTab === "feed"
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${activeTab === "feed"
                     ? "bg-primary/10 border-primary/40 shadow-sm"
                     : "bg-card border-border/70 shadow-xs hover:border-primary/30"
-                }`}
+                  }`}
               >
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                   <Newspaper className="h-4 w-4" />
@@ -180,11 +178,10 @@ const InteractiveFeatureShowcase = () => {
                   setActiveTab("explore");
                   resetViewportScroll();
                 }}
-                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                  activeTab === "explore"
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${activeTab === "explore"
                     ? "bg-accent/10 border-accent/40 shadow-sm"
                     : "bg-card border-border/70 shadow-xs hover:border-accent/30"
-                }`}
+                  }`}
               >
                 <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0 mt-0.5">
                   <Compass className="h-4 w-4" />
@@ -205,11 +202,10 @@ const InteractiveFeatureShowcase = () => {
                   setActiveTab("collab");
                   resetViewportScroll();
                 }}
-                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                  activeTab === "collab" || activeTab === "mycollab"
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${activeTab === "collab" || activeTab === "mycollab"
                     ? "bg-emerald-500/10 border-emerald-500/40 shadow-sm"
                     : "bg-card border-border/70 shadow-xs hover:border-emerald-500/30"
-                }`}
+                  }`}
               >
                 <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
                   <Users className="h-4 w-4" />
@@ -230,11 +226,10 @@ const InteractiveFeatureShowcase = () => {
                   setActiveTab("profile");
                   resetViewportScroll();
                 }}
-                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                  activeTab === "profile"
+                className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${activeTab === "profile"
                     ? "bg-primary/10 border-primary/40 shadow-sm"
                     : "bg-card border-border/70 shadow-xs hover:border-primary/30"
-                }`}
+                  }`}
               >
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                   <BadgeCheck className="h-4 w-4" />
@@ -377,9 +372,8 @@ const InteractiveFeatureShowcase = () => {
                                   setAllowComments(!allowComments);
                                   toast.info(!allowComments ? "Comments enabled for new post" : "Comments turned off for new post");
                                 }}
-                                className={`flex items-center gap-1 transition-colors cursor-pointer ${
-                                  allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
-                                }`}
+                                className={`flex items-center gap-1 transition-colors cursor-pointer ${allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
+                                  }`}
                                 title={allowComments ? "Comments: On" : "Comments: Off"}
                               >
                                 <MessageSquare className="h-3.5 w-3.5" />
@@ -394,11 +388,10 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("campus")}
-                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                                  feedMode === "campus"
+                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${feedMode === "campus"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 <Building2 className="h-3 w-3" />
                                 <span>Campus</span>
@@ -406,11 +399,10 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => setFeedMode("global")}
-                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                                  feedMode === "global"
+                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${feedMode === "global"
                                     ? "bg-background text-primary shadow-xs"
                                     : "text-muted-foreground hover:text-foreground"
-                                }`}
+                                  }`}
                               >
                                 <Globe className="h-3 w-3" />
                                 <span>Global</span>
@@ -1147,33 +1139,30 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("open_source")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                            collabSubTab === "open_source"
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${collabSubTab === "open_source"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <Code2 className="h-3 w-3" /> Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("hackathon")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                            collabSubTab === "hackathon"
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${collabSubTab === "hackathon"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <Rocket className="h-3 w-3" /> Hackathons
                         </button>
                         <button
                           type="button"
                           onClick={() => setCollabSubTab("project")}
-                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                            collabSubTab === "project"
+                          className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${collabSubTab === "project"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <Users className="h-3 w-3" /> Projects
                         </button>
@@ -1188,11 +1177,10 @@ const InteractiveFeatureShowcase = () => {
                               <button
                                 type="button"
                                 onClick={() => toggleStar("city_store")}
-                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors cursor-pointer ${
-                                  starredProjects["city_store"]
+                                className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold transition-colors cursor-pointer ${starredProjects["city_store"]
                                     ? "bg-amber-500/15 text-amber-600 border border-amber-500/20"
                                     : "bg-muted text-muted-foreground"
-                                }`}
+                                  }`}
                               >
                                 <Star className={`h-3 w-3 ${starredProjects["city_store"] ? "fill-amber-500 text-amber-500" : ""}`} />
                                 <span>{starredProjects["city_store"] ? "54" : "53"}</span>
@@ -1325,44 +1313,40 @@ const InteractiveFeatureShowcase = () => {
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("open_source")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
-                            myCollabSubTab === "open_source"
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${myCollabSubTab === "open_source"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           Open Source
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("requests")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
-                            myCollabSubTab === "requests"
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${myCollabSubTab === "requests"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           My Requests
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("active")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
-                            myCollabSubTab === "active"
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${myCollabSubTab === "active"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           Recruiting
                         </button>
                         <button
                           type="button"
                           onClick={() => setMyCollabSubTab("completed")}
-                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${
-                            myCollabSubTab === "completed"
+                          className={`py-1 px-1 rounded-lg text-[9px] font-semibold transition-all truncate cursor-pointer ${myCollabSubTab === "completed"
                               ? "bg-background text-primary shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           Formed Teams
                         </button>
@@ -1491,11 +1475,10 @@ const InteractiveFeatureShowcase = () => {
                           {showcaseBadges.map((b) => (
                             <div
                               key={b.id}
-                              className={`p-2 rounded-xl border space-y-1 ${
-                                b.status === "verified"
+                              className={`p-2 rounded-xl border space-y-1 ${b.status === "verified"
                                   ? "bg-muted/40 border-border/50"
                                   : "bg-amber-500/5 border-amber-500/30"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between">
                                 <span className="font-bold text-foreground text-[11px]">{b.title}</span>
@@ -1507,11 +1490,10 @@ const InteractiveFeatureShowcase = () => {
                               </div>
                               <p className="text-[9px] text-muted-foreground">{b.desc}</p>
                               <span
-                                className={`text-[8px] px-1.5 py-0.5 rounded font-semibold inline-block ${
-                                  b.status === "verified"
+                                className={`text-[8px] px-1.5 py-0.5 rounded font-semibold inline-block ${b.status === "verified"
                                     ? "bg-emerald-500/10 text-emerald-600"
                                     : "bg-amber-500/15 text-amber-600 font-bold"
-                                }`}
+                                  }`}
                               >
                                 {b.badgeLabel}
                               </span>
@@ -1604,9 +1586,8 @@ const InteractiveFeatureShowcase = () => {
                         key={item.id}
                         type="button"
                         onClick={() => setActiveTab(item.id as any)}
-                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors cursor-pointer ${
-                          isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors cursor-pointer ${isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                          }`}
                       >
                         <Icon className={`h-4 w-4 transition-transform ${isActive ? "scale-110 stroke-[2.5]" : "stroke-[2]"}`} />
                         <span>{item.title}</span>

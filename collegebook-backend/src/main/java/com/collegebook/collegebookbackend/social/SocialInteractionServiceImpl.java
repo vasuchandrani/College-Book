@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -293,6 +294,168 @@ public class SocialInteractionServiceImpl implements SocialInteractionService {
             }
         }
         return fallbackCount;
+    }
+
+    @Override
+    public Map<UUID, Long> getPostLikesCountsBatch(List<UUID> postIds) {
+        if (postIds == null || postIds.isEmpty()) return Collections.emptyMap();
+        Map<UUID, Long> result = new java.util.HashMap<>();
+        if (redisTemplate != null) {
+            try {
+                List<String> keys = postIds.stream()
+                        .map(id -> String.format(KEY_PREFIX_POST_LIKES_COUNT, id))
+                        .collect(Collectors.toList());
+                List<String> counts = redisTemplate.opsForValue().multiGet(keys);
+                if (counts != null) {
+                    for (int i = 0; i < postIds.size(); i++) {
+                        String val = i < counts.size() ? counts.get(i) : null;
+                        if (val != null) {
+                            try {
+                                result.put(postIds.get(i), Math.max(0, Long.parseLong(val)));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis batch getPostLikesCounts error: {}", e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Set<UUID> getLikedPostIdsBatch(List<UUID> postIds, UUID userId) {
+        if (postIds == null || postIds.isEmpty() || userId == null) return Collections.emptySet();
+        Set<UUID> likedIds = new HashSet<>();
+        List<UUID> missingFromRedis = new ArrayList<>();
+
+        if (redisTemplate != null) {
+            try {
+                for (UUID postId : postIds) {
+                    String likesKey = String.format(KEY_PREFIX_POST_LIKES, postId);
+                    if (Boolean.TRUE.equals(redisTemplate.hasKey(likesKey))) {
+                        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(likesKey, userId.toString()))) {
+                            likedIds.add(postId);
+                        }
+                    } else {
+                        missingFromRedis.add(postId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis getLikedPostIdsBatch error, falling back to DB: {}", e.getMessage());
+                missingFromRedis = postIds;
+            }
+        } else {
+            missingFromRedis = postIds;
+        }
+
+        if (!missingFromRedis.isEmpty()) {
+            List<UUID> dbLiked = postLikeRepository.findLikedPostIdsByUserIdAndPostIdIn(userId, missingFromRedis);
+            if (dbLiked != null) {
+                likedIds.addAll(dbLiked);
+            }
+        }
+
+        return likedIds;
+    }
+
+    @Override
+    public Set<UUID> getSavedPostIdsBatch(List<UUID> postIds, UUID userId) {
+        if (postIds == null || postIds.isEmpty() || userId == null) return Collections.emptySet();
+        Set<UUID> savedIds = new HashSet<>();
+        List<UUID> missingFromRedis = new ArrayList<>();
+
+        if (redisTemplate != null) {
+            try {
+                for (UUID postId : postIds) {
+                    String savesKey = String.format(KEY_PREFIX_POST_SAVES, postId);
+                    if (Boolean.TRUE.equals(redisTemplate.hasKey(savesKey))) {
+                        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(savesKey, userId.toString()))) {
+                            savedIds.add(postId);
+                        }
+                    } else {
+                        missingFromRedis.add(postId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis getSavedPostIdsBatch error, falling back to DB: {}", e.getMessage());
+                missingFromRedis = postIds;
+            }
+        } else {
+            missingFromRedis = postIds;
+        }
+
+        if (!missingFromRedis.isEmpty()) {
+            List<UUID> dbSaved = postSaveRepository.findSavedPostIdsByUserIdAndPostIdIn(userId, missingFromRedis);
+            if (dbSaved != null) {
+                savedIds.addAll(dbSaved);
+            }
+        }
+
+        return savedIds;
+    }
+
+    @Override
+    public Map<UUID, Long> getTeamStarsCountsBatch(List<UUID> teamIds) {
+        if (teamIds == null || teamIds.isEmpty()) return Collections.emptyMap();
+        Map<UUID, Long> result = new java.util.HashMap<>();
+        if (redisTemplate != null) {
+            try {
+                List<String> keys = teamIds.stream()
+                        .map(id -> String.format(KEY_PREFIX_TEAM_STARS_COUNT, id))
+                        .collect(Collectors.toList());
+                List<String> counts = redisTemplate.opsForValue().multiGet(keys);
+                if (counts != null) {
+                    for (int i = 0; i < teamIds.size(); i++) {
+                        String val = i < counts.size() ? counts.get(i) : null;
+                        if (val != null) {
+                            try {
+                                result.put(teamIds.get(i), Math.max(0, Long.parseLong(val)));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis batch getTeamStarsCounts error: {}", e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Set<UUID> getStarredTeamIdsBatch(List<UUID> teamIds, UUID userId) {
+        if (teamIds == null || teamIds.isEmpty() || userId == null) return Collections.emptySet();
+        Set<UUID> starredIds = new HashSet<>();
+        List<UUID> missingFromRedis = new ArrayList<>();
+
+        if (redisTemplate != null) {
+            try {
+                for (UUID teamId : teamIds) {
+                    String starsKey = String.format(KEY_PREFIX_TEAM_STARS, teamId);
+                    if (Boolean.TRUE.equals(redisTemplate.hasKey(starsKey))) {
+                        if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(starsKey, userId.toString()))) {
+                            starredIds.add(teamId);
+                        }
+                    } else {
+                        missingFromRedis.add(teamId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis getStarredTeamIdsBatch error, falling back to DB: {}", e.getMessage());
+                missingFromRedis = teamIds;
+            }
+        } else {
+            missingFromRedis = teamIds;
+        }
+
+        if (!missingFromRedis.isEmpty()) {
+            List<UUID> dbStarred = teamStarRepository.findStarredTeamIdsByUserIdAndTeamIdIn(userId, missingFromRedis);
+            if (dbStarred != null) {
+                starredIds.addAll(dbStarred);
+            }
+        }
+
+        return starredIds;
     }
 
     @Override

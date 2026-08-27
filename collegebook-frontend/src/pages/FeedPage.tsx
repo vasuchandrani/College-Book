@@ -47,6 +47,8 @@ import {
   type FeedPost,
 } from "@/lib/api";
 
+import { clientCache } from "@/lib/clientCache";
+
 interface PendingImage {
   file: File;
   previewUrl: string;
@@ -60,11 +62,15 @@ interface PendingVideo {
 const PAGE_SIZE = 15;
 
 const FeedPage = () => {
-  const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [ads, setAds] = useState<AdData[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const cacheKey = "feed_page_0_" + (selectedTag || "all");
+  const cachedFeed = clientCache.get<{ posts: FeedPost[]; hasNext: boolean }>(cacheKey);
+
+  const [posts, setPosts] = useState<FeedPost[]>(() => cachedFeed?.posts || []);
+  const [ads, setAds] = useState<AdData[]>(() => clientCache.get<AdData[]>("feed_ads") || []);
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [hasMore, setHasMore] = useState(() => (cachedFeed ? cachedFeed.hasNext : true));
+  const [loadingInitial, setLoadingInitial] = useState(() => !cachedFeed);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [newPost, setNewPost] = useState("");
@@ -76,7 +82,6 @@ const FeedPage = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatusText, setUploadStatusText] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [isGlobal, setIsGlobal] = useState(true);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
@@ -106,22 +111,33 @@ const FeedPage = () => {
     (user.college === "Dharmsinh Desai University" ? "DDU" : user.college) ||
     "DDU";
 
-  // Initial fetch / tag filter change
+  // Initial fetch / tag filter change (Stale-While-Revalidate)
   useEffect(() => {
     let alive = true;
-    setLoadingInitial(true);
+    const currentKey = "feed_page_0_" + (selectedTag || "all");
+    const existing = clientCache.get<{ posts: FeedPost[]; hasNext: boolean }>(currentKey);
+
+    if (existing) {
+      setPosts(existing.posts || []);
+      setHasMore(existing.hasNext);
+      setLoadingInitial(false);
+    } else {
+      setLoadingInitial(true);
+    }
     setPage(0);
-    setHasMore(true);
 
     getFeedPosts(0, PAGE_SIZE, selectedTag || undefined)
       .then((res) => {
         if (alive) {
-          setPosts(res.posts || []);
-          setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
+          const freshPosts = res.posts || [];
+          const nextVal = Boolean(res.hasNext && freshPosts.length > 0);
+          setPosts(freshPosts);
+          setHasMore(nextVal);
+          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 120_000);
         }
       })
       .catch(() => {
-        if (alive) {
+        if (alive && !existing) {
           setPosts([]);
           setHasMore(false);
         }
@@ -131,7 +147,12 @@ const FeedPage = () => {
       });
 
     getFeedAds()
-      .then((data) => alive && setAds(data || []))
+      .then((data) => {
+        if (alive && data) {
+          setAds(data);
+          clientCache.set("feed_ads", data, 300_000);
+        }
+      })
       .catch(() => {});
 
     getProfile()

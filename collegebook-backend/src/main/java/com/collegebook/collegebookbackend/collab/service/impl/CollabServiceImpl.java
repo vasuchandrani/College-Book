@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -98,16 +99,24 @@ public class CollabServiceImpl implements CollabService {
     }
 
     private PageResponse<TeamResponseDto> overlayUserTeamPersonalization(PageResponse<TeamResponseDto> publicPage, UUID userId) {
-        if (publicPage == null || publicPage.getItems() == null) {
+        if (publicPage == null || publicPage.getItems() == null || publicPage.getItems().isEmpty()) {
             return publicPage;
         }
 
+        List<UUID> teamIds = publicPage.getItems().stream()
+                .map(TeamResponseDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+
+        Map<UUID, Long> starsCountMap = socialInteractionService.getTeamStarsCountsBatch(teamIds);
+        Set<UUID> starredSet = userId != null ? socialInteractionService.getStarredTeamIdsBatch(teamIds, userId) : Collections.emptySet();
+
         List<TeamResponseDto> personalized = publicPage.getItems().stream()
                 .map(dto -> {
-                    int effectiveStars = (int) socialInteractionService.getTeamStarsCount(dto.getId(), dto.getStarsCount());
-                    boolean starred = userId != null && socialInteractionService.isTeamStarredByUser(dto.getId(), userId);
+                    long effectiveStars = starsCountMap.getOrDefault(dto.getId(), (long) dto.getStarsCount());
+                    boolean starred = starredSet.contains(dto.getId());
                     return dto.toBuilder()
-                            .starsCount(effectiveStars)
+                            .starsCount((int) effectiveStars)
                             .starred(starred)
                             .build();
                 })
@@ -235,8 +244,20 @@ public class CollabServiceImpl implements CollabService {
 
         team.setCurrentMembersCount(1);
 
-        // Denormalize college name for filtering
+        // Denormalize owner and college details for O(1) reads
+        Optional<Profile> ownerProfileOpt = profileRepository.findByUserId(userId);
+        if (ownerProfileOpt.isPresent()) {
+            Profile op = ownerProfileOpt.get();
+            team.setOwnerName(op.getFullName() != null ? op.getFullName() : owner.getEmail());
+            team.setOwnerHandle(op.getHandle());
+            team.setOwnerAvatarUrl(op.getAvatarUrl());
+        } else {
+            team.setOwnerName(owner.getEmail());
+        }
+
         if (owner.getCollege() != null) {
+            team.setCollegeName(owner.getCollege().getName());
+            team.setCollegeShortName(owner.getCollege().getShortName());
             team.setOwnerCollegeName(owner.getCollege().getName());
         }
 
@@ -577,12 +598,15 @@ public class CollabServiceImpl implements CollabService {
     private TeamResponseDto mapToTeamDto(Team team, UUID userId) {
         TeamResponseDto dto = new TeamResponseDto();
         dto.setId(team.getId());
-        dto.setOwnerId(team.getOwner().getId());
+        dto.setOwnerId(team.getOwner() != null ? team.getOwner().getId() : null);
 
-        Optional<Profile> profileOpt = profileRepository.findByUserId(team.getOwner().getId());
-        dto.setOwnerName(profileOpt.map(Profile::getFullName).orElse(team.getOwner().getEmail()));
-        dto.setOwnerHandle(profileOpt.map(Profile::getHandle).orElse(null));
-        dto.setOwnerAvatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null));
+        String ownerName = team.getOwnerName() != null ? team.getOwnerName() : (team.getOwner() != null ? team.getOwner().getEmail() : "Student");
+        String ownerHandle = team.getOwnerHandle();
+        String ownerAvatarUrl = team.getOwnerAvatarUrl();
+
+        dto.setOwnerName(ownerName);
+        dto.setOwnerHandle(ownerHandle);
+        dto.setOwnerAvatarUrl(ownerAvatarUrl);
 
         dto.setTitle(team.getTitle());
         dto.setType(team.getType());

@@ -16,4 +16,7 @@ public interface PostSaveRepository extends JpaRepository<PostSave, PostSaveId> 
 
     @Query("SELECT ps.id.userId FROM PostSave ps WHERE ps.id.postId = :postId")
     List<UUID> findUserIdsByPostId(@Param("postId") UUID postId);
+
+    @Query("SELECT ps.id.postId FROM PostSave ps WHERE ps.id.userId = :userId AND ps.id.postId IN :postIds")
+    List<UUID> findSavedPostIdsByUserIdAndPostIdIn(@Param("userId") UUID userId, @Param("postIds") java.util.Collection<UUID> postIds);
 }

@@ -31,6 +31,16 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getMyProfile(currentUser.getId()));
     }
 
+    @GetMapping("/profiles/me/header")
+    public ResponseEntity<com.collegebook.collegebookbackend.profile.dto.ProfileHeaderDto> getMyProfileHeader(@CurrentUser UserPrincipal currentUser) {
+        return ResponseEntity.ok(profileService.getMyProfileHeader(currentUser.getId()));
+    }
+
+    @GetMapping("/profiles/me/about")
+    public ResponseEntity<com.collegebook.collegebookbackend.profile.dto.ProfileAboutDto> getMyProfileAbout(@CurrentUser UserPrincipal currentUser) {
+        return ResponseEntity.ok(profileService.getMyProfileAbout(currentUser.getId()));
+    }
+
     @PatchMapping("/profiles/me")
     public ResponseEntity<ProfileDto> updateMyProfile(
             @CurrentUser UserPrincipal currentUser,
@@ -41,6 +51,16 @@ public class ProfileController {
     @GetMapping("/students/{slug}")
     public ResponseEntity<PublicProfileDto> getStudentBySlug(@PathVariable("slug") String slug) {
         return ResponseEntity.ok(profileService.getStudentBySlug(slug));
+    }
+
+    @GetMapping("/students/{slug}/header")
+    public ResponseEntity<com.collegebook.collegebookbackend.profile.dto.PublicProfileHeaderDto> getStudentHeaderBySlug(@PathVariable("slug") String slug) {
+        return ResponseEntity.ok(profileService.getStudentHeaderBySlug(slug));
+    }
+
+    @GetMapping("/students/{slug}/about")
+    public ResponseEntity<com.collegebook.collegebookbackend.profile.dto.PublicProfileAboutDto> getStudentAboutBySlug(@PathVariable("slug") String slug) {
+        return ResponseEntity.ok(profileService.getStudentAboutBySlug(slug));
     }
 
     @GetMapping("/students/verify-member")

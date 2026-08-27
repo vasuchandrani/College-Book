@@ -85,6 +85,7 @@ import {
 } from "@/lib/api";
 import { markRoomAsRead, checkIsMessageUnread } from "@/lib/chatUnread";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
+import { clientCache } from "@/lib/clientCache";
 
 const commonTechSuggestions = [
   "React",
@@ -134,10 +135,14 @@ interface MemberEntry {
 
 export default function MyCollaborationPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [myTeams, setMyTeams] = useState<any[]>([]);
-  const [myRequests, setMyRequests] = useState<any[]>([]);
-  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const cachedMyTeams = clientCache.get<any[]>("my_collab_teams");
+  const cachedMyReqs = clientCache.get<any[]>("my_collab_requests");
+  const cachedIncoming = clientCache.get<any[]>("my_collab_incoming");
+
+  const [loading, setLoading] = useState(() => !cachedMyTeams);
+  const [myTeams, setMyTeams] = useState<any[]>(() => cachedMyTeams || []);
+  const [myRequests, setMyRequests] = useState<any[]>(() => cachedMyReqs || []);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>(() => cachedIncoming || []);
 
   // Create Collab Modal state
   const [createOpen, setCreateOpen] = useState(false);
@@ -204,15 +209,24 @@ export default function MyCollaborationPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      const existing = clientCache.get<any[]>("my_collab_teams");
+      if (!existing) {
+        setLoading(true);
+      }
       const [teamsData, reqsData, incomingData] = await Promise.all([
         getMyCreatedTeams().catch(() => []),
         getMyJoinedRequests().catch(() => []),
         getIncomingJoinRequests().catch(() => []),
       ]);
-      setMyTeams(teamsData || []);
-      setMyRequests(reqsData || []);
-      setIncomingRequests(incomingData || []);
+      const freshTeams = teamsData || [];
+      const freshReqs = reqsData || [];
+      const freshIncoming = incomingData || [];
+      setMyTeams(freshTeams);
+      setMyRequests(freshReqs);
+      setIncomingRequests(freshIncoming);
+      clientCache.set("my_collab_teams", freshTeams, 120_000);
+      clientCache.set("my_collab_requests", freshReqs, 120_000);
+      clientCache.set("my_collab_incoming", freshIncoming, 120_000);
       window.dispatchEvent(new Event("cb_collab_updated"));
 
       // Check unread messages for collaboration rooms
@@ -238,7 +252,7 @@ export default function MyCollaborationPage() {
                 unreadMap.add(t.id);
               }
             }
-          } catch {}
+          } catch { }
         })
       );
       setUnreadRooms(unreadMap);
@@ -538,8 +552,8 @@ export default function MyCollaborationPage() {
         createType === "open_source"
           ? "Open-source project published!"
           : createType === "hackathon"
-          ? "Hackathon team created!"
-          : "Team project created!"
+            ? "Hackathon team created!"
+            : "Team project created!"
       );
       resetCreateForm();
       setCreateOpen(false);
@@ -564,16 +578,16 @@ export default function MyCollaborationPage() {
           prev.map((p) =>
             p.id === projectId
               ? {
-                  ...p,
-                  starred: newStarred,
-                  starsCount: newStarred
-                    ? target.starred
-                      ? target.starsCount
-                      : (target.starsCount || 0) + 1
-                    : target.starred
+                ...p,
+                starred: newStarred,
+                starsCount: newStarred
+                  ? target.starred
+                    ? target.starsCount
+                    : (target.starsCount || 0) + 1
+                  : target.starred
                     ? Math.max(0, (target.starsCount || 0) - 1)
                     : target.starsCount || 0,
-                }
+              }
               : p
           )
         );
@@ -769,8 +783,8 @@ export default function MyCollaborationPage() {
         status === "ACCEPTED"
           ? "Applicant accepted into team!"
           : status === "PENDING"
-          ? "Rejection undone. Request restored to Pending."
-          : "Request declined."
+            ? "Rejection undone. Request restored to Pending."
+            : "Request declined."
       );
       setIncomingRequests((prev) =>
         prev.map((r) => (r.id === reqId ? { ...r, status } : r))
@@ -803,7 +817,7 @@ export default function MyCollaborationPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/60 pb-4 sm:pb-5">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FolderGit2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> My Collaboration
+            My Collaboration
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Manage your projects, teams, and join applications.
@@ -831,7 +845,7 @@ export default function MyCollaborationPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
-        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 lg:grid-cols-4 w-full max-w-4xl h-auto gap-1.5 shadow-2xs">
+        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1.5 shadow-2xs">
           <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Code2 className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">Open source</span>
@@ -972,25 +986,25 @@ export default function MyCollaborationPage() {
                       <div className="space-y-2 pt-1">
                         {((project.requiredRoles && project.requiredRoles.length > 0) ||
                           (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                              <Users className="h-3 w-3" /> Looking for roles:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(project.requiredRoles || project.requiredExpertise || []).map(
-                                (role: string, idx: number) => (
-                                  <Badge
-                                    key={`${project.id}-os-role-${role}-${idx}`}
-                                    variant="secondary"
-                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                  >
-                                    {role}
-                                  </Badge>
-                                )
-                              )}
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                <Users className="h-3 w-3" /> Looking for roles:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(project.requiredRoles || project.requiredExpertise || []).map(
+                                  (role: string, idx: number) => (
+                                    <Badge
+                                      key={`${project.id}-os-role-${role}-${idx}`}
+                                      variant="secondary"
+                                      className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                    >
+                                      {role}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         {project.skills && project.skills.length > 0 && (
                           <div className="space-y-1">
@@ -1029,9 +1043,8 @@ export default function MyCollaborationPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                              project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                            }`}
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                              }`}
                           >
                             <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
@@ -1088,16 +1101,15 @@ export default function MyCollaborationPage() {
                                 isAccepted
                                   ? "default"
                                   : isRejected
-                                  ? "destructive"
-                                  : "secondary"
+                                    ? "destructive"
+                                    : "secondary"
                               }
-                              className={`text-xs capitalize shrink-0 ${
-                                isAccepted
+                              className={`text-xs capitalize shrink-0 ${isAccepted
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                                   : isPending
-                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                  : ""
-                              }`}
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                    : ""
+                                }`}
                             >
                               {isAccepted ? "Accepted" : isRejected ? "Rejected" : "Pending Review"}
                             </Badge>
@@ -1186,235 +1198,231 @@ export default function MyCollaborationPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06 }}
                   >
-                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
-                          <Link
-                            to={`/my-collaboration/${project.id}`}
-                            className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
-                          >
-                            {project.title}
-                          </Link>
-
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs capitalize shrink-0 ${
-                              project.type === "HACKATHON" || project.type === "hackathon"
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            }`}
-                          >
-                            {project.type === "HACKATHON" || project.type === "hackathon"
-                              ? "Hackathon Team"
-                              : "Team Project"}
-                          </Badge>
-
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
-                          </Badge>
-
-                          <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
-                            Hiring Open
-                          </Badge>
-                        </div>
-
-                        {isUserCreatorOf(project) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg -mt-1 -mr-1"
-                                title="Project actions"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem
-                                onClick={() => setCompleteConfirm(project.id)}
-                                className="gap-2 cursor-pointer text-xs text-emerald-600 dark:text-emerald-400 focus:text-emerald-600 dark:focus:text-emerald-400 font-medium"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openEditTeam(project)}
-                                className="gap-2 cursor-pointer text-xs"
-                              >
-                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setDeleteConfirm(project.id)}
-                                className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-
-                      {project.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
-                          {project.description}
-                        </p>
-                      )}
-
-                      {project.githubLink && (
-                        <div>
-                          <a
-                            href={
-                              project.githubLink.startsWith("http")
-                                ? project.githubLink
-                                : `https://${project.githubLink}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline inline-flex items-center gap-1 max-w-full"
-                          >
-                            <ExternalLink className="h-3 w-3 shrink-0" />
-                            <span className="truncate max-w-[220px] sm:max-w-[360px]">
-                              {project.githubLink.replace(/^https?:\/\//, "")}
-                            </span>
-                          </a>
-                        </div>
-                      )}
-
-                      <div className="space-y-1.5 pt-1">
-                        {((project.requiredRoles && project.requiredRoles.length > 0) ||
-                          (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                              <Users className="h-3 w-3" /> Looking for roles:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(project.requiredRoles || project.requiredExpertise || []).map(
-                                (role: string, idx: number) => (
-                                  <Badge
-                                    key={`${project.id}-act-role-${role}-${idx}`}
-                                    variant="secondary"
-                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                                  >
-                                    {role}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {project.skills && project.skills.length > 0 && (
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                              <Code2 className="h-3 w-3" /> Tech Stack:
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.skills.map((tech: string, idx: number) => (
-                                <Badge
-                                  key={`${project.id}-act-tech-${tech}-${idx}`}
-                                  variant="outline"
-                                  className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
-                                >
-                                  {tech}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Responsive Action Toolbar */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                        {/* Primary Actions */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 text-xs h-8 px-2.5"
-                          >
-                            <Link to={`/my-collaboration/${project.id}`}>
-                              <Eye className="h-3.5 w-3.5" /> View Details
+                    <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                            <Link
+                              to={`/my-collaboration/${project.id}`}
+                              className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                            >
+                              {project.title}
                             </Link>
-                          </Button>
 
-                          {isUserCreatorOf(project) ? (
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs capitalize shrink-0 ${project.type === "HACKATHON" || project.type === "hackathon"
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                }`}
+                            >
+                              {project.type === "HACKATHON" || project.type === "hackathon"
+                                ? "Hackathon Team"
+                                : "Team Project"}
+                            </Badge>
+
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
+                            </Badge>
+
+                            <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
+                              Hiring Open
+                            </Badge>
+                          </div>
+
+                          {isUserCreatorOf(project) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg -mt-1 -mr-1"
+                                  title="Project actions"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                  onClick={() => setCompleteConfirm(project.id)}
+                                  className="gap-2 cursor-pointer text-xs text-emerald-600 dark:text-emerald-400 focus:text-emerald-600 dark:focus:text-emerald-400 font-medium"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openEditTeam(project)}
+                                  className="gap-2 cursor-pointer text-xs"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteConfirm(project.id)}
+                                  className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                            {project.description}
+                          </p>
+                        )}
+
+                        {project.githubLink && (
+                          <div>
+                            <a
+                              href={
+                                project.githubLink.startsWith("http")
+                                  ? project.githubLink
+                                  : `https://${project.githubLink}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1 max-w-full"
+                            >
+                              <ExternalLink className="h-3 w-3 shrink-0" />
+                              <span className="truncate max-w-[220px] sm:max-w-[360px]">
+                                {project.githubLink.replace(/^https?:\/\//, "")}
+                              </span>
+                            </a>
+                          </div>
+                        )}
+
+                        <div className="space-y-1.5 pt-1">
+                          {((project.requiredRoles && project.requiredRoles.length > 0) ||
+                            (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
+                              <div className="space-y-1">
+                                <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+                                  <Users className="h-3 w-3" /> Looking for roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(project.requiredRoles || project.requiredExpertise || []).map(
+                                    (role: string, idx: number) => (
+                                      <Badge
+                                        key={`${project.id}-act-role-${role}-${idx}`}
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                                      >
+                                        {role}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                          {project.skills && project.skills.length > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                <Code2 className="h-3 w-3" /> Tech Stack:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {project.skills.map((tech: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-act-tech-${tech}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {tech}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Responsive Action Toolbar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                          {/* Primary Actions */}
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <Button
+                              asChild
                               variant="outline"
                               size="sm"
-                              className={`gap-1.5 text-xs h-8 px-2.5 ${
-                                pendingRequests.length > 0
-                                  ? "border-primary text-primary bg-primary/5 font-semibold"
-                                  : ""
-                              }`}
-                              onClick={() => handleOpenViewRequests(project)}
+                              className="gap-1 text-xs h-8 px-2.5"
                             >
-                              <UsersRound className="h-3.5 w-3.5" /> View Requests
-                              {pendingRequests.length > 0 && (
+                              <Link to={`/my-collaboration/${project.id}`}>
+                                <Eye className="h-3.5 w-3.5" /> View Details
+                              </Link>
+                            </Button>
+
+                            {isUserCreatorOf(project) ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={`gap-1.5 text-xs h-8 px-2.5 ${pendingRequests.length > 0
+                                    ? "border-primary text-primary bg-primary/5 font-semibold"
+                                    : ""
+                                  }`}
+                                onClick={() => handleOpenViewRequests(project)}
+                              >
+                                <UsersRound className="h-3.5 w-3.5" /> View Requests
+                                {pendingRequests.length > 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-primary text-primary-foreground font-semibold"
+                                  >
+                                    {pendingRequests.length}
+                                  </Badge>
+                                )}
+                              </Button>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
+                              >
+                                ✓ Joined Member
+                              </Badge>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                markRoomAsRead(project.id);
+                                setUnreadRooms((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(project.id);
+                                  return next;
+                                });
+                                navigate(`/my-collaboration/${project.id}?tab=chat`);
+                              }}
+                              className={`gap-1.5 text-xs h-8 px-2.5 ${unreadRooms.has(project.id)
+                                  ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                                  : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                                }`}
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>Room Chat</span>
+                              {unreadRooms.has(project.id) && (
                                 <Badge
                                   variant="secondary"
-                                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-primary text-primary-foreground font-semibold"
+                                  className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
                                 >
-                                  {pendingRequests.length}
+                                  New
                                 </Badge>
                               )}
                             </Button>
-                          ) : (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-1 font-medium select-none"
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleStar(project.id)}
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                                }`}
                             >
-                              ✓ Joined Member
-                            </Badge>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              markRoomAsRead(project.id);
-                              setUnreadRooms((prev) => {
-                                const next = new Set(prev);
-                                next.delete(project.id);
-                                return next;
-                              });
-                              navigate(`/my-collaboration/${project.id}?tab=chat`);
-                            }}
-                            className={`gap-1.5 text-xs h-8 px-2.5 ${
-                              unreadRooms.has(project.id)
-                                ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
-                                : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
-                            }`}
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            <span>Room Chat</span>
-                            {unreadRooms.has(project.id) && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-bold shadow-2xs ml-0.5"
-                              >
-                                New
-                              </Badge>
-                            )}
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                              project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                            }`}
-                          >
-                            <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
-                            <span className="font-semibold text-xs">{project.starsCount || 0}</span>
-                          </Button>
+                              <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                              <span className="font-semibold text-xs">{project.starsCount || 0}</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
+                    </Card>
                   </motion.div>
                 );
               })}
@@ -1435,13 +1443,13 @@ export default function MyCollaborationPage() {
           ) : (
             <div className="space-y-4">
               {completedTeams.map((project, i) => (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                  >
-                    <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow border-emerald-500/20">
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                >
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow border-emerald-500/20">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <Link
@@ -1453,11 +1461,10 @@ export default function MyCollaborationPage() {
 
                         <Badge
                           variant="secondary"
-                          className={`text-xs capitalize shrink-0 ${
-                            project.type === "HACKATHON" || project.type === "hackathon"
+                          className={`text-xs capitalize shrink-0 ${project.type === "HACKATHON" || project.type === "hackathon"
                               ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          }`}
+                            }`}
                         >
                           {project.type === "HACKATHON" || project.type === "hackathon"
                             ? "Hackathon Team"
@@ -1501,21 +1508,21 @@ export default function MyCollaborationPage() {
 
                       {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
                         (project.skills && project.skills.length > 0)) && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {(project.requiredExpertise && project.requiredExpertise.length > 0
-                            ? project.requiredExpertise
-                            : project.skills || []
-                          ).map((tech: string, idx: number) => (
-                            <Badge
-                              key={`${project.id}-comp-tech-${tech}-${idx}`}
-                              variant="secondary"
-                              className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
-                            >
-                              {tech}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {(project.requiredExpertise && project.requiredExpertise.length > 0
+                              ? project.requiredExpertise
+                              : project.skills || []
+                            ).map((tech: string, idx: number) => (
+                              <Badge
+                                key={`${project.id}-comp-tech-${tech}-${idx}`}
+                                variant="secondary"
+                                className="text-[11px] px-2.5 py-0.5 font-medium bg-primary/10 text-primary border border-primary/20"
+                              >
+                                {tech}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
 
                       {/* Responsive Action Toolbar */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
@@ -1560,11 +1567,10 @@ export default function MyCollaborationPage() {
                               });
                               navigate(`/my-collaboration/${project.id}?tab=chat`);
                             }}
-                            className={`gap-1.5 text-xs h-8 px-2.5 ${
-                              unreadRooms.has(project.id)
+                            className={`gap-1.5 text-xs h-8 px-2.5 ${unreadRooms.has(project.id)
                                 ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
                                 : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
-                            }`}
+                              }`}
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
                             <span>Room Chat</span>
@@ -1582,9 +1588,8 @@ export default function MyCollaborationPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                              project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                            }`}
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                              }`}
                           >
                             <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
@@ -1618,15 +1623,15 @@ export default function MyCollaborationPage() {
               {createType === "open_source"
                 ? "Open-Source Project"
                 : createType === "hackathon"
-                ? "Hackathon Team"
-                : "Team Project"}
+                  ? "Hackathon Team"
+                  : "Team Project"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               {createType === "open_source"
                 ? "Publish your repository to gain reach and invite open contributions from all campus students."
                 : createType === "hackathon"
-                ? "Assemble a dedicated team for an upcoming hackathon challenge."
-                : "Create a project collaboration to build with a capped team."}
+                  ? "Assemble a dedicated team for an upcoming hackathon challenge."
+                  : "Create a project collaboration to build with a capped team."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1679,16 +1684,16 @@ export default function MyCollaborationPage() {
                 {createType === "open_source"
                   ? "Repository / Project Name"
                   : createType === "hackathon"
-                  ? "Team Name"
-                  : "Project Title"}
+                    ? "Team Name"
+                    : "Project Title"}
               </Label>
               <Input
                 placeholder={
                   createType === "open_source"
                     ? "e.g. AwesomeCampusLib or StudyBot-AI"
                     : createType === "hackathon"
-                    ? "e.g. Neural Nexus"
-                    : "e.g. PeerMatch"
+                      ? "e.g. Neural Nexus"
+                      : "e.g. PeerMatch"
                 }
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
@@ -2107,8 +2112,8 @@ export default function MyCollaborationPage() {
                               isAccepted
                                 ? "default"
                                 : isRejected
-                                ? "destructive"
-                                : "secondary"
+                                  ? "destructive"
+                                  : "secondary"
                             }
                             className="text-[10px]"
                           >

@@ -55,6 +55,22 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public com.collegebook.collegebookbackend.profile.dto.ProfileHeaderDto getMyProfileHeader(UUID userId) {
+        Profile p = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Profile not found"));
+        return toHeaderDto(p);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.collegebook.collegebookbackend.profile.dto.ProfileAboutDto getMyProfileAbout(UUID userId) {
+        Profile p = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Profile not found"));
+        return toAboutDto(p);
+    }
+
+    @Override
     @Transactional
     @CachePut(value = "profiles", key = "#userId")
     @org.springframework.cache.annotation.CacheEvict(value = "publicProfiles", allEntries = true)
@@ -139,10 +155,29 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional(readOnly = true)
     @Cacheable(value = "publicProfiles", key = "#slug")
     public PublicProfileDto getStudentBySlug(String slug) {
+        Profile profile = findProfileBySlugOrThrow(slug);
+        return toPublicDto(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.collegebook.collegebookbackend.profile.dto.PublicProfileHeaderDto getStudentHeaderBySlug(String slug) {
+        Profile profile = findProfileBySlugOrThrow(slug);
+        return toPublicHeaderDto(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.collegebook.collegebookbackend.profile.dto.PublicProfileAboutDto getStudentAboutBySlug(String slug) {
+        Profile profile = findProfileBySlugOrThrow(slug);
+        return toPublicAboutDto(profile);
+    }
+
+    private Profile findProfileBySlugOrThrow(String slug) {
         if (slug == null || slug.isBlank()) {
             throw new AppException(ErrorCode.NOT_FOUND, "Student profile not found");
         }
-        String cleanSlug = slug.trim();
+        String cleanSlug = slug.trim().replaceFirst("^@", "");
         java.util.Optional<Profile> profileOpt = profileRepository.findByHandleIgnoreCase(cleanSlug);
         if (profileOpt.isEmpty()) {
             profileOpt = profileRepository.findFirstByFullNameIgnoreCase(cleanSlug);
@@ -154,10 +189,7 @@ public class ProfileServiceImpl implements ProfileService {
             } catch (IllegalArgumentException ignored) {
             }
         }
-        Profile profile = profileOpt
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Student profile not found"));
-
-        return toPublicDto(profile);
+        return profileOpt.orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Student profile not found"));
     }
 
     @Override
@@ -406,5 +438,89 @@ public class ProfileServiceImpl implements ProfileService {
         dto.setContactDetails(p.getContactDetails());
         dto.setPublic(p.isPublic());
         return dto;
+    }
+
+    private com.collegebook.collegebookbackend.profile.dto.ProfileHeaderDto toHeaderDto(Profile p) {
+        String defaultBio = p.getDefaultBio();
+        if (p.getCourse() != null) {
+            String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
+            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            defaultBio = dName.isBlank() ? cName : cName + " " + dName;
+        }
+
+        return com.collegebook.collegebookbackend.profile.dto.ProfileHeaderDto.builder()
+                .userId(p.getUserId())
+                .handle(p.getHandle())
+                .fullName(p.getFullName())
+                .initials(p.getInitials())
+                .gender(p.getGender() != null ? p.getGender().name() : null)
+                .collegeId(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getId() : null)
+                .collegeName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getName() : null)
+                .collegeShortName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getShortName() : null)
+                .collegeSlug(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getSlug() : null)
+                .courseId(p.getCourse() != null ? p.getCourse().getId() : null)
+                .courseName(p.getCourse() != null ? p.getCourse().getName() : null)
+                .courseShortName(p.getCourse() != null ? (p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName()) : null)
+                .departmentId(p.getDepartment() != null ? p.getDepartment().getId() : null)
+                .departmentName(p.getDepartment() != null ? p.getDepartment().getName() : null)
+                .departmentShortName(p.getDepartment() != null ? p.getDepartment().getShortName() : null)
+                .currentYear(p.getCurrentYear() != null ? (int) p.getCurrentYear() : null)
+                .defaultBio(defaultBio)
+                .avatarUrl(resolveAvatarUrl(p.getAvatarUrl()))
+                .isPublic(p.isPublic())
+                .build();
+    }
+
+    private com.collegebook.collegebookbackend.profile.dto.ProfileAboutDto toAboutDto(Profile p) {
+        return com.collegebook.collegebookbackend.profile.dto.ProfileAboutDto.builder()
+                .userId(p.getUserId())
+                .bioExtra(p.getBioExtra())
+                .githubUrl(p.getGithubUrl())
+                .linkedinUrl(p.getLinkedinUrl())
+                .websiteUrl(p.getWebsiteUrl())
+                .memoryBookEmail(p.getMemoryBookEmail())
+                .customLinks(p.getCustomLinks())
+                .contactDetails(p.getContactDetails())
+                .build();
+    }
+
+    private com.collegebook.collegebookbackend.profile.dto.PublicProfileHeaderDto toPublicHeaderDto(Profile p) {
+        String defaultBio = p.getDefaultBio();
+        if (p.getCourse() != null) {
+            String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
+            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            defaultBio = dName.isBlank() ? cName : cName + " " + dName;
+        }
+
+        return com.collegebook.collegebookbackend.profile.dto.PublicProfileHeaderDto.builder()
+                .userId(p.getUserId())
+                .handle(p.getHandle())
+                .slug(p.getHandle())
+                .fullName(p.getFullName())
+                .initials(p.getInitials())
+                .courseName(p.getCourse() != null ? p.getCourse().getName() : null)
+                .courseShortName(p.getCourse() != null ? (p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName()) : null)
+                .departmentName(p.getDepartment() != null ? p.getDepartment().getName() : null)
+                .departmentShortName(p.getDepartment() != null ? p.getDepartment().getShortName() : null)
+                .collegeName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getName() : null)
+                .collegeShortName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getShortName() : null)
+                .collegeSlug(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getSlug() : null)
+                .currentYear(p.getCurrentYear())
+                .defaultBio(defaultBio)
+                .avatarUrl(resolveAvatarUrl(p.getAvatarUrl()))
+                .build();
+    }
+
+    private com.collegebook.collegebookbackend.profile.dto.PublicProfileAboutDto toPublicAboutDto(Profile p) {
+        return com.collegebook.collegebookbackend.profile.dto.PublicProfileAboutDto.builder()
+                .userId(p.getUserId())
+                .handle(p.getHandle())
+                .bioExtra(p.getBioExtra())
+                .githubUrl(p.getGithubUrl())
+                .linkedinUrl(p.getLinkedinUrl())
+                .websiteUrl(p.getWebsiteUrl())
+                .customLinks(p.getCustomLinks())
+                .contactDetails(p.getContactDetails())
+                .build();
     }
 }

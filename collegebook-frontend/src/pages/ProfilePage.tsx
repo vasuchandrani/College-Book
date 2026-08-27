@@ -127,6 +127,7 @@ import {
   type Department,
 } from "@/lib/api";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
+import { clientCache } from "@/lib/clientCache";
 
 export interface CustomLink {
   id?: string;
@@ -208,14 +209,14 @@ const ProfilePage = () => {
   const [removingMemoryEmail, setRemovingMemoryEmail] = useState(false);
   const { triggerToggle } = useDebouncedToggle(400);
 
-  const [activityPosts, setActivityPosts] = useState<any[]>([]);
-  const [createdProjects, setCreatedProjects] = useState<any[]>([]);
-  const [myRequests, setMyRequests] = useState<any[]>([]);
-  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
-  const [starredProjects, setStarredProjects] = useState<any[]>([]);
-  const [savedPostsList, setSavedPostsList] = useState<any[]>([]);
+  const [activityPosts, setActivityPosts] = useState<any[]>(() => clientCache.get<any[]>("my_posts") || []);
+  const [createdProjects, setCreatedProjects] = useState<any[]>(() => clientCache.get<any[]>("my_profile_teams") || []);
+  const [myRequests, setMyRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_requests") || []);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_incoming") || []);
+  const [starredProjects, setStarredProjects] = useState<any[]>(() => clientCache.get<any[]>("my_starred_projects") || []);
+  const [savedPostsList, setSavedPostsList] = useState<any[]>(() => clientCache.get<any[]>("my_saved_posts") || []);
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
-  const [campusStudents, setCampusStudents] = useState<PublicStudentProfile[]>([]);
+  const [campusStudents, setCampusStudents] = useState<PublicStudentProfile[]>(() => clientCache.get<PublicStudentProfile[]>("campus_students") || []);
   const [confirmAction, setConfirmAction] = useState<{
     projectId: string | number;
     requestId: string | number;
@@ -336,11 +337,13 @@ const ProfilePage = () => {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const existing = clientCache.get<any>("my_posts");
+    if (!existing) {
+      setLoading(true);
+    }
 
-    Promise.all([
-      getProfile()
-        .then((p) => {
+    getProfile()
+      .then((p) => {
           if (alive && p) {
             const localUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
             const loadedCollege =
@@ -492,23 +495,79 @@ const ProfilePage = () => {
             localStorage.setItem("cb_user", JSON.stringify(updatedUser));
           }
         })
-        .catch(() => { }),
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
 
-      getMyPosts().then((posts) => alive && setActivityPosts(posts || [])).catch(() => { }),
-      getSavedPosts().then((posts) => alive && setSavedPostsList(posts || [])).catch(() => { }),
-      getStarredProjects().then((starred) => alive && setStarredProjects(starred || [])).catch(() => { }),
-      getMyTeams().then((teams) => alive && setCreatedProjects(teams || [])).catch(() => { }),
-      getMyJoinRequests().then((reqs) => alive && setMyRequests(reqs || [])).catch(() => { }),
-      getMyIncomingRequests().then((inReqs) => alive && setIncomingRequests(inReqs || [])).catch(() => { }),
-      getCampusStudents().then((students) => alive && setCampusStudents(students || [])).catch(() => { }),
-    ]).finally(() => {
-      if (alive) setLoading(false);
-    });
+      // Background non-blocking fetches with client-side caching
+      getMyPosts()
+        .then((posts) => {
+          if (alive && posts) {
+            setActivityPosts(posts);
+            clientCache.set("my_posts", posts, 120_000);
+          }
+        })
+        .catch(() => { });
 
-    return () => {
-      alive = false;
-    };
-  }, []);
+      getSavedPosts()
+        .then((posts) => {
+          if (alive && posts) {
+            setSavedPostsList(posts);
+            clientCache.set("my_saved_posts", posts, 120_000);
+          }
+        })
+        .catch(() => { });
+
+      getStarredProjects()
+        .then((starred) => {
+          if (alive && starred) {
+            setStarredProjects(starred);
+            clientCache.set("my_starred_projects", starred, 120_000);
+          }
+        })
+        .catch(() => { });
+
+      getMyTeams()
+        .then((teams) => {
+          if (alive && teams) {
+            setCreatedProjects(teams);
+            clientCache.set("my_profile_teams", teams, 120_000);
+          }
+        })
+        .catch(() => { });
+
+      getMyJoinRequests()
+        .then((reqs) => {
+          if (alive && reqs) {
+            setMyRequests(reqs);
+            clientCache.set("my_profile_requests", reqs, 120_000);
+          }
+        })
+        .catch(() => { });
+
+      getMyIncomingRequests()
+        .then((inReqs) => {
+          if (alive && inReqs) {
+            setIncomingRequests(inReqs);
+            clientCache.set("my_profile_incoming", inReqs, 120_000);
+          }
+        })
+        .catch(() => { });
+
+      getCampusStudents()
+        .then((students) => {
+          if (alive && students) {
+            setCampusStudents(students);
+            clientCache.set("campus_students", students, 300_000);
+          }
+        })
+        .catch(() => { });
+
+      return () => {
+        alive = false;
+      };
+    }, []);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 

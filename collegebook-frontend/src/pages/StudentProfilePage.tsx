@@ -72,6 +72,7 @@ import {
   type PublicStudentProfile,
   type FeedPost,
 } from "@/lib/api";
+import { clientCache } from "@/lib/clientCache";
 
 const roleOptions = [
   "Frontend Dev",
@@ -91,14 +92,20 @@ const roleOptions = [
 
 const StudentProfilePage = () => {
   const { name } = useParams<{ name: string }>();
+  const decodedName = decodeURIComponent(name || "");
   const user = JSON.parse(localStorage.getItem("cb_user") || "{}");
-  const [student, setStudent] = useState<PublicStudentProfile | null>(null);
-  const [studentPosts, setStudentPosts] = useState<FeedPost[]>([]);
-  const [studentTeams, setStudentTeams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const cachedStudent = clientCache.get<PublicStudentProfile>(`student_profile_${decodedName}`);
+  const cachedPosts = clientCache.get<FeedPost[]>(`student_posts_${decodedName}`);
+  const cachedTeams = clientCache.get<any[]>(`student_teams_${decodedName}`);
+
+  const [student, setStudent] = useState<PublicStudentProfile | null>(() => cachedStudent || null);
+  const [studentPosts, setStudentPosts] = useState<FeedPost[]>(() => cachedPosts || []);
+  const [studentTeams, setStudentTeams] = useState<any[]>(() => cachedTeams || []);
+  const [loading, setLoading] = useState(() => !cachedStudent);
   const [notFound, setNotFound] = useState(false);
-  const [postsLoading, setPostsLoading] = useState(false);
-  const [teamsLoading, setTeamsLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(() => !cachedPosts);
+  const [teamsLoading, setTeamsLoading] = useState(() => !cachedTeams);
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const { triggerToggle } = useDebouncedToggle(400);
 
@@ -109,14 +116,15 @@ const StudentProfilePage = () => {
   const [joinRole, setJoinRole] = useState("");
   const [joinReason, setJoinReason] = useState("");
 
-  const decodedName = decodeURIComponent(name || "");
-
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const existing = clientCache.get<PublicStudentProfile>(`student_profile_${decodedName}`);
+    if (!existing) {
+      setLoading(true);
+      setPostsLoading(true);
+      setTeamsLoading(true);
+    }
     setNotFound(false);
-    setPostsLoading(true);
-    setTeamsLoading(true);
 
     getStudentBySlug(decodedName)
       .then((data) => {
@@ -128,9 +136,13 @@ const StudentProfilePage = () => {
           } else {
             setNotFound(false);
             setStudent(data);
+            clientCache.set(`student_profile_${decodedName}`, data, 120_000);
             getStudentTeams(data.userId)
               .then((teams) => {
-                if (alive) setStudentTeams(teams || []);
+                if (alive && teams) {
+                  setStudentTeams(teams);
+                  clientCache.set(`student_teams_${decodedName}`, teams, 120_000);
+                }
               })
               .catch(() => {})
               .finally(() => {
@@ -140,7 +152,7 @@ const StudentProfilePage = () => {
         }
       })
       .catch(() => {
-        if (alive) {
+        if (alive && !existing) {
           setNotFound(true);
           setStudent(null);
           setTeamsLoading(false);
@@ -153,7 +165,9 @@ const StudentProfilePage = () => {
     getStudentPosts(decodedName)
       .then((res) => {
         if (alive) {
-          setStudentPosts(res.posts || []);
+          const freshPosts = res.posts || [];
+          setStudentPosts(freshPosts);
+          clientCache.set(`student_posts_${decodedName}`, freshPosts, 120_000);
         }
       })
       .catch(() => {})

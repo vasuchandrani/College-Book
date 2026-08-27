@@ -93,6 +93,21 @@ public class Team {
     @Builder.Default
     private int starsCount = 0;
 
+    @Column(name = "owner_name")
+    private String ownerName;
+
+    @Column(name = "owner_handle")
+    private String ownerHandle;
+
+    @Column(name = "owner_avatar_url", columnDefinition = "text")
+    private String ownerAvatarUrl;
+
+    @Column(name = "college_name")
+    private String collegeName;
+
+    @Column(name = "college_short_name")
+    private String collegeShortName;
+
     @Column(name = "owner_college_name")
     private String ownerCollegeName;
 

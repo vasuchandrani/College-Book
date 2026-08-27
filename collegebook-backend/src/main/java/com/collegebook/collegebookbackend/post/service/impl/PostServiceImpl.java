@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -137,17 +138,26 @@ public class PostServiceImpl implements PostService {
     }
 
     private PageResponse<PostResponseDto> overlayUserPersonalization(PageResponse<PostResponseDto> publicPage, UUID userId) {
-        if (publicPage == null || publicPage.getItems() == null) {
+        if (publicPage == null || publicPage.getItems() == null || publicPage.getItems().isEmpty()) {
             return publicPage;
         }
 
+        List<UUID> postIds = publicPage.getItems().stream()
+                .map(PostResponseDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+
+        Map<UUID, Long> likesCountMap = socialInteractionService.getPostLikesCountsBatch(postIds);
+        Set<UUID> likedSet = userId != null ? socialInteractionService.getLikedPostIdsBatch(postIds, userId) : Collections.emptySet();
+        Set<UUID> savedSet = userId != null ? socialInteractionService.getSavedPostIdsBatch(postIds, userId) : Collections.emptySet();
+
         List<PostResponseDto> personalized = publicPage.getItems().stream()
                 .map(dto -> {
-                    int effectiveLikes = (int) socialInteractionService.getPostLikesCount(dto.getId(), dto.getLikes());
-                    boolean liked = userId != null && socialInteractionService.isPostLikedByUser(dto.getId(), userId);
-                    boolean saved = userId != null && socialInteractionService.isPostSavedByUser(dto.getId(), userId);
+                    long effectiveLikes = likesCountMap.getOrDefault(dto.getId(), (long) dto.getLikes());
+                    boolean liked = likedSet.contains(dto.getId());
+                    boolean saved = savedSet.contains(dto.getId());
                     return dto.toBuilder()
-                            .likes(effectiveLikes)
+                            .likes((int) effectiveLikes)
                             .liked(liked)
                             .saved(saved)
                             .build();
@@ -232,6 +242,26 @@ public class PostServiceImpl implements PostService {
         post.setGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true);
         post.setCommentsEnabled(request.getCommentsEnabled() == null || request.getCommentsEnabled());
         post.setImages(request.getImages() != null ? request.getImages() : Collections.emptyList());
+
+        // Snapshot author & college details for O(1) read queries
+        Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
+        if (profileOpt.isPresent()) {
+            Profile p = profileOpt.get();
+            post.setAuthorName(p.getFullName() != null ? p.getFullName() : author.getEmail());
+            post.setAuthorHandle(p.getHandle());
+            post.setAuthorAvatarUrl(p.getAvatarUrl());
+            post.setAuthorInitials(p.getInitials() != null ? p.getInitials() : "U");
+            post.setAuthorCourse(p.getCourse() != null ? p.getCourse().getName() : "Student");
+            post.setAuthorDepartment(p.getDepartment() != null ? p.getDepartment().getName() : null);
+        } else {
+            post.setAuthorName(author.getEmail());
+            post.setAuthorInitials("U");
+            post.setAuthorCourse("Student");
+        }
+        if (author.getCollege() != null) {
+            post.setCollegeName(author.getCollege().getName());
+            post.setCollegeShortName(author.getCollege().getShortName());
+        }
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             List<Tag> tagEntities = new ArrayList<>();
@@ -347,7 +377,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
+    @CacheEvict(value = "post_comments", allEntries = true)
     public CommentResponseDto addComment(UUID userId, UUID postId, CreateCommentRequest request) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
@@ -374,7 +404,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
+    @CacheEvict(value = "post_comments", allEntries = true)
     public void deleteComment(UUID userId, UUID postId, UUID commentId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
@@ -421,15 +451,22 @@ public class PostServiceImpl implements PostService {
     private PostResponseDto mapToDto(Post post, UUID userId) {
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
-        dto.setAuthorId(post.getAuthor().getId());
+        dto.setAuthorId(post.getAuthor() != null ? post.getAuthor().getId() : null);
 
-        Optional<Profile> profileOpt = profileRepository.findByUserId(post.getAuthor().getId());
-        dto.setAuthorName(profileOpt.map(Profile::getFullName).orElse(post.getAuthor().getEmail()));
-        dto.setAuthorHandle(profileOpt.map(Profile::getHandle).orElse(null));
-        dto.setAvatarUrl(resolveAvatarUrl(profileOpt.map(Profile::getAvatarUrl).orElse(null)));
-        dto.setInitials(profileOpt.map(Profile::getInitials).orElse("U"));
-        dto.setCourseName(profileOpt.map(p -> p.getCourse() != null ? p.getCourse().getName() : null).orElse("Student"));
-        dto.setCollegeName(post.getCollege() != null ? post.getCollege().getName() : null);
+        // Read snapshot fields directly from Post entity with zero joins / queries
+        String authorName = post.getAuthorName() != null ? post.getAuthorName() : (post.getAuthor() != null ? post.getAuthor().getEmail() : "Student");
+        String authorHandle = post.getAuthorHandle();
+        String avatarUrl = resolveAvatarUrl(post.getAuthorAvatarUrl());
+        String initials = post.getAuthorInitials() != null ? post.getAuthorInitials() : "U";
+        String courseName = post.getAuthorCourse() != null ? post.getAuthorCourse() : (post.getAuthorDepartment() != null ? post.getAuthorDepartment() : "Student");
+        String collegeName = post.getCollegeName() != null ? post.getCollegeName() : (post.getCollege() != null ? post.getCollege().getName() : null);
+
+        dto.setAuthorName(authorName);
+        dto.setAuthorHandle(authorHandle);
+        dto.setAvatarUrl(avatarUrl);
+        dto.setInitials(initials);
+        dto.setCourseName(courseName);
+        dto.setCollegeName(collegeName);
 
         dto.setTime(formatRelativeTime(post.getCreatedAt()));
         dto.setContent(post.getContent());

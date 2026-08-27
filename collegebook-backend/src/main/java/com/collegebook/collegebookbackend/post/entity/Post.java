@@ -86,6 +86,30 @@ public class Post {
     @Builder.Default
     private boolean commentsEnabled = true;
 
+    @Column(name = "author_name")
+    private String authorName;
+
+    @Column(name = "author_handle")
+    private String authorHandle;
+
+    @Column(name = "author_avatar_url", columnDefinition = "text")
+    private String authorAvatarUrl;
+
+    @Column(name = "author_initials")
+    private String authorInitials;
+
+    @Column(name = "author_course")
+    private String authorCourse;
+
+    @Column(name = "author_department")
+    private String authorDepartment;
+
+    @Column(name = "college_name")
+    private String collegeName;
+
+    @Column(name = "college_short_name")
+    private String collegeShortName;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

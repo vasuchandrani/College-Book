@@ -16,7 +16,9 @@ const DEFAULT_DESCRIPTION =
   "CollegeBook (College-Book) is the authentic digital campus network for college students. Discover campus feeds, cross-university explore, find hackathon teammates in Collab Hub, earn verified myCon skill badges, and build your digital graduation memory book.";
 const DEFAULT_KEYWORDS =
   "collegebook, college-book, college book, college social network, digital campus platform, student collaboration hub, collab hub, campus feed, cross campus explore, mycon skill badges, university student network, hackathon team finder, college memory book";
-const BASE_URL = "https://collegebook.vercel.app";
+const BASE_URL = typeof window !== "undefined" && window.location.origin.includes("collegebook.live")
+  ? "https://collegebook.live"
+  : "https://collegebook.live";
 
 export const SEO = ({
   title,

@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final GuestReadOnlyFilter guestReadOnlyFilter;
     private final com.collegebook.collegebookbackend.config.ratelimit.RateLimitFilter rateLimitFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5000}")
+    @Value("${app.cors.allowed-origins:http://localhost:5000,http://localhost:5173,http://localhost:8080,http://localhost:8081,https://collegebook.live,https://www.collegebook.live,https://*.collegebook.live,https://collegebook.vercel.app,https://*.vercel.app}")
     private String allowedOrigins;
 
     public SecurityConfig(
