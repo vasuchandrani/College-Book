@@ -29,6 +29,7 @@ import { formatSmartDate } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import FormattedContent from "@/components/FormattedContent";
+import { markRoomAsRead } from "@/lib/chatUnread";
 
 export interface TeamRoomChatModalProps {
   open: boolean;
@@ -51,7 +52,7 @@ export default function TeamRoomChatModal({
   team,
 }: TeamRoomChatModalProps) {
   const [content, setContent] = useState("");
-  const [messageType, setMessageType] = useState<"TEXT" | "CODE">("TEXT");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,12 +79,26 @@ export default function TeamRoomChatModal({
     enabled: open,
   });
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages, mark room read & auto-focus input
+  useEffect(() => {
+    if (open) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      if (team?.id) {
+        markRoomAsRead(team.id);
+      }
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        inputRef.current?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [open, team?.id]);
+
   useEffect(() => {
     if (open) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, open, typingUserNames]);
+  }, [messages.length, open, typingUserNames]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
@@ -101,10 +116,11 @@ export default function TeamRoomChatModal({
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    sendMessage(trimmed, messageType);
+    sendMessage(trimmed, "TEXT");
     setContent("");
     sendTyping(false);
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -389,53 +405,24 @@ export default function TeamRoomChatModal({
 
         {/* 4. Chat Composer */}
         <div className="p-3.5 sm:p-4 bg-muted/20 border-t border-border/60">
-          <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setMessageType((prev) => (prev === "CODE" ? "TEXT" : "CODE"))
-                  }
-                  className={`h-7 px-2 text-xs gap-1 rounded-md transition-colors ${
-                    messageType === "CODE"
-                      ? "bg-primary text-primary-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Code2 className="h-3.5 w-3.5" />
-                  {messageType === "CODE" ? "Code Block Active" : "Code Snippet"}
-                </Button>
-              </div>
-              <span className="text-[11px] text-muted-foreground hidden sm:inline select-none">
-                Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for new line
-              </span>
-            </div>
-
-            <div className="flex items-end gap-2">
-              <Textarea
-                value={content}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  messageType === "CODE"
-                    ? "Paste or write code snippet here..."
-                    : "Type a message to your team..."
-                }
-                rows={1}
-                className="min-h-[44px] max-h-[140px] resize-none text-sm py-2.5 rounded-xl border-border bg-background focus-visible:ring-primary"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!content.trim()}
-                className="h-11 w-11 shrink-0 rounded-xl bg-primary text-primary-foreground hover:opacity-90 shadow-sm disabled:opacity-40"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+          <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+            <Textarea
+              ref={inputRef}
+              value={content}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type Message"
+              rows={1}
+              className="min-h-[44px] max-h-[140px] resize-none text-sm py-2.5 rounded-xl border-border bg-background focus-visible:ring-primary"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!content.trim()}
+              className="h-11 w-11 shrink-0 rounded-xl bg-primary text-primary-foreground hover:opacity-90 shadow-sm disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </form>
         </div>
       </DialogContent>

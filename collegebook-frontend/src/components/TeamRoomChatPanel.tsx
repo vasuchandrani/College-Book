@@ -51,7 +51,7 @@ export function TeamRoomChatPanel({
   isLead: isCurrentUserLead = false,
 }: TeamRoomChatPanelProps) {
   const [content, setContent] = useState("");
-  const [messageType, setMessageType] = useState<"TEXT" | "CODE">("TEXT");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | ReturnType<typeof setTimeout> | null>(null);
@@ -120,6 +120,16 @@ export function TeamRoomChatPanel({
     }
   };
 
+  // Initial load: scroll to last message and focus on input box
+  useEffect(() => {
+    scrollToBottom(false);
+    const timer = setTimeout(() => {
+      scrollToBottom(false);
+      inputRef.current?.focus();
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [team?.id]);
+
   useEffect(() => {
     scrollToBottom(true);
     if (team?.id) {
@@ -143,10 +153,11 @@ export function TeamRoomChatPanel({
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    sendMessage(trimmed, messageType);
+    sendMessage(trimmed, "TEXT");
     setContent("");
     sendTyping(false);
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -457,47 +468,19 @@ export function TeamRoomChatPanel({
         )}
       </div>
 
-      {/* 3. Rich Message Composer */}
-      <div className="p-4 border-t border-border/60 bg-muted/20 space-y-2">
-        {/* Mode Selector */}
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant={messageType === "CODE" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setMessageType((prev) => (prev === "CODE" ? "TEXT" : "CODE"))}
-              className={`h-7 px-2.5 text-[11px] rounded-lg gap-1.5 transition-colors ${
-                messageType === "CODE"
-                  ? "bg-primary text-primary-foreground font-semibold"
-                  : "hover:bg-muted text-muted-foreground"
-              }`}
-            >
-              <Code2 className="h-3.5 w-3.5" />
-              <span>{messageType === "CODE" ? "Code Block Active" : "Format as Code"}</span>
-            </Button>
-          </div>
-          <span className="hidden sm:inline-block text-[10px] text-muted-foreground">
-            Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for new line
-          </span>
-        </div>
-
+      {/* 3. Message Composer */}
+      <div className="p-3 sm:p-4 border-t border-border/60 bg-muted/20">
         {/* Text Input Form */}
         <form onSubmit={handleSendMessage} className="relative flex items-end gap-2">
           <div className="relative flex-1 bg-background border border-border/80 rounded-xl focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-2xs">
             <Textarea
+              ref={inputRef}
               value={content}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder={
-                messageType === "CODE"
-                  ? "Paste or write code snippet here..."
-                  : "Message your team in real time..."
-              }
-              rows={messageType === "CODE" ? 3 : 1}
-              className={`min-h-[44px] max-h-[140px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs sm:text-sm px-3.5 py-2.5 bg-transparent ${
-                messageType === "CODE" ? "font-mono text-xs" : ""
-              }`}
+              placeholder="Type Message"
+              rows={1}
+              className="min-h-[44px] max-h-[140px] resize-none border-0 shadow-none focus-visible:ring-0 text-xs sm:text-sm px-3.5 py-2.5 bg-transparent"
             />
           </div>
 

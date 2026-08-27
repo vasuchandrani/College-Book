@@ -2522,158 +2522,169 @@ const ProfilePage = () => {
                 transition={{ delay: i * 0.05 }}
               >
                 <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+                  {/* Top Section: Author Profile Header */}
+                  <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="h-10 w-10 border border-border shrink-0">
                         {profile.avatarUrl ? (
                           <AvatarImage src={profile.avatarUrl} alt={profile.name} />
                         ) : null}
-                        <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">{profile.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {post.time || post.date || "Just now"}
-                          </span>
-                        </div>
-
-                        {/* Normalized multiline clickable post content */}
-                        <FormattedContent content={post.content} className="mt-1" />
-
-                        {/* Post Images */}
-                        {post.images && post.images.length > 0 && (
-                          <div className="mt-3">
-                            <ImageCarousel images={post.images} />
-                          </div>
-                        )}
-
-                        {/* Post Video */}
-                        {post.videoUrl && (
-                          <div className="mt-3">
-                            <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
-                          </div>
-                        )}
-
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex gap-1.5 flex-wrap mt-3">
-                            {post.tags.map((t: string) => (
-                              <span
-                                key={t}
-                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
-                              >
-                                #{t.replace(/^#/, "")}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Interactive Post Actions */}
-                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/40 gap-2 flex-wrap">
-                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostLike(post.id)}
-                              className={`gap-1.5 text-xs transition-colors ${
-                                post.liked
-                                  ? "text-rose-500 hover:text-rose-600 bg-rose-50/50 dark:bg-rose-950/20"
-                                  : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              <Heart
-                                className={`h-4 w-4 ${
-                                  post.liked ? "fill-rose-500 text-rose-500" : ""
-                                }`}
-                              />
-                              <span className="font-semibold">{post.likes || 0}</span>
-                            </Button>
-
-                            {post.commentsEnabled !== false && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setExpandedCommentsPostId((prev) =>
-                                    prev === post.id ? null : post.id
-                                  )
-                                }
-                                className={`gap-1.5 text-xs transition-colors ${
-                                  expandedCommentsPostId === post.id
-                                    ? "text-primary bg-primary/10 font-semibold"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{post.commentsCount || 0}</span>
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostSave(post.id)}
-                              className={`text-xs px-2.5 transition-colors ${
-                                post.saved ? "text-accent font-semibold" : "text-muted-foreground hover:text-foreground"
-                              }`}
-                              title={post.saved ? "Unsave post" : "Save post"}
-                            >
-                              <Bookmark
-                                className={`h-4 w-4 ${
-                                  post.saved ? "fill-current" : ""
-                                }`}
-                              />
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSharePost(post.id);
-                              }}
-                            >
-                              <Share2 className="h-4 w-4" /> Share
-                            </Button>
-                          </div>
-
-                          <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
-                            {formatSmartDate(post.createdAt || post.time || post.date)}
-                          </span>
-                        </div>
-
-                        {/* Inline Expandable Comments Stream */}
-                        <AnimatePresence>
-                          {expandedCommentsPostId === post.id && (
-                            <InlineCommentsSection
-                              post={post}
-                              onCommentCountChange={(newCount) => {
-                                setActivityPosts((prev) =>
-                                  prev.map((p) =>
-                                    p.id === post.id
-                                      ? { ...p, commentsCount: newCount }
-                                      : p
-                                  )
-                                );
-                              }}
-                              onClose={() => setExpandedCommentsPostId(null)}
-                            />
+                      <div className="min-w-0">
+                        <span className="font-semibold text-sm block leading-tight truncate">
+                          {profile.name}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                          {profile.handle && (
+                            <span className="font-mono text-primary/90 font-medium">
+                              @{profile.handle.replace(/^@/, "")}
+                            </span>
                           )}
-                        </AnimatePresence>
+                          {profile.handle && (profile.courseName || profile.bio) && <span>•</span>}
+                          {(profile.courseName || profile.bio) && (
+                            <span className="truncate">{profile.courseName || profile.bio}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
                       onClick={() => setPostToDelete(post.id)}
                       title="Delete post"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                  </div>
+
+                  {/* Bottom Section: Full Width Body, Media, Actions */}
+                  <div className="w-full">
+                    {/* Multiline clickable post content */}
+                    <FormattedContent content={post.content} className="mt-1" />
+
+                    {/* Post Images */}
+                    {post.images && post.images.length > 0 && (
+                      <div className="mt-3">
+                        <ImageCarousel images={post.images} />
+                      </div>
+                    )}
+
+                    {/* Post Video */}
+                    {post.videoUrl && (
+                      <div className="mt-3">
+                        <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                      </div>
+                    )}
+
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap mt-3">
+                        {post.tags.map((t: string) => (
+                          <span
+                            key={t}
+                            className="text-xs px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                          >
+                            #{t.replace(/^#/, "")}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Interactive Post Actions */}
+                    <div className="flex items-center justify-between pt-3 mt-4 border-t border-border gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePostLike(post.id)}
+                          className={`gap-1.5 text-xs ${
+                            post.liked ? "text-red-500" : "text-muted-foreground"
+                          }`}
+                        >
+                          <Heart
+                            className={`h-4 w-4 ${
+                              post.liked ? "fill-red-500" : ""
+                            }`}
+                          />
+                          <span>{post.likes || 0}</span>
+                        </Button>
+
+                        {post.commentsEnabled !== false && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setExpandedCommentsPostId((prev) =>
+                                prev === post.id ? null : post.id
+                              )
+                            }
+                            className={`gap-1.5 text-xs transition-colors ${
+                              expandedCommentsPostId === post.id
+                                ? "text-primary bg-primary/10 font-semibold"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{post.commentsCount || 0}</span>
+                          </Button>
+                        )}
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePostSave(post.id)}
+                          className={`text-xs px-2.5 ${
+                            post.saved ? "text-accent font-semibold" : "text-muted-foreground"
+                          }`}
+                          title={post.saved ? "Unsave post" : "Save post"}
+                        >
+                          <Bookmark
+                            className={`h-4 w-4 ${
+                              post.saved ? "fill-current" : ""
+                            }`}
+                          />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSharePost(post.id);
+                          }}
+                        >
+                          <Share2 className="h-4 w-4" /> Share
+                        </Button>
+                      </div>
+
+                      <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                        {formatSmartDate(post.createdAt || post.time || post.date)}
+                      </span>
+                    </div>
+
+                    {/* Inline Expandable Comments Stream */}
+                    <AnimatePresence>
+                      {expandedCommentsPostId === post.id && (
+                        <InlineCommentsSection
+                          post={post}
+                          onCommentCountChange={(newCount) => {
+                            setActivityPosts((prev) =>
+                              prev.map((p) =>
+                                p.id === post.id
+                                  ? { ...p, commentsCount: newCount }
+                                  : p
+                              )
+                            );
+                          }}
+                          onClose={() => setExpandedCommentsPostId(null)}
+                        />
+                      )}
+                    </AnimatePresence>
                   </div>
                 </Card>
               </motion.div>
@@ -2929,154 +2940,163 @@ const ProfilePage = () => {
                 transition={{ delay: i * 0.05 }}
               >
                 <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <Avatar className="h-9 w-9 shrink-0 mt-0.5">
-                        {post.avatarUrl && (
-                          <AvatarImage src={post.avatarUrl} alt={post.author || post.authorName} />
-                        )}
-                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                          {post.initials || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <Link
-                            to={`/student/${encodeURIComponent(post.authorHandle || post.author || post.authorName || "")}`}
-                            className="text-sm font-semibold hover:text-primary hover:underline leading-tight"
-                          >
-                            {post.author || post.authorName || "Student"}
-                          </Link>
+                  {/* Top Section: Author Profile Header */}
+                  <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Link
+                        to={`/student/${encodeURIComponent(post.authorHandle || post.author || post.authorName || "")}`}
+                        className="shrink-0 transition-transform active:scale-95"
+                      >
+                        <Avatar className="h-10 w-10 border border-border">
+                          {post.avatarUrl && (
+                            <AvatarImage src={post.avatarUrl} alt={post.author || post.authorName} />
+                          )}
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                            {post.initials || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="min-w-0">
+                        <Link
+                          to={`/student/${encodeURIComponent(post.authorHandle || post.author || post.authorName || "")}`}
+                          className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
+                        >
+                          {post.author || post.authorName || "Student"}
+                        </Link>
+                        <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
                           {post.authorHandle && (
-                            <span className="text-xs font-mono text-primary/90 font-medium">
-                              @{post.authorHandle}
+                            <span className="font-mono text-primary/90 font-medium">
+                              @{post.authorHandle.replace(/^@/, "")}
                             </span>
                           )}
-                          <span className="text-xs text-muted-foreground">
-                            · {post.college || post.collegeName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            · {post.date || post.time || "Recently"}
-                          </span>
-                        </div>
-                        <FormattedContent content={post.content} className="mt-1" />
-
-                        {/* Saved Post Images */}
-                        {post.images && post.images.length > 0 && (
-                          <div className="mt-3">
-                            <ImageCarousel images={post.images} />
-                          </div>
-                        )}
-
-                        {/* Saved Post Video */}
-                        {post.videoUrl && (
-                          <div className="mt-3">
-                            <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
-                          </div>
-                        )}
-
-                        {post.tags && post.tags.length > 0 && (
-                          <div className="flex gap-1.5 flex-wrap mt-3">
-                            {post.tags.map((t: string) => (
-                              <span
-                                key={t}
-                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
-                              >
-                                #{t.replace(/^#/, "")}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Interactive Post Actions */}
-                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/40 gap-2 flex-wrap">
-                          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostLike(post.id)}
-                              className={`gap-1.5 text-xs transition-colors ${
-                                post.liked
-                                  ? "text-rose-500 hover:text-rose-600 bg-rose-50/50 dark:bg-rose-950/20"
-                                  : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              <Heart
-                                className={`h-4 w-4 ${
-                                  post.liked ? "fill-rose-500 text-rose-500" : ""
-                                }`}
-                              />
-                              <span className="font-semibold">{post.likes || 0}</span>
-                            </Button>
-
-                            {post.commentsEnabled !== false && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setExpandedCommentsPostId((prev) =>
-                                    prev === post.id ? null : post.id
-                                  )
-                                }
-                                className={`gap-1.5 text-xs transition-colors ${
-                                  expandedCommentsPostId === post.id
-                                    ? "text-primary bg-primary/10 font-semibold"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                                <span>{post.commentsCount || 0}</span>
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => togglePostSave(post.id)}
-                              className="text-xs px-2.5 transition-colors text-accent font-semibold"
-                              title="Unsave post"
-                            >
-                              <Bookmark className="h-4 w-4 fill-current" />
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSharePost(post.id);
-                              }}
-                            >
-                              <Share2 className="h-4 w-4" /> Share
-                            </Button>
-                          </div>
-
-                          <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
-                            {formatSmartDate(post.createdAt || post.time || post.date)}
-                          </span>
-                        </div>
-
-                        {/* Inline Expandable Comments Stream */}
-                        <AnimatePresence>
-                          {expandedCommentsPostId === post.id && (
-                            <InlineCommentsSection
-                              post={post}
-                              onCommentCountChange={(newCount) => {
-                                setSavedPostsList((prev) =>
-                                  prev.map((p) =>
-                                    p.id === post.id
-                                      ? { ...p, commentsCount: newCount }
-                                      : p
-                                  )
-                                );
-                              }}
-                              onClose={() => setExpandedCommentsPostId(null)}
-                            />
+                          {post.authorHandle && (post.college || post.collegeName || post.course) && <span>•</span>}
+                          {(post.college || post.collegeName || post.course) && (
+                            <span className="truncate max-w-[200px] sm:max-w-xs">
+                              {post.college || post.collegeName || post.course}
+                            </span>
                           )}
-                        </AnimatePresence>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Bottom Section: Full Width Body, Media, Actions */}
+                  <div className="w-full">
+                    {/* Multiline clickable post content */}
+                    <FormattedContent content={post.content} className="mt-1" />
+
+                    {/* Saved Post Images */}
+                    {post.images && post.images.length > 0 && (
+                      <div className="mt-3">
+                        <ImageCarousel images={post.images} />
+                      </div>
+                    )}
+
+                    {/* Saved Post Video */}
+                    {post.videoUrl && (
+                      <div className="mt-3">
+                        <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
+                      </div>
+                    )}
+
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap mt-3">
+                        {post.tags.map((t: string) => (
+                          <span
+                            key={t}
+                            className="text-xs px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+                          >
+                            #{t.replace(/^#/, "")}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Interactive Post Actions */}
+                    <div className="flex items-center justify-between pt-3 mt-4 border-t border-border gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePostLike(post.id)}
+                          className={`gap-1.5 text-xs ${
+                            post.liked ? "text-red-500" : "text-muted-foreground"
+                          }`}
+                        >
+                          <Heart
+                            className={`h-4 w-4 ${
+                              post.liked ? "fill-red-500" : ""
+                            }`}
+                          />
+                          <span>{post.likes || 0}</span>
+                        </Button>
+
+                        {post.commentsEnabled !== false && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setExpandedCommentsPostId((prev) =>
+                                prev === post.id ? null : post.id
+                              )
+                            }
+                            className={`gap-1.5 text-xs transition-colors ${
+                              expandedCommentsPostId === post.id
+                                ? "text-primary bg-primary/10 font-semibold"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{post.commentsCount || 0}</span>
+                          </Button>
+                        )}
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => togglePostSave(post.id)}
+                          className="text-xs px-2.5 text-accent font-semibold"
+                          title="Unsave post"
+                        >
+                          <Bookmark className="h-4 w-4 fill-current" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSharePost(post.id);
+                          }}
+                        >
+                          <Share2 className="h-4 w-4" /> Share
+                        </Button>
+                      </div>
+
+                      <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                        {formatSmartDate(post.createdAt || post.time || post.date)}
+                      </span>
+                    </div>
+
+                    {/* Inline Expandable Comments Stream */}
+                    <AnimatePresence>
+                      {expandedCommentsPostId === post.id && (
+                        <InlineCommentsSection
+                          post={post}
+                          onCommentCountChange={(newCount) => {
+                            setSavedPostsList((prev) =>
+                              prev.map((p) =>
+                                p.id === post.id
+                                  ? { ...p, commentsCount: newCount }
+                                  : p
+                              )
+                            );
+                          }}
+                          onClose={() => setExpandedCommentsPostId(null)}
+                        />
+                      )}
+                    </AnimatePresence>
                   </div>
                 </Card>
               </motion.div>

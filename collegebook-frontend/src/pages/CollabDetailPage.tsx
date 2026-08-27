@@ -62,6 +62,7 @@ export default function CollabDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") === "chat" ? "chat" : "overview";
   const { triggerToggle } = useDebouncedToggle(400);
 
   const [team, setTeam] = useState<any>(null);
@@ -123,15 +124,38 @@ export default function CollabDetailPage() {
 
   useEffect(() => {
     if (!id) return;
+    if (currentTab === "chat") {
+      markRoomAsRead(id);
+      setHasUnreadChat(false);
+      return;
+    }
     getTeamRecentMessages(id, 1)
       .then((msgs) => {
         if (msgs && msgs.length > 0) {
           const latest = msgs[msgs.length - 1];
-          setHasUnreadChat(checkIsMessageUnread(id, latest.createdAt, latest.senderId, user.id));
+          setHasUnreadChat(
+            checkIsMessageUnread(
+              id,
+              latest.createdAt,
+              latest.senderId,
+              user.id || user.userId,
+              latest.senderName,
+              user.name || user.fullName,
+              latest.senderHandle,
+              user.handle
+            )
+          );
         }
       })
       .catch(() => {});
-  }, [id, user.id]);
+  }, [id, user.id, currentTab]);
+
+  useEffect(() => {
+    if (id && currentTab === "chat") {
+      markRoomAsRead(id);
+      setHasUnreadChat(false);
+    }
+  }, [id, currentTab]);
 
   useEffect(() => {
     const handleRoomRead = (e: any) => {
@@ -374,13 +398,16 @@ export default function CollabDetailPage() {
     new Set([...(team.requiredExpertise || []), ...(team.skills || [])])
   );
 
-  const currentTab = searchParams.get("tab") === "chat" ? "chat" : "overview";
   const canAccessRoomChat = !isOpenSource && Boolean(isLead || isMember || team.canEdit || team.canComplete);
 
   const handleOpenRoomChat = () => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", "chat");
     setSearchParams(next);
+    if (id) {
+      markRoomAsRead(id);
+      setHasUnreadChat(false);
+    }
   };
 
   const handleBack = () => {

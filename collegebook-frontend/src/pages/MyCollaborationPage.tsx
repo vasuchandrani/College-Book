@@ -20,10 +20,18 @@ import {
   Building2,
   FolderGit2,
   Undo2,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -216,7 +224,16 @@ export default function MyCollaborationPage() {
             const msgs = await getTeamRecentMessages(t.id, 1);
             if (msgs && msgs.length > 0) {
               const latest = msgs[msgs.length - 1];
-              const isUnread = checkIsMessageUnread(t.id, latest.createdAt, latest.senderId, user.id);
+              const isUnread = checkIsMessageUnread(
+                t.id,
+                latest.createdAt,
+                latest.senderId,
+                user.id || user.userId,
+                latest.senderName,
+                user.name || user.fullName,
+                latest.senderHandle,
+                user.handle
+              );
               if (isUnread) {
                 unreadMap.add(t.id);
               }
@@ -878,19 +895,51 @@ export default function MyCollaborationPage() {
                 >
                   <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <Link
-                          to={`/my-collaboration/${project.id}`}
-                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
-                        >
-                          {project.title}
-                        </Link>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs bg-primary/10 text-primary border border-primary/20 shrink-0"
-                        >
-                          Open Source
-                        </Badge>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                          <Link
+                            to={`/my-collaboration/${project.id}`}
+                            className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                          >
+                            {project.title}
+                          </Link>
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-primary/10 text-primary border border-primary/20 shrink-0"
+                          >
+                            Open Source
+                          </Badge>
+                        </div>
+
+                        {isUserCreatorOf(project) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg -mt-1 -mr-1"
+                                title="Project actions"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => openEditTeam(project)}
+                                className="gap-2 cursor-pointer text-xs"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteConfirm(project.id)}
+                                className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
                       {project.description && (
@@ -988,27 +1037,6 @@ export default function MyCollaborationPage() {
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
                           </Button>
                         </div>
-
-                        {isUserCreatorOf(project) && (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
-                              onClick={() => openEditTeam(project)}
-                            >
-                              <Pencil className="h-3 w-3" /> Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteConfirm(project.id)}
-                            >
-                              <Trash2 className="h-3 w-3" /> Delete
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </Card>
@@ -1160,34 +1188,72 @@ export default function MyCollaborationPage() {
                   >
                   <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <Link
-                          to={`/my-collaboration/${project.id}`}
-                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
-                        >
-                          {project.title}
-                        </Link>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                          <Link
+                            to={`/my-collaboration/${project.id}`}
+                            className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                          >
+                            {project.title}
+                          </Link>
 
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs capitalize shrink-0 ${
-                            project.type === "HACKATHON" || project.type === "hackathon"
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          }`}
-                        >
-                          {project.type === "HACKATHON" || project.type === "hackathon"
-                            ? "Hackathon Team"
-                            : "Team Project"}
-                        </Badge>
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs capitalize shrink-0 ${
+                              project.type === "HACKATHON" || project.type === "hackathon"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            }`}
+                          >
+                            {project.type === "HACKATHON" || project.type === "hackathon"
+                              ? "Hackathon Team"
+                              : "Team Project"}
+                          </Badge>
 
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
-                        </Badge>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {project.currentMembersCount || (project.members || []).length || 1}/{project.maxMembers || 4} members
+                          </Badge>
 
-                        <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
-                          Hiring Open
-                        </Badge>
+                          <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
+                            Hiring Open
+                          </Badge>
+                        </div>
+
+                        {isUserCreatorOf(project) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg -mt-1 -mr-1"
+                                title="Project actions"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={() => setCompleteConfirm(project.id)}
+                                className="gap-2 cursor-pointer text-xs text-emerald-600 dark:text-emerald-400 focus:text-emerald-600 dark:focus:text-emerald-400 font-medium"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => openEditTeam(project)}
+                                className="gap-2 cursor-pointer text-xs"
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteConfirm(project.id)}
+                                className="gap-2 cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
                       {project.description && (
@@ -1309,6 +1375,11 @@ export default function MyCollaborationPage() {
                             variant="outline"
                             onClick={() => {
                               markRoomAsRead(project.id);
+                              setUnreadRooms((prev) => {
+                                const next = new Set(prev);
+                                next.delete(project.id);
+                                return next;
+                              });
                               navigate(`/my-collaboration/${project.id}?tab=chat`);
                             }}
                             className={`gap-1.5 text-xs h-8 px-2.5 ${
@@ -1341,38 +1412,6 @@ export default function MyCollaborationPage() {
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
                           </Button>
                         </div>
-
-                        {/* Admin Actions (Owner Only) */}
-                        {isUserCreatorOf(project) && (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 text-xs h-7 px-2.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                              onClick={() => setCompleteConfirm(project.id)}
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Complete Hiring
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
-                              onClick={() => openEditTeam(project)}
-                            >
-                              <Pencil className="h-3 w-3" /> Edit
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1 text-xs h-7 px-2 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteConfirm(project.id)}
-                            >
-                              <Trash2 className="h-3 w-3" /> Delete
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </Card>
@@ -1514,6 +1553,11 @@ export default function MyCollaborationPage() {
                             variant="outline"
                             onClick={() => {
                               markRoomAsRead(project.id);
+                              setUnreadRooms((prev) => {
+                                const next = new Set(prev);
+                                next.delete(project.id);
+                                return next;
+                              });
                               navigate(`/my-collaboration/${project.id}?tab=chat`);
                             }}
                             className={`gap-1.5 text-xs h-8 px-2.5 ${

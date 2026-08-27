@@ -43,7 +43,18 @@ export function BottomNav() {
               const msgs = await getTeamChatMessages(t.id, 1);
               if (msgs && msgs.length > 0) {
                 const latest = msgs[msgs.length - 1];
-                if (checkIsMessageUnread(t.id, latest.createdAt, latest.senderId, storedUser?.id)) {
+                if (
+                  checkIsMessageUnread(
+                    t.id,
+                    latest.createdAt,
+                    latest.senderId,
+                    storedUser?.id || storedUser?.userId,
+                    latest.senderName,
+                    storedUser?.name || storedUser?.fullName,
+                    latest.senderHandle,
+                    storedUser?.handle
+                  )
+                ) {
                   unreadChatCount++;
                 }
               }

@@ -444,17 +444,17 @@ const StudentProfilePage = () => {
 
       {/* Main Tabs */}
       <Tabs defaultValue="about" className="space-y-6">
-        <TabsList className="bg-muted w-full justify-start overflow-x-auto">
-          <TabsTrigger value="about">About</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="collabs">Collaboration</TabsTrigger>
-          <TabsTrigger value="mycon">myCons</TabsTrigger>
+        <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1 shadow-2xs">
+          <TabsTrigger value="about" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">About</TabsTrigger>
+          <TabsTrigger value="activity" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">Activity</TabsTrigger>
+          <TabsTrigger value="collabs" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">Collaboration</TabsTrigger>
+          <TabsTrigger value="mycon" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">myCons</TabsTrigger>
         </TabsList>
 
         {/* 1. About Tab */}
         <TabsContent value="about" className="space-y-5">
           {/* Author's Note Section */}
-          <Card className="p-6 shadow-card space-y-4">
+          <Card className="p-4 sm:p-6 shadow-card space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <FileText className="h-4 w-4 text-primary" />
               <span>Author's Note</span>
@@ -475,7 +475,7 @@ const StudentProfilePage = () => {
           {/* Details & Links Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Contact Details */}
-            <Card className="p-5 shadow-card space-y-3">
+            <Card className="p-4 sm:p-5 shadow-card space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
               </h3>
@@ -579,7 +579,7 @@ const StudentProfilePage = () => {
             </Card>
 
             {/* Social & Portfolio Links */}
-            <Card className="p-5 shadow-card space-y-3">
+            <Card className="p-4 sm:p-5 shadow-card space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <LinkIcon className="h-3.5 w-3.5 text-primary" /> Links & Profiles
               </h3>
@@ -694,28 +694,40 @@ const StudentProfilePage = () => {
                   transition={{ delay: Math.min(i * 0.04, 0.3) }}
                 >
                   <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-                    {/* Top Section: Author Header */}
+                    {/* Top Section: Author Profile Header */}
                     <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="h-10 w-10 border border-border shrink-0">
-                          {post.avatarUrl && (
-                            <AvatarImage src={post.avatarUrl} alt={post.author} />
-                          )}
+                          <AvatarImage src={post.avatarUrl || student?.avatarUrl} alt={post.author || displayName} />
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                             {post.initials || initials}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <span className="font-semibold text-sm block leading-tight truncate">{post.author}</span>
-                          <span className="text-muted-foreground text-xs">{post.course}</span>
+                          <span className="font-semibold text-sm block leading-tight truncate">
+                            {post.author || displayName}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                            {(post.authorHandle || student?.handle || student?.slug) && (
+                              <span className="font-mono text-primary/90 font-medium">
+                                @{((post.authorHandle || student?.handle || student?.slug || "").replace(/^@/, ""))}
+                              </span>
+                            )}
+                            {(post.authorHandle || student?.handle) && (post.course || student?.courseName || studentDefaultBio) && (
+                              <span>•</span>
+                            )}
+                            {(post.course || student?.courseName || studentDefaultBio) && (
+                              <span className="truncate max-w-[200px] sm:max-w-xs">{post.course || studentDefaultBio}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Bottom Section: Full Width Body, Media, Actions */}
                     <div className="w-full">
-                      {/* Multiline, 2-line gap normalized, clickable content */}
-                      <FormattedContent content={post.content} maxEnters={2} className="mt-1" />
+                      {/* Multiline, clickable content */}
+                      <FormattedContent content={post.content} className="mt-1" />
 
                       {/* Images */}
                       {post.images && post.images.length > 0 && (
@@ -836,89 +848,54 @@ const StudentProfilePage = () => {
         {/* 3. Collaboration Tab with 3 Sub-Tabs: Open Source, Ongoing, Completed */}
         <TabsContent value="collabs" className="space-y-4">
           <Tabs defaultValue="open_source" className="space-y-4">
-            <TabsList className="bg-muted/80 p-1 rounded-xl">
-              <TabsTrigger value="open_source" className="gap-1.5 text-xs sm:text-sm">
-                <Code2 className="h-4 w-4" /> Open Source
+            <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-3 w-full max-w-md h-auto gap-1 shadow-2xs">
+              <TabsTrigger value="open_source" className="gap-1.5 py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">
+                <Code2 className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">Open Source</span>
               </TabsTrigger>
-              <TabsTrigger value="ongoing" className="gap-1.5 text-xs sm:text-sm">
-                <Rocket className="h-4 w-4" /> Ongoing
+              <TabsTrigger value="ongoing" className="gap-1.5 py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">
+                <Rocket className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">Ongoing</span>
               </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-1.5 text-xs sm:text-sm">
-                <Users className="h-4 w-4" /> Completed
+              <TabsTrigger value="completed" className="gap-1.5 py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span className="truncate">Completed</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Sub-Tab 1: Open Source */}
-            <TabsContent value="open_source" className="space-y-3 focus-visible:outline-none">
+            <TabsContent value="open_source" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
                 <div className="py-12 flex justify-center">
                   <ThemedLoader size="md" />
                 </div>
               ) : openSourceCollabs.length > 0 ? (
                 openSourceCollabs.map((project) => (
-                  <Card key={project.id} className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to={`/collab/${project.id}`}
-                            className="font-bold text-base text-foreground hover:text-primary hover:underline transition-colors"
-                          >
-                            {project.title}
-                          </Link>
-                          <Badge variant="secondary" className="text-[11px] bg-primary/10 text-primary border border-primary/20">
-                            Open Source
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 text-ellipsis">
-                          {project.description}
-                        </p>
-
-                        {project.githubLink && (
-                          <div>
-                            <a
-                              href={
-                                project.githubLink.startsWith("http")
-                                  ? project.githubLink
-                                  : `https://${project.githubLink}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20"
-                            >
-                              <Github className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[280px]">
-                                {project.githubLink.replace(/^https?:\/\//, "")}
-                              </span>
-                              <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
-                            </a>
-                          </div>
-                        )}
-
-                        {/* Tech stack */}
-                        {project.requiredExpertise && project.requiredExpertise.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {project.requiredExpertise.map((skill: string, idx: number) => (
-                              <Badge key={`${project.id}-exp-${skill}-${idx}`} variant="outline" className="text-[11px] px-2 py-0.5 font-medium bg-muted/40">
-                                {skill}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                  <Card key={project.id} className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <Link
+                          to={`/collab/${project.id}`}
+                          className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
+                        >
+                          {project.title}
+                        </Link>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-primary/10 text-primary border border-primary/20 shrink-0"
+                        >
+                          Open Source
+                        </Badge>
                       </div>
 
-                      <div className="flex sm:flex-col items-center gap-2 shrink-0">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
-                        >
-                          <Link to={`/collab/${project.id}`}>
-                            <Eye className="h-3.5 w-3.5" /> View Details
-                          </Link>
-                        </Button>
-                        {project.githubLink && (
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                          {project.description}
+                        </p>
+                      )}
+
+                      {project.githubLink && (
+                        <div>
                           <a
                             href={
                               project.githubLink.startsWith("http")
@@ -927,22 +904,81 @@ const StudentProfilePage = () => {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity w-full sm:w-auto justify-center"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20 max-w-full"
                           >
-                            <Github className="h-3.5 w-3.5" /> View Repo
+                            <Github className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate max-w-[220px] sm:max-w-[360px]">
+                              {project.githubLink.replace(/^https?:\/\//, "")}
+                            </span>
+                            <ExternalLink className="h-3 w-3 ml-0.5 opacity-70 shrink-0" />
                           </a>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggleStar(project.id)}
-                          className={`gap-1.5 text-xs h-9 px-3 border border-border/50 w-full sm:w-auto ${
-                            project.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                          }`}
-                        >
-                          <Star className={`h-4 w-4 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
-                          <span className="font-semibold">{project.starsCount || 0}</span>
-                        </Button>
+                        </div>
+                      )}
+
+                      {/* Tech stack */}
+                      {project.requiredExpertise && project.requiredExpertise.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {project.requiredExpertise.map((skill: string, idx: number) => (
+                            <Badge
+                              key={`${project.id}-exp-${skill}-${idx}`}
+                              variant="outline"
+                              className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Responsive Action Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs h-8 px-2.5"
+                          >
+                            <Link to={`/collab/${project.id}`}>
+                              <Eye className="h-3.5 w-3.5" /> View Details
+                            </Link>
+                          </Button>
+
+                          {project.githubLink && (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="default"
+                              className="gap-1 text-xs h-8 px-2.5"
+                            >
+                              <a
+                                href={
+                                  project.githubLink.startsWith("http")
+                                    ? project.githubLink
+                                    : `https://${project.githubLink}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Github className="h-3.5 w-3.5" /> View Repo
+                              </a>
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleStar(project.id)}
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                              project.starred
+                                ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                            <span className="font-semibold text-xs">{project.starsCount || 0}</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -955,7 +991,7 @@ const StudentProfilePage = () => {
             </TabsContent>
 
             {/* Sub-Tab 2: Ongoing Teams / Projects */}
-            <TabsContent value="ongoing" className="space-y-3 focus-visible:outline-none">
+            <TabsContent value="ongoing" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
                 <div className="py-12 flex justify-center">
                   <ThemedLoader size="md" />
@@ -974,105 +1010,126 @@ const StudentProfilePage = () => {
                   const studentRole = isStudentLead ? "Team Lead & Creator" : (studentMemberObj?.role || "Team Member");
 
                   return (
-                    <Card key={team.id} className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Link
-                              to={`/collab/${team.id}`}
-                              className="font-bold text-base text-foreground hover:text-primary hover:underline transition-colors"
-                            >
-                              {team.title}
-                            </Link>
-                            <Badge variant="secondary" className="text-xs">
-                              {team.type === "HACKATHON" ? "Hackathon" : "Project"}
-                            </Badge>
-                            {isStudentLead ? (
-                              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
-                                <Crown className="h-3 w-3" /> Team Lead & Creator
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
-                                <CheckCircle2 className="h-3 w-3" /> Member ({studentRole})
-                              </Badge>
-                            )}
-                            <Badge variant="secondary" className="text-xs">
-                              {team.currentMembersCount || (team.members || []).length || 1}/{team.maxMembers || 4} members
-                            </Badge>
-                          </div>
-
-                          {!isStudentLead && team.ownerName && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-0.5">
-                              <span>Team Lead:</span>
-                              <Link
-                                to={`/student/${encodeURIComponent(team.ownerName)}`}
-                                className="font-semibold text-foreground hover:text-primary hover:underline transition-colors"
-                              >
-                                {team.ownerName}
-                              </Link>
-                            </div>
-                          )}
-
-                          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 text-ellipsis">
-                            {team.description}
-                          </p>
-
-                          {team.requiredExpertise && team.requiredExpertise.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {team.requiredExpertise.map((skill: string, idx: number) => (
-                                <Badge key={`${team.id}-exp-${skill}-${idx}`} variant="secondary" className="text-[11px] px-2 py-0.5 bg-primary/10 text-primary">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex sm:flex-col items-center gap-2 shrink-0">
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium w-full sm:w-auto"
+                    <Card key={team.id} className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <Link
+                            to={`/collab/${team.id}`}
+                            className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
                           >
-                            <Link to={`/collab/${team.id}`}>
-                              <Eye className="h-3.5 w-3.5" /> View Details
-                            </Link>
-                          </Button>
-                          {isUserLeadOf(team) ? (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 text-xs h-9 px-3.5 bg-primary/10 text-primary border border-primary/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
-                            </Badge>
-                          ) : isUserMemberOf(team) ? (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 text-xs h-9 px-3.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center justify-center w-full sm:w-auto select-none"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="gap-1.5 text-xs h-9 px-3.5 bg-gradient-hero text-primary-foreground font-semibold w-full sm:w-auto"
-                              onClick={() => openJoinModal(team)}
-                            >
-                              <UserPlus className="h-3.5 w-3.5" /> Request to Join
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStar(team.id)}
-                            className={`gap-1.5 text-xs h-9 px-3 border border-border/50 w-full sm:w-auto ${
-                              team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                            {team.title}
+                          </Link>
+
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs capitalize shrink-0 ${
+                              team.type === "HACKATHON" || team.type === "hackathon"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             }`}
                           >
-                            <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
-                            <span className="font-semibold">{team.starsCount || 0}</span>
-                          </Button>
+                            {team.type === "HACKATHON" || team.type === "hackathon"
+                              ? "Hackathon Team"
+                              : "Team Project"}
+                          </Badge>
+
+                          {isStudentLead ? (
+                            <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold shrink-0">
+                              <Crown className="h-3 w-3" /> Team Lead
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold shrink-0">
+                              <CheckCircle2 className="h-3 w-3" /> Member ({studentRole})
+                            </Badge>
+                          )}
+
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {team.currentMembersCount || (team.members || []).length || 1}/{team.maxMembers || 4} members
+                          </Badge>
+
+                          <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
+                            Hiring Open
+                          </Badge>
+                        </div>
+
+                        {!isStudentLead && team.ownerName && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-0.5">
+                            <span>Team Lead:</span>
+                            <Link
+                              to={`/student/${encodeURIComponent(team.ownerName)}`}
+                              className="font-semibold text-foreground hover:text-primary hover:underline transition-colors"
+                            >
+                              {team.ownerName}
+                            </Link>
+                          </div>
+                        )}
+
+                        {team.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                            {team.description}
+                          </p>
+                        )}
+
+                        {team.requiredExpertise && team.requiredExpertise.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {team.requiredExpertise.map((skill: string, idx: number) => (
+                              <Badge key={`${team.id}-exp-${skill}-${idx}`} variant="outline" className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Responsive Action Toolbar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs h-8 px-2.5"
+                            >
+                              <Link to={`/collab/${team.id}`}>
+                                <Eye className="h-3.5 w-3.5" /> View Details
+                              </Link>
+                            </Button>
+
+                            {isUserLeadOf(team) ? (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 text-xs h-8 px-2.5 bg-primary/10 text-primary border border-primary/20 font-medium select-none"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Your Team
+                              </Badge>
+                            ) : isUserMemberOf(team) ? (
+                              <Badge
+                                variant="secondary"
+                                className="gap-1 text-xs h-8 px-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium select-none"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Joined Member
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="gap-1 text-xs h-8 px-2.5 bg-gradient-hero text-primary-foreground font-semibold"
+                                onClick={() => openJoinModal(team)}
+                              >
+                                <UserPlus className="h-3.5 w-3.5" /> Request to Join
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleStar(team.id)}
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                                team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                              }`}
+                            >
+                              <Star className={`h-3.5 w-3.5 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                              <span className="font-semibold text-xs">{team.starsCount || 0}</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </Card>
@@ -1086,7 +1143,7 @@ const StudentProfilePage = () => {
             </TabsContent>
 
             {/* Sub-Tab 3: Completed */}
-            <TabsContent value="completed" className="space-y-3 focus-visible:outline-none">
+            <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
                 <div className="py-12 flex justify-center">
                   <ThemedLoader size="md" />
@@ -1105,93 +1162,119 @@ const StudentProfilePage = () => {
                   const studentRole = isStudentLead ? "Team Lead & Creator" : (studentMemberObj?.role || "Team Member");
 
                   return (
-                    <Card key={team.id} className="p-5 shadow-card border-border/80 hover:shadow-elevated transition-all">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Link
-                              to={`/collab/${team.id}`}
-                              className="font-bold text-base text-foreground hover:text-primary hover:underline transition-colors"
-                            >
-                              {team.title}
-                            </Link>
-                            <Badge variant="secondary" className="text-xs">
-                              {team.type === "HACKATHON" ? "Hackathon" : "Project"}
-                            </Badge>
-                            {isStudentLead ? (
-                              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
-                                <Crown className="h-3 w-3" /> Creator (Hiring Completed)
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
-                                <CheckCircle2 className="h-3 w-3" /> Hired as {studentRole}
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-500/30 font-medium">
-                              ✓ Completed
-                            </Badge>
-                          </div>
-
-                          {!isStudentLead && team.ownerName && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-0.5">
-                              <span>Project Lead:</span>
-                              <Link
-                                to={`/student/${encodeURIComponent(team.ownerName)}`}
-                                className="font-semibold text-foreground hover:text-primary hover:underline transition-colors"
-                              >
-                                {team.ownerName}
-                              </Link>
-                            </div>
-                          )}
-
-                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">{team.description}</p>
-
-                          {team.requiredExpertise && team.requiredExpertise.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {team.requiredExpertise.map((skill: string, idx: number) => (
-                                <Badge key={`${team.id}-req-${skill}-${idx}`} variant="secondary" className="text-[11px] px-2 py-0.5 bg-primary/10 text-primary">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex sm:flex-col items-center gap-2 shrink-0">
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-xs h-9 px-3 border border-border/70 hover:bg-muted font-medium shrink-0 w-full sm:w-auto"
+                    <Card key={team.id} className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <Link
+                            to={`/collab/${team.id}`}
+                            className="font-semibold text-base hover:text-primary hover:underline transition-colors break-words"
                           >
-                            <Link to={`/collab/${team.id}`}>
-                              <Eye className="h-3.5 w-3.5" /> View Details
-                            </Link>
-                          </Button>
-                          {team.githubLink && (
-                            <a
-                              href={
-                                team.githubLink.startsWith("http")
-                                  ? team.githubLink
-                                  : `https://${team.githubLink}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity w-full sm:w-auto justify-center"
-                            >
-                              <Github className="h-3.5 w-3.5" /> View Repo
-                            </a>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleToggleStar(team.id)}
-                            className={`gap-1.5 text-xs h-9 px-3 border border-border/50 w-full sm:w-auto ${
-                              team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                            {team.title}
+                          </Link>
+
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs capitalize shrink-0 ${
+                              team.type === "HACKATHON" || team.type === "hackathon"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             }`}
                           >
-                            <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
-                            <span className="font-semibold">{team.starsCount || 0}</span>
-                          </Button>
+                            {team.type === "HACKATHON" || team.type === "hackathon"
+                              ? "Hackathon Team"
+                              : "Team Project"}
+                          </Badge>
+
+                          {isStudentLead ? (
+                            <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold shrink-0">
+                              <Crown className="h-3 w-3" /> Creator
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold shrink-0">
+                              <CheckCircle2 className="h-3 w-3" /> Hired as {studentRole}
+                            </Badge>
+                          )}
+
+                          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-500/30 font-medium shrink-0">
+                            ✓ Completed
+                          </Badge>
+                        </div>
+
+                        {!isStudentLead && team.ownerName && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-0.5">
+                            <span>Project Lead:</span>
+                            <Link
+                              to={`/student/${encodeURIComponent(team.ownerName)}`}
+                              className="font-semibold text-foreground hover:text-primary hover:underline transition-colors"
+                            >
+                              {team.ownerName}
+                            </Link>
+                          </div>
+                        )}
+
+                        {team.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
+                            {team.description}
+                          </p>
+                        )}
+
+                        {team.requiredExpertise && team.requiredExpertise.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {team.requiredExpertise.map((skill: string, idx: number) => (
+                              <Badge key={`${team.id}-req-${skill}-${idx}`} variant="outline" className="text-[11px] px-2.5 py-0.5 font-medium bg-muted/40">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Responsive Action Toolbar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs h-8 px-2.5"
+                            >
+                              <Link to={`/collab/${team.id}`}>
+                                <Eye className="h-3.5 w-3.5" /> View Details
+                              </Link>
+                            </Button>
+
+                            {team.githubLink && (
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="default"
+                                className="gap-1 text-xs h-8 px-2.5"
+                              >
+                                <a
+                                  href={
+                                    team.githubLink.startsWith("http")
+                                      ? team.githubLink
+                                      : `https://${team.githubLink}`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Github className="h-3.5 w-3.5" /> View Repo
+                                </a>
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleToggleStar(team.id)}
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
+                                team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                              }`}
+                            >
+                              <Star className={`h-3.5 w-3.5 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                              <span className="font-semibold text-xs">{team.starsCount || 0}</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </Card>
