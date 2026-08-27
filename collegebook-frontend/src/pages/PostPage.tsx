@@ -30,6 +30,7 @@ import {
   getComments,
   addComment,
   deleteComment,
+  normalizeCourseShort,
   type FeedPost,
   type PostComment,
 } from "@/lib/api";
@@ -358,7 +359,7 @@ const PostPage = () => {
                     </span>
                   )}
                   {post.authorHandle && <span>•</span>}
-                  <span>{post.course || post.college || "Campus Student"}</span>
+                  <span>{normalizeCourseShort(post.course) || post.college || "Campus Student"}</span>
                 </div>
               </div>
             </div>

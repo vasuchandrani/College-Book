@@ -410,7 +410,7 @@ export const getFeedPosts = async (
       authorHandle: post.authorHandle,
       avatarUrl: post.avatarUrl,
       initials: post.initials,
-      course: post.courseName,
+      course: normalizeCourseShort(post.courseName),
       college: post.collegeName,
       time: formatSmartDate(post.createdAt || post.time),
       createdAt: post.createdAt,
@@ -423,7 +423,7 @@ export const getFeedPosts = async (
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
-      videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
@@ -469,7 +469,7 @@ export const getExplorePosts = async (
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
-      videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
@@ -504,7 +504,7 @@ export const getStudentPosts = async (
       authorHandle: post.authorHandle,
       avatarUrl: post.avatarUrl,
       initials: post.initials,
-      course: post.courseName,
+      course: normalizeCourseShort(post.courseName),
       college: post.collegeName,
       time: formatSmartDate(post.createdAt || post.time),
       createdAt: post.createdAt,
@@ -517,7 +517,7 @@ export const getStudentPosts = async (
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
-      videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
@@ -579,7 +579,7 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
     authorHandle: post.authorHandle,
     avatarUrl: post.avatarUrl,
     initials: post.initials,
-    course: post.courseName,
+    course: normalizeCourseShort(post.courseName),
     college: post.collegeName,
     time: formatSmartDate(post.createdAt || post.time),
     createdAt: post.createdAt,
@@ -592,7 +592,7 @@ export const createPost = async (payload: CreatePostPayload): Promise<FeedPost> 
     tags: post.tags || [],
     images: post.images || [],
     media: post.media || [],
-    videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+    videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
     isGlobal: post.global ?? post.isGlobal ?? true,
   };
 };
@@ -614,7 +614,7 @@ export const getPostById = async (postId: number | string): Promise<FeedPost> =>
     authorHandle: post.authorHandle,
     avatarUrl: post.avatarUrl,
     initials: post.initials,
-    course: post.courseName,
+    course: normalizeCourseShort(post.courseName),
     college: post.collegeName,
     time: formatSmartDate(post.createdAt || post.time),
     createdAt: post.createdAt,
@@ -627,7 +627,7 @@ export const getPostById = async (postId: number | string): Promise<FeedPost> =>
     tags: post.tags || [],
     images: post.images || [],
     media: post.media || [],
-    videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+    videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
     isGlobal: post.global ?? post.isGlobal ?? true,
   };
 };
@@ -811,7 +811,7 @@ export const getSavedPosts = async (): Promise<FeedPost[]> => {
       authorHandle: post.authorHandle,
       avatarUrl: post.avatarUrl,
       initials: post.initials,
-      course: post.courseName,
+      course: normalizeCourseShort(post.courseName),
       college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
@@ -823,7 +823,7 @@ export const getSavedPosts = async (): Promise<FeedPost[]> => {
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
-      videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
@@ -839,7 +839,7 @@ export const getMyPosts = async (): Promise<FeedPost[]> => {
       authorHandle: post.authorHandle,
       avatarUrl: post.avatarUrl,
       initials: post.initials,
-      course: post.courseName,
+      course: normalizeCourseShort(post.courseName),
       college: post.collegeName,
       time: post.time || "Just now",
       content: post.content,
@@ -851,7 +851,7 @@ export const getMyPosts = async (): Promise<FeedPost[]> => {
       tags: post.tags || [],
       images: post.images || [],
       media: post.media || [],
-      videoUrl: videoMedia?.videoId || videoMedia?.url || post.videoUrl,
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
@@ -1000,6 +1000,31 @@ export const getMyIncomingRequests = async () => {
 };
 
 export const getIncomingJoinRequests = getMyIncomingRequests;
+
+let collabBadgePromise: Promise<number> | null = null;
+export const getCollabBadgeCount = async (forceRefresh = false): Promise<number> => {
+  if (!forceRefresh) {
+    const cached = clientCache.get<number>("collab_badge_count");
+    if (cached !== null && cached !== undefined) return cached;
+  }
+
+  if (collabBadgePromise) return collabBadgePromise;
+
+  collabBadgePromise = (async () => {
+    try {
+      const requests = await getMyIncomingRequests().catch(() => []);
+      const count = (requests || []).filter(
+        (r: any) => String(r.status).toUpperCase() === "PENDING"
+      ).length;
+      clientCache.set("collab_badge_count", count, 300_000);
+      return count;
+    } finally {
+      collabBadgePromise = null;
+    }
+  })();
+
+  return collabBadgePromise;
+};
 
 export const updateJoinRequestStatus = async (
   requestId: string | number,
@@ -1441,19 +1466,65 @@ export const uploadVideoToStream = async (
 // Profile & Campus
 // ---------------------------------------------------------------------------
 
-export const normalizeCourseShort = (courseName?: string, courseShortName?: string): string => {
-  if (courseShortName && courseShortName.trim()) return courseShortName.trim();
-  if (!courseName) return "Student";
-  const cn = courseName.trim();
-  if (cn.includes("Bachelor of Technology") || cn === "Bachelor of Technology") return "B.Tech";
-  if (cn.includes("Master of Technology") || cn === "Master of Technology") return "M.Tech";
-  if (cn.includes("Bachelor of Computer Applications") || cn === "Bachelor of Computer Applications") return "BCA";
-  if (cn.includes("Master of Computer Applications") || cn === "Master of Computer Applications") return "MCA";
-  if (cn.includes("Bachelor of Science") || cn === "Bachelor of Science") return "B.Sc";
-  if (cn.includes("Master of Science") || cn === "Master of Science") return "M.Sc";
-  if (cn.includes("Bachelor of Business Administration") || cn === "Bachelor of Business Administration") return "BBA";
-  if (cn.includes("Master of Business Administration") || cn === "Master of Business Administration") return "MBA";
-  return cn;
+export const normalizeCourseShort = (
+  courseName?: string,
+  courseShortName?: string,
+  departmentName?: string
+): string => {
+  let shortCourse = "";
+  if (courseShortName && courseShortName.trim()) {
+    shortCourse = courseShortName.trim();
+  } else if (courseName) {
+    const cn = courseName.trim();
+    if (/bachelor of technology/i.test(cn) || /^b\.?tech/i.test(cn) || /^btech/i.test(cn)) shortCourse = "B.Tech";
+    else if (/master of technology/i.test(cn) || /^m\.?tech/i.test(cn) || /^mtech/i.test(cn)) shortCourse = "M.Tech";
+    else if (/bachelor of computer applications?/i.test(cn) || /^bca/i.test(cn)) shortCourse = "BCA";
+    else if (/master of computer applications?/i.test(cn) || /^mca/i.test(cn)) shortCourse = "MCA";
+    else if (/bachelor of engineering/i.test(cn) || /^b\.?e\.?/i.test(cn)) shortCourse = "B.E.";
+    else if (/master of engineering/i.test(cn) || /^m\.?e\.?/i.test(cn)) shortCourse = "M.E.";
+    else if (/bachelor of science/i.test(cn) || /^b\.?sc/i.test(cn) || /^bsc/i.test(cn)) shortCourse = "B.Sc";
+    else if (/master of science/i.test(cn) || /^m\.?sc/i.test(cn) || /^msc/i.test(cn)) shortCourse = "M.Sc";
+    else if (/bachelor of business administration/i.test(cn) || /^bba/i.test(cn)) shortCourse = "BBA";
+    else if (/master of business administration/i.test(cn) || /^mba/i.test(cn)) shortCourse = "MBA";
+    else shortCourse = cn;
+  }
+
+  let shortDept = "";
+  if (departmentName) {
+    const dn = departmentName.trim();
+    if (/information technology/i.test(dn) || /^it$/i.test(dn)) shortDept = "IT";
+    else if (/computer science/i.test(dn) || /computer engineering/i.test(dn) || /^ce$/i.test(dn) || /^cse$/i.test(dn)) {
+      shortDept = /science/i.test(dn) ? "CSE" : "CE";
+    } else if (/electronics/i.test(dn) || /^ec$/i.test(dn) || /^ece$/i.test(dn)) shortDept = "EC";
+    else if (/electrical/i.test(dn) || /^ee$/i.test(dn)) shortDept = "EE";
+    else if (/mechanical/i.test(dn) || /^me$/i.test(dn)) shortDept = "ME";
+    else if (/civil/i.test(dn)) shortDept = "Civil";
+    else if (/chemical/i.test(dn)) shortDept = "Chemical";
+    else if (/biomedical/i.test(dn)) shortDept = "Biomedical";
+    else if (/artificial intelligence/i.test(dn) || /^ai$/i.test(dn)) shortDept = "AI";
+    else if (/data science/i.test(dn) || /^ds$/i.test(dn)) shortDept = "DS";
+    else shortDept = dn;
+  }
+
+  if (shortCourse && shortDept) {
+    if (shortCourse.toLowerCase().includes(shortDept.toLowerCase())) return shortCourse;
+    return `${shortCourse} ${shortDept}`;
+  }
+
+  // Also check if courseName contains both course and department like "Bachelor of Technology Information Technology"
+  if (shortCourse) {
+    if (/information technology/i.test(shortCourse)) {
+      return shortCourse.replace(/information technology/i, "IT").replace(/bachelor of technology/i, "B.Tech").trim();
+    }
+    if (/computer engineering/i.test(shortCourse)) {
+      return shortCourse.replace(/computer engineering/i, "CE").replace(/bachelor of technology/i, "B.Tech").trim();
+    }
+    if (/computer science/i.test(shortCourse)) {
+      return shortCourse.replace(/computer science/i, "CSE").replace(/bachelor of technology/i, "B.Tech").trim();
+    }
+  }
+
+  return shortCourse || shortDept || "Student";
 };
 
 export interface UserProfileData {
@@ -1926,57 +1997,28 @@ export const getCampusStudents = async (): Promise<PublicStudentProfile[]> => {
 
 export const uploadImageFile = async (
   file: File,
-  mediaContext = "POST"
+  mediaContext = "POST_IMAGE"
 ): Promise<{ objectKey: string; publicUrl?: string; url?: string; storageProvider?: string }> => {
-  const cleanBaseUrl = (API_BASE_URL || "/api/v1").replace(/\/+$/, "");
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("mediaContext", mediaContext);
-
-  const token = localStorage.getItem("cb_token");
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  // 1. Attempt direct multipart upload endpoint first
   try {
-    const res = await fetch(`${cleanBaseUrl}/storage/upload`, {
+    const presigned = await request<{
+      uploadUrl: string;
+      objectKey: string;
+      publicUrl: string;
+      storageProvider?: string;
+    }>("/storage/presign-upload", {
       method: "POST",
-      headers,
-      body: formData,
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || "image/jpeg",
+        fileSizeBytes: file.size,
+        mediaContext,
+      }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        objectKey: data.objectKey || data.publicUrl,
-        publicUrl: data.publicUrl || data.url,
-        url: data.publicUrl || data.url,
-        storageProvider: data.storageProvider || "CLOUDINARY",
-      };
+    if (!presigned.uploadUrl) {
+      throw new Error("Failed to upload media. Please try again after some time.");
     }
-  } catch (err) {
-    console.warn("Direct upload endpoint failed, falling back to presigned upload:", err);
-  }
 
-  // 2. Fallback to presign-upload if direct upload isn't available
-  const presigned = await request<{
-    uploadUrl: string;
-    objectKey: string;
-    publicUrl: string;
-    storageProvider?: string;
-  }>("/storage/presign-upload", {
-    method: "POST",
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || "image/jpeg",
-      fileSizeBytes: file.size,
-      mediaContext,
-    }),
-  });
-
-  if (presigned.uploadUrl) {
     const putRes = await fetch(presigned.uploadUrl, {
       method: "PUT",
       headers: {
@@ -1986,45 +2028,75 @@ export const uploadImageFile = async (
     });
 
     if (!putRes.ok) {
-      throw new Error(`Media upload failed with status ${putRes.status}: ${putRes.statusText}`);
+      throw new Error("Failed to upload media. Please try again after some time.");
     }
-  }
 
-  return {
-    objectKey: presigned.objectKey,
-    publicUrl: presigned.publicUrl,
-    url: presigned.publicUrl,
-    storageProvider: presigned.storageProvider || "S3",
-  };
+    return {
+      objectKey: presigned.objectKey,
+      publicUrl: presigned.publicUrl,
+      url: presigned.publicUrl,
+      storageProvider: presigned.storageProvider || "S3",
+    };
+  } catch (err: any) {
+    if (err instanceof ApiError) {
+      throw new Error(err.message || "Failed to upload media. Please try again after some time.");
+    }
+    throw new Error(err?.message || "Failed to upload media. Please try again after some time.");
+  }
 };
 
 export const uploadVideoFile = async (
   file: File
-): Promise<{ videoId: string; storageProvider?: string }> => {
-  const res = await request<{
-    uploadUrl: string;
-    videoId: string;
-    storageProvider?: string;
-  }>("/storage/video-upload", {
-    method: "POST",
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || "video/mp4",
-      fileSizeBytes: file.size,
-    }),
-  });
-
-  if (res.uploadUrl) {
-    await fetch(res.uploadUrl, {
+): Promise<{ videoId: string; objectKey: string; url: string; publicUrl: string; storageProvider: string }> => {
+  try {
+    const presigned = await request<{
+      uploadUrl: string;
+      objectKey?: string;
+      videoId?: string;
+      publicUrl?: string;
+      storageProvider?: string;
+    }>("/storage/presign-upload", {
       method: "POST",
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || "video/mp4",
+        fileSizeBytes: file.size,
+        mediaContext: "POST_VIDEO",
+      }),
+    });
+
+    if (!presigned.uploadUrl) {
+      throw new Error("Failed to upload media. Please try again after some time.");
+    }
+
+    const putRes = await fetch(presigned.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "video/mp4",
+      },
       body: file,
     });
-  }
 
-  return {
-    videoId: res.videoId,
-    storageProvider: res.storageProvider || "CLOUDFLARE_STREAM",
-  };
+    if (!putRes.ok) {
+      throw new Error("Failed to upload media. Please try again after some time.");
+    }
+
+    const key = presigned.objectKey || presigned.videoId || "";
+    const resolvedUrl = presigned.publicUrl || "";
+
+    return {
+      videoId: key,
+      objectKey: key,
+      url: resolvedUrl,
+      publicUrl: resolvedUrl,
+      storageProvider: presigned.storageProvider || "S3",
+    };
+  } catch (err: any) {
+    if (err instanceof ApiError) {
+      throw new Error(err.message || "Failed to upload media. Please try again after some time.");
+    }
+    throw new Error(err?.message || "Failed to upload media. Please try again after some time.");
+  }
 };
 
 // =========================================================================

@@ -33,16 +33,19 @@ public class MediaService implements StorageService {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"
     );
+    private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
+            "video/mp4", "video/quicktime", "video/webm", "video/x-msvideo"
+    );
     private static final Set<String> ALLOWED_DOCUMENT_TYPES = Set.of(
             "application/pdf"
     );
     private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;       // 10 MB
+    private static final long MAX_VIDEO_SIZE = 500 * 1024 * 1024;      // 500 MB
     private static final long MAX_DOCUMENT_SIZE = 25 * 1024 * 1024;    // 25 MB
 
     private final StorageProviderRegistry storageProviderRegistry;
     private final CloudflareStreamService cloudflareStreamService;
     private final MediaRepository mediaRepository;
-    private final CloudinaryService cloudinaryService;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     @org.springframework.beans.factory.annotation.Qualifier("awsS3Client")
     private software.amazon.awssdk.services.s3.S3Client s3Client;
@@ -56,7 +59,7 @@ public class MediaService implements StorageService {
         }
         validateFile(file.getContentType(), file.getSize(), mediaContext);
 
-        if (storageProviderRegistry.getActiveProviderType() == StorageProviderType.S3 && s3Client != null && awsS3Properties != null) {
+        if (s3Client != null && awsS3Properties != null) {
             try {
                 String prefix = resolvePrefix(mediaContext);
                 String objectKey = buildObjectKey(prefix, file.getOriginalFilename());
@@ -83,11 +86,12 @@ public class MediaService implements StorageService {
                         .storageProvider("S3")
                         .build();
             } catch (Exception e) {
-                log.warn("Direct upload to AWS S3 failed ({}), falling back to Cloudinary: {}", e.getClass().getSimpleName(), e.getMessage());
+                log.error("Direct upload to AWS S3 failed: {}", e.getMessage(), e);
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload media. Please try again after some time.");
             }
         }
 
-        return cloudinaryService.uploadFile(file, mediaContext);
+        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload media. Please try again after some time.");
     }
 
     @Override
@@ -110,7 +114,21 @@ public class MediaService implements StorageService {
 
     @Override
     public VideoUploadResponse generateVideoUploadUrl(String fileName, String contentType, long fileSizeBytes) {
-        return cloudflareStreamService.createDirectUpload(fileName, contentType, fileSizeBytes);
+        validateVideoFile(contentType, fileSizeBytes);
+
+        if (storageProviderRegistry.getActiveProviderType() == StorageProviderType.R2) {
+            try {
+                return cloudflareStreamService.createDirectUpload(fileName, contentType, fileSizeBytes);
+            } catch (Exception e) {
+                log.info("Cloudflare Stream unavailable, falling back to Object Storage: {}", e.getMessage());
+            }
+        }
+
+        UploadResponseDto uploadResponse = generateImageUploadUrl(fileName, contentType, fileSizeBytes, "POST_VIDEO");
+        return VideoUploadResponse.builder()
+                .uploadUrl(uploadResponse.getUploadUrl())
+                .videoId(uploadResponse.getObjectKey())
+                .build();
     }
 
     @Override
@@ -137,13 +155,17 @@ public class MediaService implements StorageService {
             return "";
         }
 
+        if (objectKey.startsWith("http://") || objectKey.startsWith("https://")) {
+            return objectKey;
+        }
+
         if ("CLOUDFLARE_STREAM".equalsIgnoreCase(storageProvider)) {
             return cloudflareStreamService.getPlaybackUrl(objectKey);
         }
 
-        if ("CLOUDINARY".equalsIgnoreCase(storageProvider)) {
-            if (objectKey.startsWith("http://") || objectKey.startsWith("https://")) {
-                return objectKey;
+        if ("CLOUDINARY".equalsIgnoreCase(storageProvider) || objectKey.startsWith("collegebook/")) {
+            if (objectKey.contains("video") || objectKey.endsWith(".mp4") || objectKey.endsWith(".mov") || objectKey.endsWith(".webm") || objectKey.contains("collegebook/videos")) {
+                return "https://res.cloudinary.com/wlayvv5n/video/upload/" + objectKey;
             }
             return "https://res.cloudinary.com/wlayvv5n/image/upload/" + objectKey;
         }
@@ -234,8 +256,21 @@ public class MediaService implements StorageService {
     private void validateFile(String contentType, long fileSizeBytes, String mediaContext) {
         if ("DOCUMENT".equalsIgnoreCase(mediaContext)) {
             validateDocumentFile(contentType, fileSizeBytes);
+        } else if ("POST_VIDEO".equalsIgnoreCase(mediaContext) || (contentType != null && contentType.toLowerCase().startsWith("video/"))) {
+            validateVideoFile(contentType, fileSizeBytes);
         } else {
             validateImageFile(contentType, fileSizeBytes);
+        }
+    }
+
+    private void validateVideoFile(String contentType, long fileSizeBytes) {
+        if (contentType == null || !ALLOWED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
+            throw new AppException(ErrorCode.INVALID_FILE_TYPE,
+                    "Unsupported video type: " + contentType + ". Allowed: " + ALLOWED_VIDEO_TYPES);
+        }
+        if (fileSizeBytes > MAX_VIDEO_SIZE) {
+            throw new AppException(ErrorCode.FILE_TOO_LARGE,
+                    "Video too large. Maximum size: " + (MAX_VIDEO_SIZE / 1024 / 1024) + " MB");
         }
     }
 
@@ -265,6 +300,7 @@ public class MediaService implements StorageService {
         if (mediaContext == null) return "uploads";
         return switch (mediaContext.toUpperCase()) {
             case "POST", "POST_IMAGE" -> "posts/images";
+            case "POST_VIDEO" -> "posts/videos";
             case "AVATAR" -> "avatars";
             case "DOCUMENT" -> "documents";
             default -> "uploads";

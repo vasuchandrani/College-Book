@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Newspaper, Compass, Users, UserCircle, FolderGit2 } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { getIncomingJoinRequests, getMyCreatedTeams, getTeamChatMessages } from "@/lib/api";
-import { checkIsMessageUnread } from "@/lib/chatUnread";
+import { getCollabBadgeCount } from "@/lib/api";
 
 const navItems = [
   { title: "Feed", url: "/feed", icon: Newspaper },
@@ -17,66 +16,29 @@ export function BottomNav() {
   const location = useLocation();
   const [pendingCount, setPendingCount] = useState(0);
 
+  const fetchCount = async (forceRefresh = false) => {
+    const token = localStorage.getItem("cb_token");
+    if (!token) return;
+    try {
+      const count = await getCollabBadgeCount(forceRefresh);
+      setPendingCount(count);
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
-    const fetchCount = async () => {
-      const token = localStorage.getItem("cb_token");
-      if (!token) return;
-      try {
-        const [reqs, teams] = await Promise.all([
-          getIncomingJoinRequests().catch(() => []),
-          getMyCreatedTeams().catch(() => []),
-        ]);
-        const reqCount = (reqs || []).filter(
-          (r: any) => String(r.status).toUpperCase() === "PENDING"
-        ).length;
+    fetchCount(false);
 
-        let unreadChatCount = 0;
-        let storedUser: any = {};
-        try {
-          storedUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
-        } catch {}
-
-        await Promise.all(
-          (teams || []).map(async (t: any) => {
-            if (!t.id) return;
-            try {
-              const msgs = await getTeamChatMessages(t.id, 1);
-              if (msgs && msgs.length > 0) {
-                const latest = msgs[msgs.length - 1];
-                if (
-                  checkIsMessageUnread(
-                    t.id,
-                    latest.createdAt,
-                    latest.senderId,
-                    storedUser?.id || storedUser?.userId,
-                    latest.senderName,
-                    storedUser?.name || storedUser?.fullName,
-                    latest.senderHandle,
-                    storedUser?.handle
-                  )
-                ) {
-                  unreadChatCount++;
-                }
-              }
-            } catch {}
-          })
-        );
-
-        setPendingCount(reqCount + unreadChatCount);
-      } catch {
-        // ignore
-      }
-    };
-
-    fetchCount();
-
-    const handleUpdate = () => fetchCount();
+    const handleUpdate = () => fetchCount(true);
     window.addEventListener("cb_collab_updated", handleUpdate);
     window.addEventListener("cb_room_read", handleUpdate);
+    const interval = setInterval(() => fetchCount(true), 60000);
 
     return () => {
       window.removeEventListener("cb_collab_updated", handleUpdate);
       window.removeEventListener("cb_room_read", handleUpdate);
+      clearInterval(interval);
     };
   }, []);
 

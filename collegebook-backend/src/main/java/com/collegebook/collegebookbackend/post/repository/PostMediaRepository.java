@@ -12,5 +12,8 @@ public interface PostMediaRepository extends JpaRepository<PostMedia, UUID> {
 
     List<PostMedia> findByPostIdOrderByPositionAsc(UUID postId);
 
+    @org.springframework.data.jpa.repository.Query("SELECT pm FROM PostMedia pm WHERE pm.post.id IN :postIds ORDER BY pm.position ASC")
+    List<PostMedia> findByPostIdInOrderByPositionAsc(List<UUID> postIds);
+
     void deleteByPostId(UUID postId);
 }

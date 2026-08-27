@@ -45,6 +45,12 @@ public class CloudflareStreamService {
         validateVideoFile(contentType, fileSizeBytes);
 
         CloudflareProperties.Stream stream = cloudflareProperties.getStream();
+        if (stream == null || stream.getAccountId() == null || stream.getAccountId().isBlank()
+                || stream.getApiToken() == null || stream.getApiToken().isBlank()) {
+            throw new AppException(ErrorCode.VIDEO_UPLOAD_FAILED,
+                    "Cloudflare Stream is not configured with valid credentials.");
+        }
+
         String url = STREAM_API_BASE + "/" + stream.getAccountId() + "/stream?direct_user=true";
 
         HttpHeaders headers = new HttpHeaders();

@@ -52,7 +52,9 @@ public class CloudinaryService {
             String toSign = "folder=" + folder + "&timestamp=" + timestamp + apiSecret;
             String signature = sha1Hex(toSign);
 
-            String uploadUrl = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
+            String resourceType = (file.getContentType() != null && file.getContentType().startsWith("video/"))
+                    || "POST_VIDEO".equalsIgnoreCase(mediaContext) ? "video" : "auto";
+            String uploadUrl = "https://api.cloudinary.com/v1_1/" + cloudName + "/" + resourceType + "/upload";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -62,7 +64,7 @@ public class CloudinaryService {
             ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
                 @Override
                 public String getFilename() {
-                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : "file.jpg";
+                    return file.getOriginalFilename() != null ? file.getOriginalFilename() : ("video".equals(resourceType) ? "video.mp4" : "file.jpg");
                 }
             };
             body.add("file", fileResource);
@@ -94,7 +96,7 @@ public class CloudinaryService {
             throw e;
         } catch (Exception e) {
             log.error("Failed to upload to Cloudinary: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload image: " + e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload media: " + e.getMessage());
         }
     }
 
@@ -102,6 +104,7 @@ public class CloudinaryService {
         if (mediaContext == null) return "collegebook/uploads";
         return switch (mediaContext.toUpperCase()) {
             case "POST", "POST_IMAGE" -> "collegebook/posts";
+            case "POST_VIDEO" -> "collegebook/videos";
             case "AVATAR" -> "collegebook/avatars";
             case "DOCUMENT" -> "collegebook/documents";
             default -> "collegebook/uploads";

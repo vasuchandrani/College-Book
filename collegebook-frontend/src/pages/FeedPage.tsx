@@ -44,6 +44,7 @@ import {
   getProfile,
   formatApiError,
   sharePostLink,
+  normalizeCourseShort,
   type FeedPost,
 } from "@/lib/api";
 
@@ -133,7 +134,7 @@ const FeedPage = () => {
           const nextVal = Boolean(res.hasNext && freshPosts.length > 0);
           setPosts(freshPosts);
           setHasMore(nextVal);
-          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 120_000);
+          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 300_000);
         }
       })
       .catch(() => {
@@ -390,7 +391,7 @@ const FeedPage = () => {
             objectKey: res.objectKey,
             url: res.publicUrl || res.url,
             mediaType: "IMAGE",
-            storageProvider: res.storageProvider || "CLOUDINARY",
+            storageProvider: res.storageProvider || "S3",
           });
         }
       }
@@ -400,8 +401,10 @@ const FeedPage = () => {
         const res = await uploadVideoFile(pendingVideo.file);
         mediaKeys.push({
           videoId: res.videoId,
+          objectKey: res.objectKey || res.videoId,
+          url: res.publicUrl || res.url,
           mediaType: "VIDEO",
-          storageProvider: res.storageProvider || "CLOUDFLARE_STREAM",
+          storageProvider: res.storageProvider || "S3",
         });
       }
 
@@ -525,7 +528,7 @@ const FeedPage = () => {
                       </span>
                     )}
                     {post.authorHandle && post.course && <span>•</span>}
-                    {post.course && <span className="truncate">{post.course}</span>}
+                    {post.course && <span className="truncate">{normalizeCourseShort(post.course)}</span>}
                   </div>
                 </div>
               </div>

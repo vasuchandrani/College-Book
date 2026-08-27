@@ -505,7 +505,7 @@ const ProfilePage = () => {
         .then((posts) => {
           if (alive && posts) {
             setActivityPosts(posts);
-            clientCache.set("my_posts", posts, 120_000);
+            clientCache.set("my_posts", posts, 300_000);
           }
         })
         .catch(() => { });
@@ -514,7 +514,7 @@ const ProfilePage = () => {
         .then((posts) => {
           if (alive && posts) {
             setSavedPostsList(posts);
-            clientCache.set("my_saved_posts", posts, 120_000);
+            clientCache.set("my_saved_posts", posts, 300_000);
           }
         })
         .catch(() => { });
@@ -523,7 +523,7 @@ const ProfilePage = () => {
         .then((starred) => {
           if (alive && starred) {
             setStarredProjects(starred);
-            clientCache.set("my_starred_projects", starred, 120_000);
+            clientCache.set("my_starred_projects", starred, 300_000);
           }
         })
         .catch(() => { });
@@ -532,7 +532,7 @@ const ProfilePage = () => {
         .then((teams) => {
           if (alive && teams) {
             setCreatedProjects(teams);
-            clientCache.set("my_profile_teams", teams, 120_000);
+            clientCache.set("my_profile_teams", teams, 300_000);
           }
         })
         .catch(() => { });
@@ -541,7 +541,7 @@ const ProfilePage = () => {
         .then((reqs) => {
           if (alive && reqs) {
             setMyRequests(reqs);
-            clientCache.set("my_profile_requests", reqs, 120_000);
+            clientCache.set("my_profile_requests", reqs, 300_000);
           }
         })
         .catch(() => { });
@@ -550,7 +550,7 @@ const ProfilePage = () => {
         .then((inReqs) => {
           if (alive && inReqs) {
             setIncomingRequests(inReqs);
-            clientCache.set("my_profile_incoming", inReqs, 120_000);
+            clientCache.set("my_profile_incoming", inReqs, 300_000);
           }
         })
         .catch(() => { });

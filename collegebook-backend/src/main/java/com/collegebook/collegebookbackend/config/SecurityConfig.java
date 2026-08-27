@@ -80,20 +80,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Parse configured origins instead of using wildcard
+        // Register origin patterns to match exact domains, wildcard subdomains, and ports
         Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .forEach(origin -> {
-                    if (origin.contains("*")) {
-                        config.addAllowedOriginPattern(origin);
-                    } else {
-                        config.addAllowedOrigin(origin);
-                    }
-                });
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                .forEach(config::addAllowedOriginPattern);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Type", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

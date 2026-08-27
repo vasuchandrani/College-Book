@@ -26,6 +26,5 @@ public class PresignedUploadRequest {
     /**
      * Context for the upload: POST_IMAGE, AVATAR, POST_VIDEO, DOCUMENT.
      */
-    @NotBlank(message = "Media context is required")
-    private String mediaContext;
+    private String mediaContext = "POST_IMAGE";
 }

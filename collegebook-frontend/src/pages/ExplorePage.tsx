@@ -79,7 +79,7 @@ const ExplorePage = () => {
           const nextVal = Boolean(res.hasNext && freshPosts.length > 0);
           setPosts(freshPosts);
           setHasMore(nextVal);
-          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 120_000);
+          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 300_000);
         }
       })
       .catch(() => {

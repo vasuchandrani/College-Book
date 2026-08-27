@@ -24,7 +24,7 @@ export const clientCache = {
     return Date.now() - entry.timestamp < entry.ttlMs;
   },
 
-  set<T>(key: string, data: T, ttlMs = 120_000): void {
+  set<T>(key: string, data: T, ttlMs = 300_000): void {
     memoryStore.set(key, {
       data,
       timestamp: Date.now(),

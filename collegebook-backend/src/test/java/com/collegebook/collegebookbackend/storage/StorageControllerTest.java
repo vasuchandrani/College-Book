@@ -75,10 +75,10 @@ public class StorageControllerTest {
         );
 
         UploadResponseDto resp = UploadResponseDto.builder()
-                .uploadUrl("https://api.cloudinary.com/v1_1/wlayvv5n/image/upload")
-                .publicUrl("https://res.cloudinary.com/wlayvv5n/image/upload/v123/posts/photo.png")
-                .objectKey("collegebook/posts/photo")
-                .storageProvider("CLOUDINARY")
+                .uploadUrl("https://collegebook-media.s3.eu-north-1.amazonaws.com/posts/images/photo.png")
+                .publicUrl("https://collegebook-media.s3.eu-north-1.amazonaws.com/posts/images/photo.png")
+                .objectKey("posts/images/photo.png")
+                .storageProvider("S3")
                 .build();
 
         when(storageService.uploadDirect(any(), anyString(), any()))
@@ -88,7 +88,7 @@ public class StorageControllerTest {
                         .file(mockFile)
                         .param("mediaContext", "POST"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.publicUrl").value("https://res.cloudinary.com/wlayvv5n/image/upload/v123/posts/photo.png"))
-                .andExpect(jsonPath("$.storageProvider").value("CLOUDINARY"));
+                .andExpect(jsonPath("$.publicUrl").value("https://collegebook-media.s3.eu-north-1.amazonaws.com/posts/images/photo.png"))
+                .andExpect(jsonPath("$.storageProvider").value("S3"));
     }
 }

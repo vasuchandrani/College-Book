@@ -224,9 +224,9 @@ export default function MyCollaborationPage() {
       setMyTeams(freshTeams);
       setMyRequests(freshReqs);
       setIncomingRequests(freshIncoming);
-      clientCache.set("my_collab_teams", freshTeams, 120_000);
-      clientCache.set("my_collab_requests", freshReqs, 120_000);
-      clientCache.set("my_collab_incoming", freshIncoming, 120_000);
+      clientCache.set("my_collab_teams", freshTeams, 300_000);
+      clientCache.set("my_collab_requests", freshReqs, 300_000);
+      clientCache.set("my_collab_incoming", freshIncoming, 300_000);
       window.dispatchEvent(new Event("cb_collab_updated"));
 
       // Check unread messages for collaboration rooms

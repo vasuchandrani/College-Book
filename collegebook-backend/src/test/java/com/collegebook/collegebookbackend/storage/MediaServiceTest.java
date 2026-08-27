@@ -9,7 +9,6 @@ import com.collegebook.collegebookbackend.storage.model.StorageProviderType;
 import com.collegebook.collegebookbackend.storage.provider.ObjectStorageProvider;
 import com.collegebook.collegebookbackend.storage.repository.MediaRepository;
 import com.collegebook.collegebookbackend.storage.service.CloudflareStreamService;
-import com.collegebook.collegebookbackend.storage.service.CloudinaryService;
 import com.collegebook.collegebookbackend.storage.service.MediaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,14 +37,12 @@ public class MediaServiceTest {
     private CloudflareStreamService cloudflareStreamService;
     @Mock
     private ObjectStorageProvider mockStorageProvider;
-    @Mock
-    private CloudinaryService cloudinaryService;
 
     private MediaService mediaService;
 
     @BeforeEach
     void setUp() {
-        mediaService = new MediaService(storageProviderRegistry, cloudflareStreamService, mediaRepository, cloudinaryService);
+        mediaService = new MediaService(storageProviderRegistry, cloudflareStreamService, mediaRepository);
     }
 
     @Test
@@ -101,17 +98,22 @@ public class MediaServiceTest {
     }
 
     @Test
-    void testGenerateVideoUploadUrlDelegatesToStream() {
-        when(cloudflareStreamService.createDirectUpload("demo.mp4", "video/mp4", 5 * 1024 * 1024))
-                .thenReturn(VideoUploadResponse.builder()
-                        .uploadUrl("https://upload.videodelivery.net/tus/xyz")
-                        .videoId("stream-uid-999")
+    void testGenerateVideoUploadUrlGeneratesS3PresignedUrl() {
+        when(storageProviderRegistry.getActiveProviderType()).thenReturn(StorageProviderType.S3);
+        when(storageProviderRegistry.getActiveProvider()).thenReturn(mockStorageProvider);
+        when(mockStorageProvider.generatePresignedUploadUrl(anyString(), eq("video/mp4"), anyLong()))
+                .thenReturn(PresignedUploadResult.builder()
+                        .uploadUrl("https://s3.amazonaws.com/presigned-video-put")
+                        .objectKey("posts/videos/uuid_test.mp4")
+                        .publicUrl("https://collegebook.s3.ap-south-1.amazonaws.com/posts/videos/uuid_test.mp4")
+                        .provider(StorageProviderType.S3)
                         .build());
 
         VideoUploadResponse response = mediaService.generateVideoUploadUrl("demo.mp4", "video/mp4", 5 * 1024 * 1024);
 
         assertNotNull(response);
-        assertEquals("stream-uid-999", response.getVideoId());
+        assertEquals("https://s3.amazonaws.com/presigned-video-put", response.getUploadUrl());
+        assertTrue(response.getVideoId().contains("posts/videos/"));
     }
 
     @Test
@@ -131,36 +133,6 @@ public class MediaServiceTest {
 
         String url = mediaService.resolveAccessUrl("posts/images/abc.jpg", "S3");
         assertEquals("https://s3.amazonaws.com/bucket/posts/images/abc.jpg", url);
-    }
-
-    @Test
-    void testResolveAccessUrlCloudinary() {
-        String directUrl = "https://res.cloudinary.com/wlayvv5n/image/upload/v1/posts/image.jpg";
-        String resolvedDirect = mediaService.resolveAccessUrl(directUrl, "CLOUDINARY");
-        assertEquals(directUrl, resolvedDirect);
-
-        String pathKey = "posts/image.jpg";
-        String resolvedPath = mediaService.resolveAccessUrl(pathKey, "CLOUDINARY");
-        assertEquals("https://res.cloudinary.com/wlayvv5n/image/upload/posts/image.jpg", resolvedPath);
-    }
-
-    @Test
-    void testUploadDirectDelegatesToCloudinary() {
-        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
-                "file", "pic.jpg", "image/jpeg", "data".getBytes()
-        );
-        UploadResponseDto expected = UploadResponseDto.builder()
-                .publicUrl("https://res.cloudinary.com/wlayvv5n/image/upload/v123/pic.jpg")
-                .objectKey("collegebook/posts/pic")
-                .storageProvider("CLOUDINARY")
-                .build();
-
-        when(cloudinaryService.uploadFile(file, "POST")).thenReturn(expected);
-
-        UploadResponseDto actual = mediaService.uploadDirect(file, "POST", "user-123");
-        assertNotNull(actual);
-        assertEquals("CLOUDINARY", actual.getStorageProvider());
-        assertEquals("https://res.cloudinary.com/wlayvv5n/image/upload/v123/pic.jpg", actual.getPublicUrl());
     }
 
     @Test

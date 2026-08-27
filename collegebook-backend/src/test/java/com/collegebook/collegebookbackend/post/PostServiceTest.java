@@ -24,10 +24,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -234,15 +239,15 @@ public class PostServiceTest {
         );
 
         when(postRepository.findByCollegeId(any(), any())).thenReturn(page);
-        when(socialInteractionService.getPostLikesCount(postId, 10)).thenReturn(10L);
+        when(socialInteractionService.getPostLikesCountsBatch(any())).thenReturn(Map.of(postId, 10L));
 
         // User A liked the post
-        when(socialInteractionService.isPostLikedByUser(postId, userA)).thenReturn(true);
-        when(socialInteractionService.isPostSavedByUser(postId, userA)).thenReturn(false);
+        when(socialInteractionService.getLikedPostIdsBatch(any(), eq(userA))).thenReturn(Set.of(postId));
+        when(socialInteractionService.getSavedPostIdsBatch(any(), eq(userA))).thenReturn(Collections.emptySet());
 
         // User B has not liked the post, but saved it
-        when(socialInteractionService.isPostLikedByUser(postId, userB)).thenReturn(false);
-        when(socialInteractionService.isPostSavedByUser(postId, userB)).thenReturn(true);
+        when(socialInteractionService.getLikedPostIdsBatch(any(), eq(userB))).thenReturn(Collections.emptySet());
+        when(socialInteractionService.getSavedPostIdsBatch(any(), eq(userB))).thenReturn(Set.of(postId));
 
         com.collegebook.collegebookbackend.common.PageResponse<PostResponseDto> respA = postService.getFeed(userA, collegeId, null, 0, 10);
         com.collegebook.collegebookbackend.common.PageResponse<PostResponseDto> respB = postService.getFeed(userB, collegeId, null, 0, 10);

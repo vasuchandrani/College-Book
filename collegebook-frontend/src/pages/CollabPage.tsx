@@ -165,8 +165,8 @@ const CollabPage = () => {
           const freshReqs = reqsData || [];
           setTeams(freshTeams);
           setMyRequests(freshReqs);
-          clientCache.set("collab_teams", freshTeams, 120_000);
-          clientCache.set("collab_my_requests", freshReqs, 120_000);
+          clientCache.set("collab_teams", freshTeams, 300_000);
+          clientCache.set("collab_my_requests", freshReqs, 300_000);
         }
       })
       .catch(() => {

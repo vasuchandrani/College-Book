@@ -289,9 +289,7 @@ public class PostServiceImpl implements PostService {
                 MediaType mediaType = isVideo ? MediaType.VIDEO : MediaType.IMAGE;
                 String storageProvider = mediaKey.getStorageProvider();
                 if (storageProvider == null || storageProvider.isBlank()) {
-                    storageProvider = isVideo
-                            ? StorageProvider.CLOUDFLARE_STREAM.name()
-                            : StorageProvider.S3.name();
+                    storageProvider = StorageProvider.S3.name();
                 }
 
                 String objectKey = mediaKey.getObjectKey() != null ? mediaKey.getObjectKey() : (mediaKey.getVideoId() != null ? mediaKey.getVideoId() : "");
@@ -437,8 +435,32 @@ public class PostServiceImpl implements PostService {
     }
 
     private PageResponse<PostResponseDto> mapPostPage(Page<Post> postsPage, UUID userId) {
-        List<PostResponseDto> content = postsPage.getContent().stream()
-                .map(p -> mapToDto(p, userId))
+        List<Post> posts = postsPage.getContent();
+        if (posts.isEmpty()) {
+            return PageResponse.of(Collections.emptyList(), postsPage.getNumber(), postsPage.getSize(), postsPage.getTotalElements());
+        }
+
+        List<UUID> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+
+        // 1. Batch fetch all like counts in 1 call
+        Map<UUID, Long> likesCountsBatch = socialInteractionService.getPostLikesCountsBatch(postIds);
+
+        // 2. Batch fetch liked and saved states in 1 call each
+        Set<UUID> likedPostIds = (userId != null)
+                ? socialInteractionService.getLikedPostIdsBatch(postIds, userId)
+                : Collections.emptySet();
+        Set<UUID> savedPostIds = (userId != null)
+                ? socialInteractionService.getSavedPostIdsBatch(postIds, userId)
+                : Collections.emptySet();
+
+        // 3. Batch fetch all post media in 1 SQL query
+        List<PostMedia> allMedia = postMediaRepository.findByPostIdInOrderByPositionAsc(postIds);
+        Map<UUID, List<PostMedia>> mediaByPostId = allMedia.stream()
+                .filter(pm -> pm.getPost() != null && pm.getPost().getId() != null)
+                .collect(Collectors.groupingBy(pm -> pm.getPost().getId()));
+
+        List<PostResponseDto> content = posts.stream()
+                .map(p -> mapToDtoBatched(p, userId, likesCountsBatch, likedPostIds, savedPostIds, mediaByPostId))
                 .collect(Collectors.toList());
 
         return PageResponse.of(content, postsPage.getNumber(), postsPage.getSize(), postsPage.getTotalElements());
@@ -449,6 +471,29 @@ public class PostServiceImpl implements PostService {
     }
 
     private PostResponseDto mapToDto(Post post, UUID userId) {
+        if (post == null) return null;
+        List<UUID> singleId = Collections.singletonList(post.getId());
+        Map<UUID, Long> likesCountsBatch = socialInteractionService.getPostLikesCountsBatch(singleId);
+        Set<UUID> likedPostIds = (userId != null)
+                ? socialInteractionService.getLikedPostIdsBatch(singleId, userId)
+                : Collections.emptySet();
+        Set<UUID> savedPostIds = (userId != null)
+                ? socialInteractionService.getSavedPostIdsBatch(singleId, userId)
+                : Collections.emptySet();
+        List<PostMedia> mediaList = postMediaRepository.findByPostIdOrderByPositionAsc(post.getId());
+        Map<UUID, List<PostMedia>> mediaByPostId = Collections.singletonMap(post.getId(), mediaList);
+
+        return mapToDtoBatched(post, userId, likesCountsBatch, likedPostIds, savedPostIds, mediaByPostId);
+    }
+
+    private PostResponseDto mapToDtoBatched(
+            Post post,
+            UUID userId,
+            Map<UUID, Long> likesCountsBatch,
+            Set<UUID> likedPostIds,
+            Set<UUID> savedPostIds,
+            Map<UUID, List<PostMedia>> mediaByPostId
+    ) {
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
         dto.setAuthorId(post.getAuthor() != null ? post.getAuthor().getId() : null);
@@ -458,7 +503,7 @@ public class PostServiceImpl implements PostService {
         String authorHandle = post.getAuthorHandle();
         String avatarUrl = resolveAvatarUrl(post.getAuthorAvatarUrl());
         String initials = post.getAuthorInitials() != null ? post.getAuthorInitials() : "U";
-        String courseName = post.getAuthorCourse() != null ? post.getAuthorCourse() : (post.getAuthorDepartment() != null ? post.getAuthorDepartment() : "Student");
+        String courseName = formatCourseDepartmentShort(post.getAuthorCourse(), post.getAuthorDepartment());
         String collegeName = post.getCollegeName() != null ? post.getCollegeName() : (post.getCollege() != null ? post.getCollege().getName() : null);
 
         dto.setAuthorName(authorName);
@@ -471,8 +516,8 @@ public class PostServiceImpl implements PostService {
         dto.setTime(formatRelativeTime(post.getCreatedAt()));
         dto.setContent(post.getContent());
 
-        // Fetch media items
-        List<PostMedia> mediaList = postMediaRepository.findByPostIdOrderByPositionAsc(post.getId());
+        // Get pre-batched media items
+        List<PostMedia> mediaList = mediaByPostId.getOrDefault(post.getId(), Collections.emptyList());
         List<MediaDto> mediaDtos = new ArrayList<>();
         List<String> imageUrls = new ArrayList<>();
 
@@ -507,15 +552,15 @@ public class PostServiceImpl implements PostService {
         }
 
         dto.setMedia(mediaDtos);
-        int effectiveLikes = (int) socialInteractionService.getPostLikesCount(post.getId(), post.getLikesCount());
+
+        Long batchLikes = likesCountsBatch != null ? likesCountsBatch.get(post.getId()) : null;
+        int effectiveLikes = batchLikes != null ? batchLikes.intValue() : (int) post.getLikesCount();
         dto.setLikes(effectiveLikes);
         dto.setCommentsCount(post.getCommentsCount());
         dto.setCommentsEnabled(post.isCommentsEnabled());
 
-        if (userId != null) {
-            dto.setLiked(socialInteractionService.isPostLikedByUser(post.getId(), userId));
-            dto.setSaved(socialInteractionService.isPostSavedByUser(post.getId(), userId));
-        }
+        dto.setLiked(likedPostIds != null && likedPostIds.contains(post.getId()));
+        dto.setSaved(savedPostIds != null && savedPostIds.contains(post.getId()));
 
         if (post.getTags() != null) {
             dto.setTags(post.getTags().stream().filter(t -> t != null && t.getName() != null).map(Tag::getName).collect(Collectors.toList()));
@@ -573,5 +618,76 @@ public class PostServiceImpl implements PostService {
             }
         }
         return avatarUrl;
+    }
+
+    private String formatCourseDepartmentShort(String course, String department) {
+        if (course == null && department == null) return "Student";
+
+        String shortCourse = "";
+        if (course != null && !course.isBlank()) {
+            String c = course.trim();
+            String lower = c.toLowerCase();
+            if (lower.contains("bachelor of technology") || lower.startsWith("b.tech") || lower.startsWith("btech")) {
+                shortCourse = "B.Tech";
+            } else if (lower.contains("master of technology") || lower.startsWith("m.tech") || lower.startsWith("mtech")) {
+                shortCourse = "M.Tech";
+            } else if (lower.contains("bachelor of computer application") || lower.equalsIgnoreCase("bca")) {
+                shortCourse = "BCA";
+            } else if (lower.contains("master of computer application") || lower.equalsIgnoreCase("mca")) {
+                shortCourse = "MCA";
+            } else if (lower.contains("bachelor of engineering") || lower.startsWith("b.e")) {
+                shortCourse = "B.E.";
+            } else if (lower.contains("master of engineering") || lower.startsWith("m.e")) {
+                shortCourse = "M.E.";
+            } else if (lower.contains("bachelor of science") || lower.startsWith("b.sc") || lower.equalsIgnoreCase("bsc")) {
+                shortCourse = "B.Sc";
+            } else if (lower.contains("master of science") || lower.startsWith("m.sc") || lower.equalsIgnoreCase("msc")) {
+                shortCourse = "M.Sc";
+            } else if (lower.contains("bachelor of business administration") || lower.equalsIgnoreCase("bba")) {
+                shortCourse = "BBA";
+            } else if (lower.contains("master of business administration") || lower.equalsIgnoreCase("mba")) {
+                shortCourse = "MBA";
+            } else {
+                shortCourse = c;
+            }
+        }
+
+        String shortDept = "";
+        if (department != null && !department.isBlank()) {
+            String d = department.trim();
+            String lower = d.toLowerCase();
+            if (lower.contains("information technology") || lower.equals("it")) {
+                shortDept = "IT";
+            } else if (lower.contains("computer science") || lower.contains("computer engineering") || lower.equals("ce") || lower.equals("cse")) {
+                shortDept = lower.contains("science") ? "CSE" : "CE";
+            } else if (lower.contains("electronics") || lower.equals("ec") || lower.equals("ece")) {
+                shortDept = "EC";
+            } else if (lower.contains("electrical") || lower.equals("ee")) {
+                shortDept = "EE";
+            } else if (lower.contains("mechanical") || lower.equals("me")) {
+                shortDept = "ME";
+            } else if (lower.contains("civil")) {
+                shortDept = "Civil";
+            } else if (lower.contains("chemical")) {
+                shortDept = "Chemical";
+            } else if (lower.contains("biomedical")) {
+                shortDept = "Biomedical";
+            } else if (lower.contains("artificial intelligence") || lower.equals("ai")) {
+                shortDept = "AI";
+            } else if (lower.contains("data science") || lower.equals("ds")) {
+                shortDept = "DS";
+            } else {
+                shortDept = d;
+            }
+        }
+
+        if (!shortCourse.isEmpty() && !shortDept.isEmpty()) {
+            if (shortCourse.toLowerCase().contains(shortDept.toLowerCase())) {
+                return shortCourse;
+            }
+            return shortCourse + " " + shortDept;
+        }
+
+        return !shortCourse.isEmpty() ? shortCourse : (!shortDept.isEmpty() ? shortDept : "Student");
     }
 }

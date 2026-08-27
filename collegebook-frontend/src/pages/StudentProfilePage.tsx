@@ -136,12 +136,12 @@ const StudentProfilePage = () => {
           } else {
             setNotFound(false);
             setStudent(data);
-            clientCache.set(`student_profile_${decodedName}`, data, 120_000);
+            clientCache.set(`student_profile_${decodedName}`, data, 300_000);
             getStudentTeams(data.userId)
               .then((teams) => {
                 if (alive && teams) {
                   setStudentTeams(teams);
-                  clientCache.set(`student_teams_${decodedName}`, teams, 120_000);
+                  clientCache.set(`student_teams_${decodedName}`, teams, 300_000);
                 }
               })
               .catch(() => {})
@@ -167,7 +167,7 @@ const StudentProfilePage = () => {
         if (alive) {
           const freshPosts = res.posts || [];
           setStudentPosts(freshPosts);
-          clientCache.set(`student_posts_${decodedName}`, freshPosts, 120_000);
+          clientCache.set(`student_posts_${decodedName}`, freshPosts, 300_000);
         }
       })
       .catch(() => {})
