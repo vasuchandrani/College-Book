@@ -30,7 +30,13 @@ export function BottomNav() {
   useEffect(() => {
     fetchCount(false);
 
-    const handleUpdate = () => fetchCount(true);
+    const handleUpdate = (e: any) => {
+      if (typeof e?.detail?.count === "number") {
+        setPendingCount(e.detail.count);
+      } else {
+        fetchCount(true);
+      }
+    };
     window.addEventListener("cb_collab_updated", handleUpdate);
     window.addEventListener("cb_room_read", handleUpdate);
     const interval = setInterval(() => fetchCount(true), 60000);

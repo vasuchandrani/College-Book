@@ -42,4 +42,6 @@ public interface CollabService {
     PageResponse<TeamDiscussionResponseDto> getDiscussions(UUID teamId, int page, int size);
     TeamDiscussionResponseDto addDiscussion(UUID userId, UUID teamId, CreateDiscussionRequest request);
     void deleteDiscussion(UUID userId, UUID teamId, UUID discussionId);
+    com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto getCollabBadgeCount(UUID userId);
+    void markRoomAsRead(UUID teamId, UUID userId);
 }

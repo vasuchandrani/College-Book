@@ -226,14 +226,17 @@ export default function MyCollaborationPage() {
       setIncomingRequests(freshIncoming);
       clientCache.set("my_collab_teams", freshTeams, 300_000);
       clientCache.set("my_collab_requests", freshReqs, 300_000);
-      clientCache.set("my_collab_incoming", freshIncoming, 300_000);
-      window.dispatchEvent(new Event("cb_collab_updated"));
-
       // Check unread messages for collaboration rooms
       const unreadMap = new Set<string>();
       await Promise.all(
         (teamsData || []).map(async (t: any) => {
-          if (!t.id) return;
+          if (!t?.id) return;
+          if (typeof t.hasUnreadMessages === "boolean") {
+            if (t.hasUnreadMessages) {
+              unreadMap.add(t.id);
+            }
+            return;
+          }
           try {
             const msgs = await getTeamRecentMessages(t.id, 1);
             if (msgs && msgs.length > 0) {
@@ -256,6 +259,37 @@ export default function MyCollaborationPage() {
         })
       );
       setUnreadRooms(unreadMap);
+
+      const totalPending = (freshIncoming || []).filter(
+        (r: any) => String(r.status).toUpperCase() === "PENDING"
+      ).length;
+
+      let activeUnread = 0;
+      let completedUnread = 0;
+      let openSourceUnread = 0;
+
+      (freshTeams || []).forEach((t: any) => {
+        if (unreadMap.has(t.id)) {
+          if (t.type === "OPEN_SOURCE" || t.type === "open_source") {
+            openSourceUnread++;
+          } else if (t.completed || t.isCompleted) {
+            completedUnread++;
+          } else {
+            activeUnread++;
+          }
+        }
+      });
+
+      const grandTotal = totalPending + activeUnread + completedUnread + openSourceUnread;
+      clientCache.set("collab_badge_counts", {
+        totalCount: grandTotal,
+        recruitingCount: totalPending + activeUnread,
+        formedCount: completedUnread,
+        openSourceCount: openSourceUnread,
+        pendingRequestsCount: totalPending,
+      }, 60_000);
+
+      window.dispatchEvent(new CustomEvent("cb_collab_updated", { detail: { count: grandTotal } }));
     } catch (err: any) {
       toast.error("Failed to load collaboration data");
     } finally {
@@ -292,7 +326,8 @@ export default function MyCollaborationPage() {
       (t) =>
         t.type !== "OPEN_SOURCE" &&
         t.type !== "open_source" &&
-        !t.completed
+        !t.completed &&
+        !t.isCompleted
     );
   }, [myTeams]);
 
@@ -301,7 +336,7 @@ export default function MyCollaborationPage() {
       (t) =>
         t.type !== "OPEN_SOURCE" &&
         t.type !== "open_source" &&
-        t.completed
+        (t.completed || t.isCompleted)
     );
   }, [myTeams]);
 
@@ -849,6 +884,14 @@ export default function MyCollaborationPage() {
           <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Code2 className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">Open source</span>
+            {openSourceUnreadCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground font-semibold rounded-full shrink-0 ml-1"
+              >
+                {openSourceUnreadCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="my_requests" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Users className="h-4 w-4 text-primary shrink-0" />

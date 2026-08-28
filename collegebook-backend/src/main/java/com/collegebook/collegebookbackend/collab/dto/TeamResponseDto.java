@@ -41,6 +41,8 @@ public class TeamResponseDto {
     private boolean isCompleted;
     private int starsCount;
     private boolean starred;
+    private boolean hasUnreadMessages;
+    private int pendingJoinRequestsCount;
     private String ownerCollegeName;
     private Instant createdAt;
 

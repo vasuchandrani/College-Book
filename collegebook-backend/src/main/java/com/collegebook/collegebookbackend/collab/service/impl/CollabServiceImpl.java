@@ -63,7 +63,10 @@ public class CollabServiceImpl implements CollabService {
     private final TeamDiscussionRepository teamDiscussionRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
+    private final com.collegebook.collegebookbackend.notification.repository.NotificationRepository notificationRepository;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
+    private final com.collegebook.collegebookbackend.collab.repository.TeamChatReadRepository teamChatReadRepository;
+    private final com.collegebook.collegebookbackend.chat.repository.ChatMessageRepository chatMessageRepository;
 
     @Lazy
     @Autowired
@@ -382,6 +385,27 @@ public class CollabServiceImpl implements CollabService {
         req.setStatus(JoinRequestStatus.PENDING);
 
         JoinRequest saved = joinRequestRepository.save(req);
+
+        // Create notification for team owner
+        try {
+            if (notificationRepository != null && team.getOwner() != null && !team.getOwner().getId().equals(userId)) {
+                String applicantName = profileRepository.findByUserId(userId)
+                        .map(Profile::getFullName)
+                        .orElse(applicant.getEmail());
+                com.collegebook.collegebookbackend.notification.entity.Notification notif =
+                        com.collegebook.collegebookbackend.notification.entity.Notification.builder()
+                                .user(team.getOwner())
+                                .type("JOIN_REQUEST")
+                                .title("New Join Request")
+                                .message(applicantName + " requested to join \"" + team.getTitle() + "\" as " + (request.getRole() != null ? request.getRole() : "Member"))
+                                .isRead(false)
+                                .build();
+                notificationRepository.save(notif);
+            }
+        } catch (Exception e) {
+            // Non-critical notification logging
+        }
+
         return mapToJoinRequestDto(saved);
     }
 
@@ -413,6 +437,23 @@ public class CollabServiceImpl implements CollabService {
             // Add member
             TeamMember newMember = new TeamMember(team, joinReq.getApplicant(), TeamMemberRole.MEMBER);
             teamMemberRepository.save(newMember);
+
+            // Create notification for applicant
+            try {
+                if (notificationRepository != null && joinReq.getApplicant() != null) {
+                    com.collegebook.collegebookbackend.notification.entity.Notification notif =
+                            com.collegebook.collegebookbackend.notification.entity.Notification.builder()
+                                    .user(joinReq.getApplicant())
+                                    .type("REQUEST_ACCEPTED")
+                                    .title("Join Request Accepted!")
+                                    .message("Your request to join \"" + team.getTitle() + "\" was accepted. You are now a team member!")
+                                    .isRead(false)
+                                    .build();
+                    notificationRepository.save(notif);
+                }
+            } catch (Exception e) {
+                // Non-critical notification logging
+            }
         } else if (isUndoPending) {
             if (joinReq.getStatus() == JoinRequestStatus.ACCEPTED) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Accepted requests cannot be reverted to pending");
@@ -424,6 +465,23 @@ public class CollabServiceImpl implements CollabService {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Accepted requests cannot be rejected");
             }
             joinReq.setStatus(JoinRequestStatus.REJECTED);
+
+            // Create notification for applicant
+            try {
+                if (notificationRepository != null && joinReq.getApplicant() != null) {
+                    com.collegebook.collegebookbackend.notification.entity.Notification notif =
+                            com.collegebook.collegebookbackend.notification.entity.Notification.builder()
+                                    .user(joinReq.getApplicant())
+                                    .type("REQUEST_REJECTED")
+                                    .title("Join Request Update")
+                                    .message("Your request to join \"" + team.getTitle() + "\" was not accepted.")
+                                    .isRead(false)
+                                    .build();
+                    notificationRepository.save(notif);
+                }
+            } catch (Exception e) {
+                // Non-critical notification logging
+            }
         }
 
         JoinRequest saved = joinRequestRepository.save(joinReq);
@@ -652,6 +710,28 @@ public class CollabServiceImpl implements CollabService {
 
         if (userId != null) {
             dto.setStarred(socialInteractionService.isTeamStarredByUser(team.getId(), userId));
+
+            try {
+                java.time.Instant latestMsg = chatMessageRepository.findLatestMessageCreatedAtExcludingSender(team.getId(), userId);
+                if (latestMsg != null) {
+                    Optional<com.collegebook.collegebookbackend.collab.entity.TeamChatRead> readOpt =
+                            teamChatReadRepository.findByIdTeamIdAndIdUserId(team.getId(), userId);
+                    dto.setHasUnreadMessages(readOpt.isEmpty() || latestMsg.isAfter(readOpt.get().getLastReadAt()));
+                } else {
+                    dto.setHasUnreadMessages(false);
+                }
+            } catch (Exception e) {
+                dto.setHasUnreadMessages(false);
+            }
+
+            if (team.getOwner() != null && team.getOwner().getId().equals(userId)) {
+                try {
+                    long pendingCount = joinRequestRepository.countByTeamIdAndStatus(team.getId(), JoinRequestStatus.PENDING);
+                    dto.setPendingJoinRequestsCount((int) pendingCount);
+                } catch (Exception e) {
+                    dto.setPendingJoinRequestsCount(0);
+                }
+            }
         }
 
         dto.setCreatedAt(team.getCreatedAt());
@@ -764,5 +844,67 @@ public class CollabServiceImpl implements CollabService {
         dto.setStatus(req.getStatus());
         dto.setCreatedAt(req.getCreatedAt());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto getCollabBadgeCount(UUID userId) {
+        if (userId == null) {
+            return new com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto();
+        }
+
+        List<Team> myTeams = teamRepository.findMyTeams(userId);
+        List<JoinRequest> incomingRequests = joinRequestRepository.findByTeamOwnerIdOrderByCreatedAtDesc(userId);
+        int pendingIncomingCount = (int) incomingRequests.stream()
+                .filter(r -> r.getStatus() == JoinRequestStatus.PENDING)
+                .count();
+
+        int recruitingUnread = 0;
+        int formedUnread = 0;
+        int openSourceUnread = 0;
+
+        for (Team team : myTeams) {
+            java.time.Instant latestMsg = chatMessageRepository.findLatestMessageCreatedAtExcludingSender(team.getId(), userId);
+            if (latestMsg != null) {
+                Optional<com.collegebook.collegebookbackend.collab.entity.TeamChatRead> readOpt =
+                        teamChatReadRepository.findByIdTeamIdAndIdUserId(team.getId(), userId);
+                boolean unread = readOpt.isEmpty() || latestMsg.isAfter(readOpt.get().getLastReadAt());
+                if (unread) {
+                    if (team.getType() == TeamType.OPEN_SOURCE) {
+                        openSourceUnread++;
+                    } else if (team.isCompleted()) {
+                        formedUnread++;
+                    } else {
+                        recruitingUnread++;
+                    }
+                }
+            }
+        }
+
+        int recruitingTotal = pendingIncomingCount + recruitingUnread;
+        int grandTotal = recruitingTotal + formedUnread + openSourceUnread;
+
+        return com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto.builder()
+                .totalCount(grandTotal)
+                .recruitingCount(recruitingTotal)
+                .formedCount(formedUnread)
+                .openSourceCount(openSourceUnread)
+                .pendingRequestsCount(pendingIncomingCount)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void markRoomAsRead(UUID teamId, UUID userId) {
+        if (teamId == null || userId == null) return;
+        try {
+            com.collegebook.collegebookbackend.collab.entity.TeamChatRead read =
+                    teamChatReadRepository.findByIdTeamIdAndIdUserId(teamId, userId)
+                            .orElseGet(() -> new com.collegebook.collegebookbackend.collab.entity.TeamChatRead(teamId, userId, java.time.Instant.now()));
+            read.setLastReadAt(java.time.Instant.now());
+            teamChatReadRepository.save(read);
+        } catch (Exception e) {
+            // Non-critical fallback
+        }
     }
 }

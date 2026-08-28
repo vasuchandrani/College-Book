@@ -15,7 +15,7 @@ import java.util.UUID;
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
-    @Query("SELECT m FROM ChatMessage m JOIN FETCH m.sender s JOIN FETCH s.college WHERE m.team.id = :teamId AND m.deletedAt IS NULL ORDER BY m.createdAt ASC")
+    @Query("SELECT m FROM ChatMessage m JOIN FETCH m.sender s JOIN FETCH s.college WHERE m.team.id = :teamId AND m.deletedAt IS NULL ORDER BY m.createdAt DESC")
     List<ChatMessage> findRecentMessagesByTeamId(@Param("teamId") UUID teamId, Pageable pageable);
 
     @Query("SELECT m FROM ChatMessage m JOIN FETCH m.sender s JOIN FETCH s.college WHERE m.team.id = :teamId AND m.deletedAt IS NULL ORDER BY m.createdAt DESC")
@@ -24,4 +24,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
     Optional<ChatMessage> findByIdAndTeamIdAndDeletedAtIsNull(UUID id, UUID teamId);
 
     long countByTeamIdAndDeletedAtIsNull(UUID teamId);
+
+    @Query("SELECT MAX(m.createdAt) FROM ChatMessage m WHERE m.team.id = :teamId AND m.sender.id != :userId AND m.deletedAt IS NULL")
+    java.time.Instant findLatestMessageCreatedAtExcludingSender(@Param("teamId") UUID teamId, @Param("userId") UUID userId);
 }

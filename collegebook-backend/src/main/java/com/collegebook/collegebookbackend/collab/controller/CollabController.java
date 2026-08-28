@@ -65,6 +65,23 @@ public class CollabController {
         return ResponseEntity.ok(collabService.getMyTeams(userId, TeamType.OPEN_SOURCE));
     }
 
+    @GetMapping("/teams/my/badge-count")
+    public ResponseEntity<com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto> getCollabBadgeCount(@CurrentUser UserPrincipal currentUser) {
+        UUID userId = currentUser != null ? currentUser.getId() : null;
+        return ResponseEntity.ok(collabService.getCollabBadgeCount(userId));
+    }
+
+    @PostMapping("/teams/{id}/chat/read")
+    public ResponseEntity<Void> markRoomAsRead(
+            @CurrentUser UserPrincipal currentUser,
+            @PathVariable("id") UUID teamId) {
+        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (userId != null) {
+            collabService.markRoomAsRead(teamId, userId);
+        }
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/teams/starred")
     public ResponseEntity<List<TeamResponseDto>> getStarredTeams(@CurrentUser UserPrincipal currentUser) {
         UUID userId = currentUser != null ? currentUser.getId() : null;

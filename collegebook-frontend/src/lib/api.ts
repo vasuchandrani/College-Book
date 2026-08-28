@@ -9,6 +9,7 @@ import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamCh
 export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto };
 import { appConfig } from "@/config/app.config";
 import { formatSmartDate } from "@/lib/dateUtils";
+import { checkIsMessageUnread } from "@/lib/chatUnread";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -1001,10 +1002,19 @@ export const getMyIncomingRequests = async () => {
 
 export const getIncomingJoinRequests = getMyIncomingRequests;
 
-let collabBadgePromise: Promise<number> | null = null;
-export const getCollabBadgeCount = async (forceRefresh = false): Promise<number> => {
+export interface CollabBadgeCounts {
+  totalCount: number;
+  recruitingCount: number;
+  formedCount: number;
+  openSourceCount: number;
+  pendingRequestsCount: number;
+}
+
+let collabBadgePromise: Promise<CollabBadgeCounts> | null = null;
+
+export const getCollabBadgeCounts = async (forceRefresh = false): Promise<CollabBadgeCounts> => {
   if (!forceRefresh) {
-    const cached = clientCache.get<number>("collab_badge_count");
+    const cached = clientCache.get<CollabBadgeCounts>("collab_badge_counts");
     if (cached !== null && cached !== undefined) return cached;
   }
 
@@ -1012,18 +1022,96 @@ export const getCollabBadgeCount = async (forceRefresh = false): Promise<number>
 
   collabBadgePromise = (async () => {
     try {
-      const requests = await getMyIncomingRequests().catch(() => []);
-      const count = (requests || []).filter(
+      const res = await request<CollabBadgeCounts>("/teams/my/badge-count").catch(() => null);
+      if (res && typeof res.totalCount === "number") {
+        clientCache.set("collab_badge_counts", res, 30_000);
+        return res;
+      }
+
+      // Safe fallback calculation
+      const [requests, teams] = await Promise.all([
+        getMyIncomingRequests().catch(() => []),
+        getMyCreatedTeams().catch(() => []),
+      ]);
+
+      const pendingReqCount = (requests || []).filter(
         (r: any) => String(r.status).toUpperCase() === "PENDING"
       ).length;
-      clientCache.set("collab_badge_count", count, 300_000);
-      return count;
+
+      let user: any = {};
+      try {
+        user = JSON.parse(localStorage.getItem("cb_user") || "{}");
+      } catch {}
+
+      let recruitingUnread = 0;
+      let formedUnread = 0;
+      let openSourceUnread = 0;
+
+      if (Array.isArray(teams) && teams.length > 0) {
+        await Promise.all(
+          teams.map(async (t: any) => {
+            if (!t?.id) return;
+            try {
+              const msgs = await getTeamRecentMessages(t.id, 1);
+              if (msgs && msgs.length > 0) {
+                const latest = msgs[msgs.length - 1];
+                const isUnread = checkIsMessageUnread(
+                  t.id,
+                  latest.createdAt,
+                  latest.senderId,
+                  user.id || user.userId,
+                  latest.senderName,
+                  user.name || user.fullName,
+                  latest.senderHandle,
+                  user.handle
+                );
+                if (isUnread) {
+                  if (t.type === "OPEN_SOURCE" || t.type === "open_source") {
+                    openSourceUnread++;
+                  } else if (t.completed || t.isCompleted) {
+                    formedUnread++;
+                  } else {
+                    recruitingUnread++;
+                  }
+                }
+              }
+            } catch {}
+          })
+        );
+      }
+
+      const recruitingTotal = pendingReqCount + recruitingUnread;
+      const grandTotal = recruitingTotal + formedUnread + openSourceUnread;
+      const fallbackResult: CollabBadgeCounts = {
+        totalCount: grandTotal,
+        recruitingCount: recruitingTotal,
+        formedCount: formedUnread,
+        openSourceCount: openSourceUnread,
+        pendingRequestsCount: pendingReqCount,
+      };
+      clientCache.set("collab_badge_counts", fallbackResult, 30_000);
+      return fallbackResult;
     } finally {
       collabBadgePromise = null;
     }
   })();
 
   return collabBadgePromise;
+};
+
+export const getCollabBadgeCount = async (forceRefresh = false): Promise<number> => {
+  const data = await getCollabBadgeCounts(forceRefresh);
+  return data?.totalCount || 0;
+};
+
+export const markRoomAsReadApi = async (teamId: string): Promise<void> => {
+  if (!teamId) return;
+  try {
+    await request<void>(`/teams/${teamId}/chat/read`, { method: "POST" });
+    clientCache.delete("collab_badge_counts");
+  } catch {
+    // Non-blocking
+  }
 };
 
 export const updateJoinRequestStatus = async (
@@ -1471,60 +1559,102 @@ export const normalizeCourseShort = (
   courseShortName?: string,
   departmentName?: string
 ): string => {
-  let shortCourse = "";
-  if (courseShortName && courseShortName.trim()) {
-    shortCourse = courseShortName.trim();
-  } else if (courseName) {
-    const cn = courseName.trim();
-    if (/bachelor of technology/i.test(cn) || /^b\.?tech/i.test(cn) || /^btech/i.test(cn)) shortCourse = "B.Tech";
-    else if (/master of technology/i.test(cn) || /^m\.?tech/i.test(cn) || /^mtech/i.test(cn)) shortCourse = "M.Tech";
-    else if (/bachelor of computer applications?/i.test(cn) || /^bca/i.test(cn)) shortCourse = "BCA";
-    else if (/master of computer applications?/i.test(cn) || /^mca/i.test(cn)) shortCourse = "MCA";
-    else if (/bachelor of engineering/i.test(cn) || /^b\.?e\.?/i.test(cn)) shortCourse = "B.E.";
-    else if (/master of engineering/i.test(cn) || /^m\.?e\.?/i.test(cn)) shortCourse = "M.E.";
-    else if (/bachelor of science/i.test(cn) || /^b\.?sc/i.test(cn) || /^bsc/i.test(cn)) shortCourse = "B.Sc";
-    else if (/master of science/i.test(cn) || /^m\.?sc/i.test(cn) || /^msc/i.test(cn)) shortCourse = "M.Sc";
-    else if (/bachelor of business administration/i.test(cn) || /^bba/i.test(cn)) shortCourse = "BBA";
-    else if (/master of business administration/i.test(cn) || /^mba/i.test(cn)) shortCourse = "MBA";
-    else shortCourse = cn;
-  }
+  const parseDept = (text?: string): string => {
+    if (!text) return "";
+    const t = text.trim();
+    const lower = t.toLowerCase();
+    if (lower.includes("information technology") || lower === "it") return "IT";
+    if (lower.includes("computer science & engineering") || lower.includes("computer science and engineering") || lower === "cse" || lower.includes("computer science")) return "CSE";
+    if (lower.includes("computer engineering") || lower === "ce") return "CE";
+    if (lower.includes("artificial intelligence") || lower.includes("ai-ml") || lower.includes("ai/ml") || lower === "ai") return "AI-ML";
+    if (lower.includes("data science") || lower === "ds") return "Data Science";
+    if (lower.includes("electronics & communication") || lower.includes("electronics and communication") || lower === "ec" || lower === "ece") return "EC";
+    if (lower.includes("electrical") || lower === "ee") return "EE";
+    if (lower.includes("mechanical") || lower === "me") return "ME";
+    if (lower.includes("civil")) return "Civil";
+    if (lower.includes("chemical")) return "Chemical";
+    if (lower.includes("instrumentation & control") || lower.includes("instrumentation and control") || lower === "ic") return "IC";
+    if (lower.includes("biomedical") || lower === "bm") return "Biomedical";
+    if (lower.includes("aerospace")) return "Aerospace";
+    if (lower.includes("metallurg")) return "Metallurgy";
+    if (lower.includes("textile")) return "Textile";
+    if (lower.includes("pharmacy")) return "Pharmacy";
+    if (lower.includes("dental")) return "Dental";
+    return t;
+  };
 
-  let shortDept = "";
-  if (departmentName) {
-    const dn = departmentName.trim();
-    if (/information technology/i.test(dn) || /^it$/i.test(dn)) shortDept = "IT";
-    else if (/computer science/i.test(dn) || /computer engineering/i.test(dn) || /^ce$/i.test(dn) || /^cse$/i.test(dn)) {
-      shortDept = /science/i.test(dn) ? "CSE" : "CE";
-    } else if (/electronics/i.test(dn) || /^ec$/i.test(dn) || /^ece$/i.test(dn)) shortDept = "EC";
-    else if (/electrical/i.test(dn) || /^ee$/i.test(dn)) shortDept = "EE";
-    else if (/mechanical/i.test(dn) || /^me$/i.test(dn)) shortDept = "ME";
-    else if (/civil/i.test(dn)) shortDept = "Civil";
-    else if (/chemical/i.test(dn)) shortDept = "Chemical";
-    else if (/biomedical/i.test(dn)) shortDept = "Biomedical";
-    else if (/artificial intelligence/i.test(dn) || /^ai$/i.test(dn)) shortDept = "AI";
-    else if (/data science/i.test(dn) || /^ds$/i.test(dn)) shortDept = "DS";
-    else shortDept = dn;
-  }
+  const parseDegree = (text?: string): string => {
+    if (!text) return "";
+    const t = text.trim();
+    const lower = t.toLowerCase();
+    if (lower.includes("bachelor of technology") || lower.startsWith("b.tech") || lower.startsWith("btech")) return "B.Tech";
+    if (lower.includes("master of technology") || lower.startsWith("m.tech") || lower.startsWith("mtech")) return "M.Tech";
+    if (lower.includes("bachelor of engineering") || lower.startsWith("b.e") || lower.startsWith("be")) return "B.E.";
+    if (lower.includes("master of engineering") || lower.startsWith("m.e") || lower.startsWith("me")) return "M.E.";
+    if (lower.includes("bachelor of computer application") || lower.startsWith("bca")) return "BCA";
+    if (lower.includes("master of computer application") || lower.startsWith("mca")) return "MCA";
+    if (lower.includes("bachelor of business administration") || lower.startsWith("bba")) return "BBA";
+    if (lower.includes("master of business administration") || lower.startsWith("mba")) return "MBA";
+    if (lower.includes("bachelor of science") || lower.startsWith("b.sc") || lower.startsWith("bsc")) return "B.Sc";
+    if (lower.includes("master of science") || lower.startsWith("m.sc") || lower.startsWith("msc")) return "M.Sc";
+    if (lower.includes("bachelor of pharmacy") || lower.startsWith("b.pharm") || lower.startsWith("bpharm")) return "B.Pharm";
+    if (lower.includes("master of pharmacy") || lower.startsWith("m.pharm") || lower.startsWith("mpharm")) return "M.Pharm";
+    if (lower.includes("bachelor of dental surgery") || lower.startsWith("bds")) return "BDS";
+    if (lower.includes("doctor of philosophy") || lower.startsWith("phd")) return "PhD";
+    return t;
+  };
 
-  if (shortCourse && shortDept) {
-    if (shortCourse.toLowerCase().includes(shortDept.toLowerCase())) return shortCourse;
-    return `${shortCourse} ${shortDept}`;
-  }
+  const rawCombined = `${courseShortName || ""} ${courseName || ""} ${departmentName || ""}`.trim();
+  if (!rawCombined) return "Student";
 
-  // Also check if courseName contains both course and department like "Bachelor of Technology Information Technology"
-  if (shortCourse) {
-    if (/information technology/i.test(shortCourse)) {
-      return shortCourse.replace(/information technology/i, "IT").replace(/bachelor of technology/i, "B.Tech").trim();
+  const degree = parseDegree(courseShortName || courseName);
+  let dept = parseDept(departmentName);
+
+  // If department wasn't passed directly, check if courseName contains department info (e.g. "B.Tech IT", "B.Tech CE", "Bachelor of Technology - Computer Engineering")
+  if (!dept && courseName) {
+    const withoutDegree = courseName
+      .replace(/bachelor of technology/gi, "")
+      .replace(/master of technology/gi, "")
+      .replace(/bachelor of engineering/gi, "")
+      .replace(/master of engineering/gi, "")
+      .replace(/bachelor of computer applications?/gi, "")
+      .replace(/master of computer applications?/gi, "")
+      .replace(/bachelor of business administration/gi, "")
+      .replace(/master of business administration/gi, "")
+      .replace(/bachelor of science/gi, "")
+      .replace(/master of science/gi, "")
+      .replace(/bachelor of pharmacy/gi, "")
+      .replace(/bachelor of dental surgery/gi, "")
+      .replace(/doctor of philosophy/gi, "")
+      .replace(/^b\.?tech/i, "")
+      .replace(/^m\.?tech/i, "")
+      .replace(/^b\.?e\.?/i, "")
+      .replace(/^m\.?e\.?/i, "")
+      .replace(/^bca/i, "")
+      .replace(/^mca/i, "")
+      .replace(/^bba/i, "")
+      .replace(/^mba/i, "")
+      .replace(/^b\.?sc/i, "")
+      .replace(/^m\.?sc/i, "")
+      .replace(/^b\.?pharm/i, "")
+      .replace(/^bds/i, "")
+      .replace(/^phd/i, "")
+      .replace(/[\(\)\-\–\—\:\,]/g, " ")
+      .trim();
+
+    if (withoutDegree) {
+      dept = parseDept(withoutDegree);
     }
-    if (/computer engineering/i.test(shortCourse)) {
-      return shortCourse.replace(/computer engineering/i, "CE").replace(/bachelor of technology/i, "B.Tech").trim();
-    }
-    if (/computer science/i.test(shortCourse)) {
-      return shortCourse.replace(/computer science/i, "CSE").replace(/bachelor of technology/i, "B.Tech").trim();
-    }
   }
 
-  return shortCourse || shortDept || "Student";
+  if (degree && dept) {
+    if (degree.toLowerCase().includes(dept.toLowerCase())) return degree;
+    return `${degree} ${dept}`;
+  }
+
+  if (degree) return degree;
+  if (dept) return dept;
+  return "Student";
 };
 
 export interface UserProfileData {

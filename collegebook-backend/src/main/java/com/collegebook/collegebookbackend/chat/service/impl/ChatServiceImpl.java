@@ -129,6 +129,7 @@ public class ChatServiceImpl implements ChatService {
         Pageable pageable = PageRequest.of(0, effectiveLimit);
         List<ChatMessage> messages = chatMessageRepository.findRecentMessagesByTeamId(teamId, pageable);
         List<ChatMessageDto> dtoList = messages.stream().map(m -> mapToDto(m, team)).collect(Collectors.toList());
+        java.util.Collections.reverse(dtoList);
 
         // 3. Populate Redis Cache
         if (redisTemplate != null && !dtoList.isEmpty()) {

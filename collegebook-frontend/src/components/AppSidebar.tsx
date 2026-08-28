@@ -46,7 +46,13 @@ export function AppSidebar() {
   useEffect(() => {
     fetchPendingCount(false);
 
-    const handleUpdate = () => fetchPendingCount(true);
+    const handleUpdate = (e: any) => {
+      if (typeof e?.detail?.count === "number") {
+        setPendingCollabCount(e.detail.count);
+      } else {
+        fetchPendingCount(true);
+      }
+    };
     window.addEventListener("cb_collab_updated", handleUpdate);
     window.addEventListener("cb_room_read", handleUpdate);
     const interval = setInterval(() => fetchPendingCount(true), 60000);

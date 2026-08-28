@@ -15,6 +15,7 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequest, UUID> 
     List<JoinRequest> findByTeamIdOrderByCreatedAtDesc(UUID teamId);
     List<JoinRequest> findByTeamOwnerIdOrderByCreatedAtDesc(UUID ownerId);
     boolean existsByTeamIdAndApplicantIdAndStatus(UUID teamId, UUID applicantId, JoinRequestStatus status);
+    long countByTeamIdAndStatus(UUID teamId, JoinRequestStatus status);
 
     @Modifying
     @Query("DELETE FROM JoinRequest jr WHERE jr.team.id = :teamId")

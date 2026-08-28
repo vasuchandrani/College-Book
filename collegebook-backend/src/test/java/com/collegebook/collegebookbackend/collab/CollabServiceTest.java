@@ -29,9 +29,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,7 +64,13 @@ public class CollabServiceTest {
     @Mock
     private ProfileRepository profileRepository;
     @Mock
+    private com.collegebook.collegebookbackend.notification.repository.NotificationRepository notificationRepository;
+    @Mock
     private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
+    @Mock
+    private com.collegebook.collegebookbackend.collab.repository.TeamChatReadRepository teamChatReadRepository;
+    @Mock
+    private com.collegebook.collegebookbackend.chat.repository.ChatMessageRepository chatMessageRepository;
 
     private CollabServiceImpl collabService;
 
@@ -76,7 +84,10 @@ public class CollabServiceTest {
                 teamDiscussionRepository,
                 userRepository,
                 profileRepository,
-                socialInteractionService
+                notificationRepository,
+                socialInteractionService,
+                teamChatReadRepository,
+                chatMessageRepository
         );
     }
 
@@ -660,11 +671,11 @@ public class CollabServiceTest {
         );
 
         when(teamRepository.findByCollegeIdAndCompletedFalse(any(), any())).thenReturn(page);
-        when(socialInteractionService.getTeamStarsCount(teamId, 5)).thenReturn(5L);
+        when(socialInteractionService.getTeamStarsCountsBatch(any())).thenReturn(Map.of(teamId, 5L));
 
         // User A starred the project, User B has not
-        when(socialInteractionService.isTeamStarredByUser(teamId, userA)).thenReturn(true);
-        when(socialInteractionService.isTeamStarredByUser(teamId, userB)).thenReturn(false);
+        when(socialInteractionService.getStarredTeamIdsBatch(any(), org.mockito.ArgumentMatchers.eq(userA))).thenReturn(Set.of(teamId));
+        when(socialInteractionService.getStarredTeamIdsBatch(any(), org.mockito.ArgumentMatchers.eq(userB))).thenReturn(Collections.emptySet());
 
         com.collegebook.collegebookbackend.common.PageResponse<TeamResponseDto> respA = collabService.getTeams(userA, collegeId, null, 0, 10);
         com.collegebook.collegebookbackend.common.PageResponse<TeamResponseDto> respB = collabService.getTeams(userB, collegeId, null, 0, 10);
@@ -934,5 +945,50 @@ public class CollabServiceTest {
         JoinRequestResponseDto resp = collabService.respondJoinRequest(ownerId, requestId, req);
 
         assertEquals(JoinRequestStatus.PENDING, resp.getStatus());
+    }
+
+    @Test
+    void testGetCollabBadgeCountCalculatesProperly() {
+        UUID userId = UUID.randomUUID();
+        Team activeTeam = new Team();
+        activeTeam.setId(UUID.randomUUID());
+        activeTeam.setType(TeamType.PROJECT);
+        activeTeam.setCompleted(false);
+
+        Team formedTeam = new Team();
+        formedTeam.setId(UUID.randomUUID());
+        formedTeam.setType(TeamType.HACKATHON);
+        formedTeam.setCompleted(true);
+
+        when(teamRepository.findMyTeams(userId)).thenReturn(List.of(activeTeam, formedTeam));
+
+        JoinRequest pendingReq = new JoinRequest();
+        pendingReq.setStatus(JoinRequestStatus.PENDING);
+        when(joinRequestRepository.findByTeamOwnerIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(pendingReq));
+
+        java.time.Instant now = java.time.Instant.now();
+        when(chatMessageRepository.findLatestMessageCreatedAtExcludingSender(activeTeam.getId(), userId)).thenReturn(now);
+        when(teamChatReadRepository.findByIdTeamIdAndIdUserId(activeTeam.getId(), userId)).thenReturn(Optional.empty());
+
+        when(chatMessageRepository.findLatestMessageCreatedAtExcludingSender(formedTeam.getId(), userId)).thenReturn(now);
+        when(teamChatReadRepository.findByIdTeamIdAndIdUserId(formedTeam.getId(), userId)).thenReturn(Optional.empty());
+
+        var badgeDto = collabService.getCollabBadgeCount(userId);
+        assertNotNull(badgeDto);
+        assertEquals(2, badgeDto.getRecruitingCount()); // 1 pending request + 1 active unread chat
+        assertEquals(1, badgeDto.getFormedCount()); // 1 formed unread chat
+        assertEquals(3, badgeDto.getTotalCount());
+    }
+
+    @Test
+    void testMarkRoomAsReadUpdatesTimestamp() {
+        UUID teamId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(teamChatReadRepository.findByIdTeamIdAndIdUserId(teamId, userId)).thenReturn(Optional.empty());
+        when(teamChatReadRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        collabService.markRoomAsRead(teamId, userId);
+        verify(teamChatReadRepository).save(any());
     }
 }

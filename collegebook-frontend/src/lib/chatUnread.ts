@@ -1,3 +1,5 @@
+import { markRoomAsReadApi } from "@/lib/api";
+
 // Unread Room Chat Tracking Utility
 
 export const getRoomLastRead = (teamId: string): number => {
@@ -17,7 +19,13 @@ export const markRoomAsRead = (teamId: string, timestamp?: number): void => {
     const current = getRoomLastRead(teamId);
     if (readTime >= current) {
       localStorage.setItem(`cb_room_last_read_${teamId}`, readTime.toString());
+      try {
+        markRoomAsReadApi(teamId);
+      } catch {
+        // non-blocking
+      }
       window.dispatchEvent(new CustomEvent("cb_room_read", { detail: { teamId, readTime } }));
+      window.dispatchEvent(new CustomEvent("cb_collab_updated"));
     }
   } catch {
     // ignore
