@@ -169,10 +169,14 @@ export async function request<T>(
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   const fullUrl = `${cleanBaseUrl}${cleanPath}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
   let res: Response;
   try {
     res = await fetch(fullUrl, {
       ...init,
+      signal: init.signal || controller.signal,
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -187,6 +191,7 @@ export async function request<T>(
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       res = await fetch(fullUrl, {
         ...init,
+        signal: init.signal || controller.signal,
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -195,11 +200,20 @@ export async function request<T>(
       });
     }
   } catch (networkError: any) {
+    if (networkError.name === "AbortError") {
+      throw new ApiError(
+        "The server took too long to respond. Please try again in a few moments.",
+        504,
+        "TIMEOUT"
+      );
+    }
     throw new ApiError(
       "Unable to connect to the server. Please check your internet connection.",
       0,
       "NETWORK_ERROR"
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!res.ok) {

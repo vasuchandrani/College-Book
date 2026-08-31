@@ -26,4 +26,4 @@ ENV PORT=8080
 EXPOSE ${PORT}
 
 # JVM container-aware tuning for Render 512MB RAM environment
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xms128m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xms64m -Xmx180m -Xss256k -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=180m -XX:CompressedClassSpaceSize=48m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=24m -XX:+UseSerialGC -XX:+ClassUnloading -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar app.jar"]
