@@ -32,6 +32,10 @@ export const clientCache = {
     });
   },
 
+  delete(key: string): void {
+    memoryStore.delete(key);
+  },
+
   invalidate(prefix?: string): void {
     if (!prefix) {
       memoryStore.clear();

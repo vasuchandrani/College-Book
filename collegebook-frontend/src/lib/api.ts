@@ -10,6 +10,7 @@ export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamCh
 import { appConfig } from "@/config/app.config";
 import { formatSmartDate } from "@/lib/dateUtils";
 import { checkIsMessageUnread } from "@/lib/chatUnread";
+import { clientCache } from "@/lib/clientCache";
 
 // ---------------------------------------------------------------------------
 // Configuration
