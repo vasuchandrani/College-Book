@@ -1,5 +1,8 @@
 package com.collegebook.collegebookbackend.common;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PageResponse<T> {
     private List<T> items;
     private int page;
@@ -42,5 +46,17 @@ public class PageResponse<T> {
                 .totalPages(totalPages)
                 .hasNext(hasNext)
                 .build();
+    }
+
+    @JsonIgnore
+    public List<T> getContent() {
+        return items;
+    }
+
+    @JsonProperty("content")
+    public void setContent(List<T> content) {
+        if (content != null) {
+            this.items = content;
+        }
     }
 }

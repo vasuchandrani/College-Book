@@ -69,6 +69,15 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request, userAgent, ip));
     }
 
+    @PostMapping("/admin-login")
+    public ResponseEntity<AuthResponseDto> adminLogin(
+            @Valid @RequestBody com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest request,
+            HttpServletRequest httpRequest) {
+        String userAgent = httpRequest.getHeader("User-Agent");
+        String ip = httpRequest.getRemoteAddr();
+        return ResponseEntity.ok(authService.adminLogin(request, userAgent, ip));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponseDto> refresh(
             @Valid @RequestBody RefreshTokenRequest request,

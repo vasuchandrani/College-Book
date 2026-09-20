@@ -19,6 +19,7 @@ public interface AuthService {
     boolean verifyOtp(VerifyOtpRequest request);
     AuthResponseDto signup(SignupRequest request, String userAgent, String ip);
     AuthResponseDto login(LoginRequest request, String userAgent, String ip);
+    AuthResponseDto adminLogin(com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest request, String userAgent, String ip);
     AuthResponseDto refresh(RefreshTokenRequest request, String userAgent, String ip);
     void logout(LogoutRequest request);
     UserDto getMe(UUID userId);

@@ -7,6 +7,8 @@
 
 import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto } from "@/types";
 export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto };
+export type Post = FeedPost;
+export type { PageResponse };
 import { appConfig } from "@/config/app.config";
 import { formatSmartDate } from "@/lib/dateUtils";
 import { checkIsMessageUnread } from "@/lib/chatUnread";
@@ -133,8 +135,14 @@ export async function request<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
-  const token =
+  const adminToken =
+    typeof window !== "undefined" ? sessionStorage.getItem("cb_admin_token") : null;
+  const userToken =
     typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
+  const token =
+    (path.startsWith("/admin") || path.startsWith("admin"))
+      ? adminToken
+      : userToken;
 
   // Intercept write operations for the demo@collegebook.edu guest user
   const method = init.method?.toUpperCase() || "GET";
@@ -1397,59 +1405,6 @@ export const getStudentProfile = async (slug: string) => {
 export const getBadgeSubmissions = () => delay<unknown[]>([]);
 
 // ---------------------------------------------------------------------------
-// Admin Dashboard & Ads Management
-// ---------------------------------------------------------------------------
-
-export interface AdminStatsResponse {
-  totalUsers: number;
-  totalPosts: number;
-  activeAds: number;
-  totalRevenue: number;
-  totalImpressions?: number;
-  totalClicks?: number;
-}
-
-export const getAdminStats = async (): Promise<AdminStatsResponse> => {
-  try {
-    const stats = await request<Record<string, number>>("/admin/stats");
-    return {
-      totalUsers: stats.totalUsers ?? stats.students ?? 0,
-      totalPosts: stats.totalPosts ?? stats.posts ?? 0,
-      activeAds: stats.activeAds ?? stats.ads ?? 0,
-      totalRevenue: stats.totalRevenue ?? 0,
-      totalImpressions: stats.totalImpressions ?? 0,
-      totalClicks: stats.totalClicks ?? 0,
-    };
-  } catch {
-    return { totalUsers: 0, totalPosts: 0, activeAds: 0, totalRevenue: 0, totalImpressions: 0, totalClicks: 0 };
-  }
-};
-
-export interface CreateAdPayload {
-  brand: string;
-  title: string;
-  description: string;
-  imageUrls: string[];
-  ctaText: string;
-  ctaLink: string;
-  discount?: string;
-  commentsEnabled?: boolean;
-}
-
-export const adminCreateAd = async (payload: CreateAdPayload): Promise<AdData> => {
-  return await request<AdData>("/admin/ads", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-};
-
-export const adminDeleteAd = async (adId: string): Promise<void> => {
-  await request<void>(`/admin/ads/${adId}`, {
-    method: "DELETE",
-  });
-};
-
-// ---------------------------------------------------------------------------
 // Media Storage (AWS S3 / Cloudflare R2 for images/files, Stream for videos)
 // ---------------------------------------------------------------------------
 
@@ -2296,4 +2251,225 @@ export const getRoomChatMembers = async (
   teamId: string
 ): Promise<ChatUser[]> => {
   return await request<ChatUser[]>(`/teams/${teamId}/chat/members`);
+};
+
+// =========================================================================
+// Admin Dashboard & Management API Endpoints
+// =========================================================================
+
+export interface AdminStatsResponse {
+  students?: number;
+  posts?: number;
+  teams?: number;
+  ads?: number;
+  activeAds?: number;
+  totalUsers?: number;
+  totalPosts?: number;
+  totalRevenue?: number;
+  totalImpressions?: number;
+  totalClicks?: number;
+}
+
+export interface AdData {
+  id: string;
+  brand?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  images?: string[];
+  ctaText?: string;
+  ctaLink?: string;
+  destinationUrl?: string;
+  discount?: string;
+  allowComments?: boolean;
+  commentsEnabled?: boolean;
+  active?: boolean;
+  likes?: number;
+  liked?: boolean;
+  commentsCount?: number;
+  impressions?: number;
+  clicks?: number;
+  revenue?: number;
+}
+
+export interface AdminCreateAdPayload {
+  brand?: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
+  ctaText?: string;
+  ctaLink?: string;
+  destinationUrl?: string;
+  discount?: string;
+  commentsEnabled?: boolean;
+  allowComments?: boolean;
+}
+
+export interface AdminLoginPayload {
+  username: string;
+  password: string;
+}
+
+export const getAdminStats = async (): Promise<AdminStatsResponse> => {
+  return await request<AdminStatsResponse>("/admin/stats");
+};
+
+export const adminGetAds = async (): Promise<AdData[]> => {
+  return await request<AdData[]>("/admin/ads");
+};
+
+export const adminCreateAd = async (payload: AdminCreateAdPayload): Promise<AdData> => {
+  return await request<AdData>("/admin/ads", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminDeleteAd = async (id: string): Promise<void> => {
+  return await request<void>(`/admin/ads/${id}`, {
+    method: "DELETE",
+  });
+};
+
+export const adminToggleAllAds = async (
+  active: boolean
+): Promise<{ success: boolean; active: boolean; message: string }> => {
+  return await request<{ success: boolean; active: boolean; message: string }>(
+    `/admin/ads/toggle-all?active=${active}`,
+    {
+      method: "PUT",
+    }
+  );
+};
+
+export const adminToggleAdStatus = async (
+  id: string,
+  active: boolean
+): Promise<AdData> => {
+  return await request<AdData>(`/admin/ads/${id}/status?active=${active}`, {
+    method: "PUT",
+  });
+};
+
+export const adminToggleAdComments = async (
+  id: string,
+  commentsEnabled: boolean
+): Promise<AdData> => {
+  return await request<AdData>(
+    `/admin/ads/${id}/comments?commentsEnabled=${commentsEnabled}`,
+    {
+      method: "PUT",
+    }
+  );
+};
+
+export const adminGetCampusFeed = async (
+  collegeId?: string,
+  page: number = 0,
+  size: number = 30
+): Promise<PageResponse<FeedPost>> => {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  if (collegeId) query.set("collegeId", collegeId);
+  const res = await request<PageResponse<any>>(`/admin/posts/feed?${query.toString()}`);
+  const items: FeedPost[] = (res.items || []).map((post: any) => {
+    const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
+    return {
+      id: post.id,
+      author: post.authorName || post.author || "Student Author",
+      authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
+      initials: post.initials || (post.authorName ? post.authorName.charAt(0) : "U"),
+      course: normalizeCourseShort(post.courseName || post.course),
+      college: post.collegeName || post.college || "Campus",
+      time: formatSmartDate(post.createdAt || post.time),
+      createdAt: post.createdAt,
+      content: post.content || "",
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
+      tags: post.tags || [],
+      images: post.images || [],
+      media: post.media || [],
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
+    };
+  });
+  return {
+    ...res,
+    items,
+  };
+};
+
+export const adminGetExploreFeed = async (
+  page: number = 0,
+  size: number = 30
+): Promise<PageResponse<FeedPost>> => {
+  const res = await request<PageResponse<any>>(`/admin/posts/explore?page=${page}&size=${size}`);
+  const items: FeedPost[] = (res.items || []).map((post: any) => {
+    const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
+    return {
+      id: post.id,
+      author: post.authorName || post.author || "Student Author",
+      authorHandle: post.authorHandle,
+      avatarUrl: post.avatarUrl,
+      initials: post.initials || (post.authorName ? post.authorName.charAt(0) : "U"),
+      course: normalizeCourseShort(post.courseName || post.course),
+      college: post.collegeName || post.college || "Campus",
+      time: formatSmartDate(post.createdAt || post.time),
+      createdAt: post.createdAt,
+      content: post.content || "",
+      likes: post.likes || 0,
+      liked: post.liked || false,
+      commentsCount: post.commentsCount || 0,
+      commentsEnabled: post.commentsEnabled !== false,
+      saved: post.saved || false,
+      tags: post.tags || [],
+      images: post.images || [],
+      media: post.media || [],
+      videoUrl: videoMedia?.url || videoMedia?.videoId || post.videoUrl,
+      isGlobal: post.global ?? post.isGlobal ?? true,
+    };
+  });
+  return {
+    ...res,
+    items,
+  };
+};
+
+export const adminDeletePost = async (id: string): Promise<void> => {
+  return await request<void>(`/admin/posts/${id}`, {
+    method: "DELETE",
+  });
+};
+
+export const adminLogin = async (
+  credentials: AdminLoginPayload
+): Promise<AuthResponse> => {
+  const res = await request<AuthResponse>("/auth/admin-login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+  if (res && res.accessToken) {
+    sessionStorage.setItem("cb_admin_token", res.accessToken);
+    if (res.user) {
+      sessionStorage.setItem("cb_admin_user", JSON.stringify(res.user));
+    }
+    // Clean up any legacy persistent tokens
+    localStorage.removeItem("cb_admin_token");
+    localStorage.removeItem("cb_admin_user");
+  }
+  return res;
+};
+
+export const adminLogout = (): void => {
+  sessionStorage.removeItem("cb_admin_token");
+  sessionStorage.removeItem("cb_admin_user");
+  localStorage.removeItem("cb_admin_token");
+  localStorage.removeItem("cb_admin_user");
 };

@@ -103,20 +103,20 @@ public class AuthControllerTest {
     }
 
     @Test
-    void testCheckHandleEndpoint() throws Exception {
-        com.collegebook.collegebookbackend.auth.dto.HandleAvailabilityResponse res =
-                com.collegebook.collegebookbackend.auth.dto.HandleAvailabilityResponse.builder()
-                        .handle("vatsal_dev")
-                        .available(true)
-                        .message("Handle @vatsal_dev is available")
-                        .build();
+    void testAdminLoginSuccess() throws Exception {
+        com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest req =
+                new com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest("admin", "Admin@CollegeBook2026");
+        UserDto u = UserDto.builder().id(UUID.randomUUID()).email("admin@collegebook.live").build();
+        AuthResponseDto resp = new AuthResponseDto("admin-jwt-token", "admin-refresh-token", u);
+        resp.setSuccess(true);
 
-        when(authService.checkHandle("vatsal_dev")).thenReturn(res);
+        when(authService.adminLogin(any(), any(), any())).thenReturn(resp);
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/auth/check-handle")
-                        .param("handle", "vatsal_dev"))
+        mockMvc.perform(post("/api/v1/auth/admin-login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.handle").value("vatsal_dev"))
-                .andExpect(jsonPath("$.available").value(true));
+                .andExpect(jsonPath("$.accessToken").value("admin-jwt-token"))
+                .andExpect(jsonPath("$.user.email").value("admin@collegebook.live"));
     }
 }

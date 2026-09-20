@@ -71,6 +71,12 @@ public class AuthServiceImpl implements AuthService {
     private final TokenService tokenService;
     private final EmailService emailService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin.username:admin}")
+    private String adminUsername = "admin";
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.password:Admin@CollegeBook2026}")
+    private String adminPassword = "Admin@CollegeBook2026";
+
     @Override
     @Transactional
     public com.collegebook.collegebookbackend.auth.dto.SendOtpResponse sendOtp(SendOtpRequest request) {
@@ -346,6 +352,81 @@ public class AuthServiceImpl implements AuthService {
 
         UserDto userDto = toUserDto(user, profile, roles);
         AuthResponseDto response = new AuthResponseDto(accessToken, refreshTokenResult.rawToken(), userDto);
+        response.setSuccess(true);
+        return response;
+    }
+
+    private static class AdminLockoutState {
+        int failedAttempts = 0;
+        Instant lockedUntil = null;
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, AdminLockoutState> adminLockoutMap = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @Override
+    public AuthResponseDto adminLogin(com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest request, String userAgent, String ip) {
+        String key = (ip != null && !ip.isBlank()) ? ip.trim() : "default_admin_client";
+        AdminLockoutState state = adminLockoutMap.computeIfAbsent(key, k -> new AdminLockoutState());
+
+        Instant now = Instant.now();
+        if (state.lockedUntil != null) {
+            if (now.isBefore(state.lockedUntil)) {
+                long remainingSec = java.time.Duration.between(now, state.lockedUntil).getSeconds() + 1;
+                return AuthResponseDto.failure("ADMIN_LOCKED",
+                        "Admin login locked due to multiple failed attempts. Please try again in " + remainingSec + " seconds.");
+            } else {
+                state.failedAttempts = 0;
+                state.lockedUntil = null;
+            }
+        }
+
+        if (request == null || request.getUsername() == null || request.getUsername().isBlank() || request.getPassword() == null) {
+            return AuthResponseDto.failure("INVALID_CREDENTIALS", "Invalid administrator credentials.");
+        }
+
+        String inputUsername = request.getUsername().trim();
+        String inputPassword = request.getPassword();
+
+        String expectedUsername = (adminUsername != null && !adminUsername.isBlank()) ? adminUsername.trim() : "admin";
+        String expectedPassword = (adminPassword != null && !adminPassword.isBlank()) ? adminPassword : "Admin@CollegeBook2026";
+
+        boolean usernameMatches = inputUsername.equalsIgnoreCase(expectedUsername);
+        boolean passwordMatches = inputPassword.equals(expectedPassword);
+
+        if (!usernameMatches || !passwordMatches) {
+            state.failedAttempts++;
+            if (state.failedAttempts >= 2) {
+                state.lockedUntil = now.plusSeconds(300); // 5 minutes
+                return AuthResponseDto.failure("ADMIN_LOCKED",
+                        "Admin login locked for 5 minutes due to 2 consecutive failed attempts.");
+            }
+            return AuthResponseDto.failure("INVALID_CREDENTIALS",
+                    "Invalid administrator credentials. (Attempt " + state.failedAttempts + " of 2 before 5-minute lockout)");
+        }
+
+        // Login succeeded -> clear lockout tracking
+        adminLockoutMap.remove(key);
+
+        UUID adminId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        List<String> roles = List.of("ADMIN", "SYSTEM_ADMIN");
+        String accessToken = jwtService.generateAccessToken(adminId, null, roles);
+
+        ProfileDto profileDto = ProfileDto.builder()
+                .userId(adminId)
+                .fullName("CollegeBook Administrator")
+                .handle("admin")
+                .initials("AD")
+                .build();
+
+        UserDto adminDto = UserDto.builder()
+                .id(adminId)
+                .email("admin@collegebook.live")
+                .roles(roles)
+                .status(AccountStatus.ACTIVE)
+                .profile(profileDto)
+                .build();
+
+        AuthResponseDto response = new AuthResponseDto(accessToken, "admin-refresh-token", adminDto);
         response.setSuccess(true);
         return response;
     }

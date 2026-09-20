@@ -64,7 +64,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/students/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/explore", "/api/v1/tags/**", "/api/v1/ads/**", "/api/v1/posts/**", "/api/v1/posts/*/comments").permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SYSTEM_ADMIN")
                         .anyRequest().authenticated()
                 );
 

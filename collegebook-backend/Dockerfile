@@ -23,7 +23,8 @@ USER spring:spring
 COPY --from=build /app/target/*.jar app.jar
 
 ENV PORT=8080
+ENV JAVA_OPTS="-XX:+UseContainerSupport -Xms256m -Xmx768m -Xss512k -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+
 EXPOSE ${PORT}
 
-# JVM container-aware tuning for Render 512MB RAM environment
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xms64m -Xmx180m -Xss256k -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=180m -XX:CompressedClassSpaceSize=48m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=24m -XX:+UseSerialGC -XX:+ClassUnloading -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

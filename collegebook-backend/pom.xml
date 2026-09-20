@@ -112,6 +112,13 @@
             <version>${awssdk.version}</version>
         </dependency>
 
+        <!-- AWS SDK SES v2 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sesv2</artifactId>
+            <version>${awssdk.version}</version>
+        </dependency>
+
         <!-- OpenAPI / Swagger -->
         <dependency>
             <groupId>org.springdoc</groupId>

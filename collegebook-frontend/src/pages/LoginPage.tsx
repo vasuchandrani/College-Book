@@ -30,13 +30,6 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      if (email === "admin@collegebook.com" && password === "admin@123") {
-        localStorage.setItem("cb_user", JSON.stringify({ role: "admin", name: "Admin", email }));
-        toast.success("Welcome back, Admin!");
-        navigate("/admin");
-        return;
-      }
-
       const user = await login({ email: email.trim(), password });
       localStorage.setItem(
         "cb_user",

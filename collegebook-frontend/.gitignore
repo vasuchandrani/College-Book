@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.*
+*.env
 .env.local
 .env.*.local
 
@@ -21,6 +22,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
@@ -30,3 +32,4 @@ dist-ssr
 # Capacitor native projects (generated locally via `npx cap add`)
 android/
 ios/
+

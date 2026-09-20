@@ -17,6 +17,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: EMAIL_ACTIVE_PROVIDER
+        value: BREVO
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_USER
@@ -38,6 +40,20 @@ services:
       - key: AWS_S3_SECRET_ACCESS_KEY
         sync: false
       - key: AWS_S3_BUCKET_NAME
+        sync: false
+      - key: AWS_SES_REGION
+        value: eu-north-1
+      - key: AWS_SES_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SES_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_SES_SENDER_EMAIL
+        value: collegebook.team@gmail.com
+      - key: AWS_SES_SENDER_NAME
+        value: CollegeBook
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
         sync: false
       - key: APP_OTP_BYPASS
         value: "false"

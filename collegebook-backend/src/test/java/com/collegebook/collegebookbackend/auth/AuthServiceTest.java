@@ -251,4 +251,45 @@ public class AuthServiceTest {
         verify(profileRepository).save(any(Profile.class));
         verify(handleBloomFilterService).addHandle("demo");
     }
+
+    @Test
+    void testAdminLogin_Success() {
+        com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest req =
+                new com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest("admin", "Admin@CollegeBook2026");
+
+        when(jwtService.generateAccessToken(any(), any(), any())).thenReturn("admin-access-token");
+
+        AuthResponseDto resp = authService.adminLogin(req, "Agent", "192.168.1.100");
+
+        assertNotNull(resp);
+        assertTrue(resp.isSuccess());
+        assertEquals("admin-access-token", resp.getAccessToken());
+        assertEquals("admin@collegebook.live", resp.getUser().getEmail());
+        assertTrue(resp.getUser().getRoles().contains("ADMIN"));
+    }
+
+    @Test
+    void testAdminLogin_RateLimitingLockout() {
+        String testIp = "10.0.0.55";
+        com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest wrongReq =
+                new com.collegebook.collegebookbackend.auth.dto.AdminLoginRequest("admin", "wrong-password");
+
+        // Attempt 1 -> INVALID_CREDENTIALS (1 of 2)
+        AuthResponseDto resp1 = authService.adminLogin(wrongReq, "Agent", testIp);
+        assertNotNull(resp1);
+        assertFalse(resp1.isSuccess());
+        assertEquals("INVALID_CREDENTIALS", resp1.getCode());
+
+        // Attempt 2 -> ADMIN_LOCKED (5 minutes lockout)
+        AuthResponseDto resp2 = authService.adminLogin(wrongReq, "Agent", testIp);
+        assertNotNull(resp2);
+        assertFalse(resp2.isSuccess());
+        assertEquals("ADMIN_LOCKED", resp2.getCode());
+
+        // Attempt 3 while locked -> immediately rejected with ADMIN_LOCKED
+        AuthResponseDto resp3 = authService.adminLogin(wrongReq, "Agent", testIp);
+        assertNotNull(resp3);
+        assertFalse(resp3.isSuccess());
+        assertEquals("ADMIN_LOCKED", resp3.getCode());
+    }
 }

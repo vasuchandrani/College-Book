@@ -26,6 +26,7 @@ const PostPage = lazy(() => import("./pages/PostPage.tsx"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage.tsx"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.tsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.tsx"));
+const AdminFeedViewPage = lazy(() => import("./pages/AdminFeedViewPage.tsx"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,7 +58,8 @@ const App = () => (
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/manage-admin" element={<AdminDashboard />} />
+            <Route path="/manage-admin/feed-view" element={<AdminFeedViewPage />} />
             <Route element={<AppLayout />}>
               <Route path="/feed" element={<FeedPage />} />
               <Route path="/explore" element={<ExplorePage />} />
