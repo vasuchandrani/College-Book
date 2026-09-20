@@ -21,7 +21,7 @@ services:
     ports:
       - "127.0.0.1:5432:5432" # Accessible only from localhost/EC2 internally
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collegebook_user} -d ${POSTGRES_DB:-collegebook}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collegebook_user} -d ${POSTGRES_DB:-collegebook}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,7 +50,7 @@ services:
       # Optimized JVM memory tuning for t3.small (2GB RAM)
       JAVA_OPTS: "-XX:+UseContainerSupport -Xms256m -Xmx768m -Xss512k -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
     ports:
-      - "127.0.0.1:8080:8080" # Exposed to local Nginx reverse proxy
+      - "8080:8080" # Exposed to local Nginx reverse proxy
     networks:
       - collegebook-network
 
