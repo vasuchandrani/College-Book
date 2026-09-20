@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Container
+  postgres:
+    image: postgres:16-alpine
+    container_name: collegebook-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-collegebook}
+      POSTGRES_USER: ${POSTGRES_USER:-collegebook_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CollegeBookSecure2026!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres -c shared_buffers=256MB
+               -c work_mem=8MB
+               -c max_connections=50
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.9
+    ports:
+      - "127.0.0.1:5432:5432" # Accessible only from localhost/EC2 internally
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collegebook_user} -d ${POSTGRES_DB:-collegebook}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - collegebook-network
+
+  # 2. Spring Boot Application
+  backend:
+    build:
+      context: ./collegebook-backend
+      dockerfile: Dockerfile
+    container_name: collegebook-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Connects directly to the postgres container inside the docker network
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-collegebook}?stringtype=unspecified
+      DB_USER: ${POSTGRES_USER:-collegebook_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-CollegeBookSecure2026!}
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: 8080
+      # Optimized JVM memory tuning for t3.small (2GB RAM)
+      JAVA_OPTS: "-XX:+UseContainerSupport -Xms256m -Xmx768m -Xss512k -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m -XX:+UseSerialGC -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "127.0.0.1:8080:8080" # Exposed to local Nginx reverse proxy
+    networks:
+      - collegebook-network
+
+networks:
+  collegebook-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
