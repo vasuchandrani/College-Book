@@ -347,7 +347,8 @@ public class AuthServiceImpl implements AuthService {
 
         Profile profile = profileRepository.findById(user.getId()).orElse(null);
 
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getCollege().getId(), roles);
+        UUID collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
+        String accessToken = jwtService.generateAccessToken(user.getId(), collegeId, roles);
         TokenService.RefreshTokenResult refreshTokenResult = tokenService.createRefreshToken(user, null, userAgent, ip);
 
         UserDto userDto = toUserDto(user, profile, roles);
