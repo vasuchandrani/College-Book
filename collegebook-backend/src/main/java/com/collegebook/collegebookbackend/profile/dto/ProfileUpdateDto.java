@@ -16,7 +16,7 @@ public class ProfileUpdateDto {
     private String fullName;
     private String defaultBio;
     private UUID courseId;
-    private UUID departmentId;
+    private UUID branchId;
     private Short currentYear;
     private String bioExtra;
     private String avatarUrl;

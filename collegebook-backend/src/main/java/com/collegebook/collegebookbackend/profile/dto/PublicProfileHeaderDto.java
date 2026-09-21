@@ -22,8 +22,8 @@ public class PublicProfileHeaderDto {
     private String initials;
     private String courseName;
     private String courseShortName;
-    private String departmentName;
-    private String departmentShortName;
+    private String branchName;
+    private String branchShortName;
     private String collegeName;
     private String collegeShortName;
     private String collegeSlug;

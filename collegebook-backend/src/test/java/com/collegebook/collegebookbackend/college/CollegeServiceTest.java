@@ -35,7 +35,7 @@ public class CollegeServiceTest {
     private CourseRepository courseRepository;
 
     @Mock
-    private com.collegebook.collegebookbackend.college.repository.DepartmentRepository departmentRepository;
+    private com.collegebook.collegebookbackend.college.repository.BranchRepository branchRepository;
 
     @Mock
     private com.collegebook.collegebookbackend.college.repository.CollegeRequestRepository collegeRequestRepository;
@@ -44,7 +44,7 @@ public class CollegeServiceTest {
 
     @BeforeEach
     void setUp() {
-        collegeService = new CollegeServiceImpl(collegeRepository, courseRepository, departmentRepository, collegeRequestRepository);
+        collegeService = new CollegeServiceImpl(collegeRepository, courseRepository, branchRepository, collegeRequestRepository);
     }
 
     @Test
@@ -144,24 +144,24 @@ public class CollegeServiceTest {
     }
 
     @Test
-    void testGetDepartmentsByCourseIdSuccess() {
+    void testGetBranchsByCourseIdSuccess() {
         UUID courseId = UUID.randomUUID();
         Course course = new Course();
         course.setId(courseId);
         course.setName("Bachelor of Technology");
         course.setShortName("B.Tech");
 
-        com.collegebook.collegebookbackend.college.entity.Department dept =
-                new com.collegebook.collegebookbackend.college.entity.Department(course, "Information Technology", "IT");
+        com.collegebook.collegebookbackend.college.entity.Branch dept =
+                new com.collegebook.collegebookbackend.college.entity.Branch(course, "Information Technology", "IT");
         dept.setId(UUID.randomUUID());
 
-        when(departmentRepository.findByCourseId(courseId)).thenReturn(List.of(dept));
+        when(branchRepository.findByCourseId(courseId)).thenReturn(List.of(dept));
 
-        List<com.collegebook.collegebookbackend.college.dto.DepartmentDto> departments = collegeService.getDepartmentsByCourseId(courseId);
+        List<com.collegebook.collegebookbackend.college.dto.BranchDto> branchs = collegeService.getBranchsByCourseId(courseId);
 
-        assertNotNull(departments);
-        assertEquals(1, departments.size());
-        assertEquals("Information Technology", departments.get(0).getName());
-        assertEquals("IT", departments.get(0).getShortName());
+        assertNotNull(branchs);
+        assertEquals(1, branchs.size());
+        assertEquals("Information Technology", branchs.get(0).getName());
+        assertEquals("IT", branchs.get(0).getShortName());
     }
 }

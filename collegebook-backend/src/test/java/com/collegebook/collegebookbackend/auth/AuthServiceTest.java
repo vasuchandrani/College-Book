@@ -18,7 +18,7 @@ import com.collegebook.collegebookbackend.college.entity.College;
 import com.collegebook.collegebookbackend.college.entity.Course;
 import com.collegebook.collegebookbackend.college.repository.CollegeRepository;
 import com.collegebook.collegebookbackend.college.repository.CourseRepository;
-import com.collegebook.collegebookbackend.college.repository.DepartmentRepository;
+import com.collegebook.collegebookbackend.college.repository.BranchRepository;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.config.JwtService;
@@ -57,7 +57,7 @@ public class AuthServiceTest {
     @Mock
     private CourseRepository courseRepository;
     @Mock
-    private DepartmentRepository departmentRepository;
+    private BranchRepository branchRepository;
     @Mock
     private ProfileRepository profileRepository;
     @Mock
@@ -82,7 +82,7 @@ public class AuthServiceTest {
                 passwordResetRepository,
                 collegeRepository,
                 courseRepository,
-                departmentRepository,
+                branchRepository,
                 profileRepository,
                 handleBloomFilterService,
                 passwordEncoder,

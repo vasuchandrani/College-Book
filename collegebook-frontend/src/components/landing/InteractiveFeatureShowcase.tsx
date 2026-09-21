@@ -774,7 +774,7 @@ const InteractiveFeatureShowcase = () => {
                         </div>
 
                         <p className="text-xs text-foreground/90 leading-relaxed">
-                          Hey folks! 🎤 Performing an impromptu Stand-Up Comedy show today right at <strong>OAT-1</strong> (Open Air Theatre)! Drop by after evening lectures for some campus humor, hostel life roasts, and chilled vibes. Everyone from all departments and visiting campuses is warmly welcome! See you all at 6 PM! 😂🔥
+                          Hey folks! 🎤 Performing an impromptu Stand-Up Comedy show today right at <strong>OAT-1</strong> (Open Air Theatre)! Drop by after evening lectures for some campus humor, hostel life roasts, and chilled vibes. Everyone from all branches and visiting campuses is warmly welcome! See you all at 6 PM! 😂🔥
                         </p>
 
                         {/* Post Image: Open Air Theatre */}
@@ -1273,7 +1273,7 @@ const InteractiveFeatureShowcase = () => {
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">3 / 4 Members</span>
                             </div>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              Real-time test analytics and interview preparation tracker for engineering departments.
+                              Real-time test analytics and interview preparation tracker for engineering branches.
                             </p>
                             <div className="flex gap-1.5 flex-wrap">
                               <span className="text-[9px] px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold">Spring Boot</span>

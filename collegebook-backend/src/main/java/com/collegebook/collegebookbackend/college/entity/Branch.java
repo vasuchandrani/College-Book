@@ -20,13 +20,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "departments")
+@Table(name = "branches")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Department {
+public class Branch {
 
     @Id
     @GeneratedValue
@@ -49,7 +49,7 @@ public class Department {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Department(Course course, String name, String shortName) {
+    public Branch(Course course, String name, String shortName) {
         this.course = course;
         this.name = name;
         this.shortName = shortName;

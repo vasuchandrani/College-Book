@@ -27,7 +27,7 @@ public class SignupCompleteRequest {
     @NotNull(message = "Course ID is required")
     private UUID courseId;
 
-    private UUID departmentId;
+    private UUID branchId;
 
     @NotNull(message = "Current year is required")
     private Integer currentYear;

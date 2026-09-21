@@ -3,7 +3,7 @@ package com.collegebook.collegebookbackend.profile.entity;
 import com.collegebook.collegebookbackend.auth.entity.User;
 import com.collegebook.collegebookbackend.college.entity.College;
 import com.collegebook.collegebookbackend.college.entity.Course;
-import com.collegebook.collegebookbackend.college.entity.Department;
+import com.collegebook.collegebookbackend.college.entity.Branch;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -62,8 +62,8 @@ public class Profile {
     private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @Column(name = "current_year")
     private Short currentYear;

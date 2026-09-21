@@ -2,13 +2,13 @@ package com.collegebook.collegebookbackend.college.service.impl;
 
 import com.collegebook.collegebookbackend.college.dto.CollegeDto;
 import com.collegebook.collegebookbackend.college.dto.CourseDto;
-import com.collegebook.collegebookbackend.college.dto.DepartmentDto;
+import com.collegebook.collegebookbackend.college.dto.BranchDto;
 import com.collegebook.collegebookbackend.college.entity.College;
 import com.collegebook.collegebookbackend.college.entity.Course;
-import com.collegebook.collegebookbackend.college.entity.Department;
+import com.collegebook.collegebookbackend.college.entity.Branch;
 import com.collegebook.collegebookbackend.college.repository.CollegeRepository;
 import com.collegebook.collegebookbackend.college.repository.CourseRepository;
-import com.collegebook.collegebookbackend.college.repository.DepartmentRepository;
+import com.collegebook.collegebookbackend.college.repository.BranchRepository;
 import com.collegebook.collegebookbackend.college.service.CollegeService;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
@@ -27,7 +27,7 @@ public class CollegeServiceImpl implements CollegeService {
 
     private final CollegeRepository collegeRepository;
     private final CourseRepository courseRepository;
-    private final DepartmentRepository departmentRepository;
+    private final BranchRepository branchRepository;
     private final com.collegebook.collegebookbackend.college.repository.CollegeRequestRepository collegeRequestRepository;
 
     @Override
@@ -59,10 +59,10 @@ public class CollegeServiceImpl implements CollegeService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "departments", key = "#courseId")
-    public List<DepartmentDto> getDepartmentsByCourseId(UUID courseId) {
-        return departmentRepository.findByCourseId(courseId).stream()
-                .map(this::toDepartmentDto)
+    @Cacheable(value = "branches", key = "#courseId")
+    public List<BranchDto> getBranchsByCourseId(UUID courseId) {
+        return branchRepository.findByCourseId(courseId).stream()
+                .map(this::toBranchDto)
                 .collect(Collectors.toList());
     }
 
@@ -129,8 +129,8 @@ public class CollegeServiceImpl implements CollegeService {
         return dto;
     }
 
-    private DepartmentDto toDepartmentDto(Department d) {
-        DepartmentDto dto = new DepartmentDto();
+    private BranchDto toBranchDto(Branch d) {
+        BranchDto dto = new BranchDto();
         dto.setId(d.getId());
         dto.setCourseId(d.getCourse().getId());
         dto.setName(d.getName());

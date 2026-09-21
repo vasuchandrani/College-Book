@@ -4,9 +4,9 @@ import com.collegebook.collegebookbackend.auth.entity.EmailOtp;
 import com.collegebook.collegebookbackend.auth.repository.EmailOtpRepository;
 import com.collegebook.collegebookbackend.auth.service.EmailService;
 import com.collegebook.collegebookbackend.college.entity.Course;
-import com.collegebook.collegebookbackend.college.entity.Department;
+import com.collegebook.collegebookbackend.college.entity.Branch;
 import com.collegebook.collegebookbackend.college.repository.CourseRepository;
-import com.collegebook.collegebookbackend.college.repository.DepartmentRepository;
+import com.collegebook.collegebookbackend.college.repository.BranchRepository;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.profile.dto.ProfileDto;
@@ -43,7 +43,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final EmailService emailService;
     private final StorageService storageService;
     private final CourseRepository courseRepository;
-    private final DepartmentRepository departmentRepository;
+    private final BranchRepository branchRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,10 +89,10 @@ public class ProfileServiceImpl implements ProfileService {
             profile.setCourse(course);
             academicChanged = true;
         }
-        if (updateDto.getDepartmentId() != null) {
-            Department department = departmentRepository.findById(updateDto.getDepartmentId())
-                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Department not found"));
-            profile.setDepartment(department);
+        if (updateDto.getBranchId() != null) {
+            Branch branch = branchRepository.findById(updateDto.getBranchId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Branch not found"));
+            profile.setBranch(branch);
             academicChanged = true;
         }
         if (updateDto.getCurrentYear() != null) {
@@ -104,7 +104,7 @@ public class ProfileServiceImpl implements ProfileService {
             String courseDisplay = profile.getCourse() != null
                     ? (profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName())
                     : "B.Tech";
-            String deptDisplay = profile.getDepartment() != null ? profile.getDepartment().getName() : "";
+            String deptDisplay = profile.getBranch() != null ? profile.getBranch().getName() : "";
             String recomputedBio = deptDisplay.isBlank() ? courseDisplay : courseDisplay + " " + deptDisplay;
             profile.setDefaultBio(recomputedBio);
         } else {
@@ -356,9 +356,9 @@ public class ProfileServiceImpl implements ProfileService {
             dto.setCourseName(profile.getCourse().getName());
             dto.setCourseShortName(profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName());
         }
-        if (profile.getDepartment() != null) {
-            dto.setDepartmentName(profile.getDepartment().getName());
-            dto.setDepartmentShortName(profile.getDepartment().getShortName());
+        if (profile.getBranch() != null) {
+            dto.setBranchName(profile.getBranch().getName());
+            dto.setBranchShortName(profile.getBranch().getShortName());
         }
         if (profile.getUser() != null && profile.getUser().getCollege() != null) {
             dto.setCollegeName(profile.getUser().getCollege().getName());
@@ -369,7 +369,7 @@ public class ProfileServiceImpl implements ProfileService {
         String defaultBio = profile.getDefaultBio();
         if (profile.getCourse() != null) {
             String cName = profile.getCourse().getShortName() != null ? profile.getCourse().getShortName() : profile.getCourse().getName();
-            String dName = profile.getDepartment() != null ? profile.getDepartment().getName() : "";
+            String dName = profile.getBranch() != null ? profile.getBranch().getName() : "";
             defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
         dto.setDefaultBio(defaultBio);
@@ -415,16 +415,16 @@ public class ProfileServiceImpl implements ProfileService {
             dto.setCourseName(p.getCourse().getName());
             dto.setCourseShortName(p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName());
         }
-        if (p.getDepartment() != null) {
-            dto.setDepartmentId(p.getDepartment().getId());
-            dto.setDepartmentName(p.getDepartment().getName());
-            dto.setDepartmentShortName(p.getDepartment().getShortName());
+        if (p.getBranch() != null) {
+            dto.setBranchId(p.getBranch().getId());
+            dto.setBranchName(p.getBranch().getName());
+            dto.setBranchShortName(p.getBranch().getShortName());
         }
         dto.setCurrentYear(p.getCurrentYear() != null ? (int) p.getCurrentYear() : null);
         String defaultBio = p.getDefaultBio();
         if (p.getCourse() != null) {
             String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
-            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            String dName = p.getBranch() != null ? p.getBranch().getName() : "";
             defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
         dto.setDefaultBio(defaultBio);
@@ -444,7 +444,7 @@ public class ProfileServiceImpl implements ProfileService {
         String defaultBio = p.getDefaultBio();
         if (p.getCourse() != null) {
             String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
-            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            String dName = p.getBranch() != null ? p.getBranch().getName() : "";
             defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
 
@@ -461,9 +461,9 @@ public class ProfileServiceImpl implements ProfileService {
                 .courseId(p.getCourse() != null ? p.getCourse().getId() : null)
                 .courseName(p.getCourse() != null ? p.getCourse().getName() : null)
                 .courseShortName(p.getCourse() != null ? (p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName()) : null)
-                .departmentId(p.getDepartment() != null ? p.getDepartment().getId() : null)
-                .departmentName(p.getDepartment() != null ? p.getDepartment().getName() : null)
-                .departmentShortName(p.getDepartment() != null ? p.getDepartment().getShortName() : null)
+                .branchId(p.getBranch() != null ? p.getBranch().getId() : null)
+                .branchName(p.getBranch() != null ? p.getBranch().getName() : null)
+                .branchShortName(p.getBranch() != null ? p.getBranch().getShortName() : null)
                 .currentYear(p.getCurrentYear() != null ? (int) p.getCurrentYear() : null)
                 .defaultBio(defaultBio)
                 .avatarUrl(resolveAvatarUrl(p.getAvatarUrl()))
@@ -488,7 +488,7 @@ public class ProfileServiceImpl implements ProfileService {
         String defaultBio = p.getDefaultBio();
         if (p.getCourse() != null) {
             String cName = p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName();
-            String dName = p.getDepartment() != null ? p.getDepartment().getName() : "";
+            String dName = p.getBranch() != null ? p.getBranch().getName() : "";
             defaultBio = dName.isBlank() ? cName : cName + " " + dName;
         }
 
@@ -500,8 +500,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .initials(p.getInitials())
                 .courseName(p.getCourse() != null ? p.getCourse().getName() : null)
                 .courseShortName(p.getCourse() != null ? (p.getCourse().getShortName() != null ? p.getCourse().getShortName() : p.getCourse().getName()) : null)
-                .departmentName(p.getDepartment() != null ? p.getDepartment().getName() : null)
-                .departmentShortName(p.getDepartment() != null ? p.getDepartment().getShortName() : null)
+                .branchName(p.getBranch() != null ? p.getBranch().getName() : null)
+                .branchShortName(p.getBranch() != null ? p.getBranch().getShortName() : null)
                 .collegeName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getName() : null)
                 .collegeShortName(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getShortName() : null)
                 .collegeSlug(p.getUser() != null && p.getUser().getCollege() != null ? p.getUser().getCollege().getSlug() : null)

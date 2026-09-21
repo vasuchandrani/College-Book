@@ -33,7 +33,7 @@ public class SignupRequest {
 
     private UUID collegeId;
     private UUID courseId;
-    private UUID departmentId;
+    private UUID branchId;
 
     @Builder.Default
     private Integer currentYear = 1;

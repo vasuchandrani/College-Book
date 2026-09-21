@@ -14,8 +14,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 import { 
-  getColleges, getCoursesByCollege, getDepartmentsByCourse, sendOtp, verifyOtp, signup, 
-  submitCollegeRequest, formatApiError, checkHandleAvailability, type Course, type Department 
+  getColleges, getCoursesByCollege, getBranchesByCourse, sendOtp, verifyOtp, signup, 
+  submitCollegeRequest, formatApiError, checkHandleAvailability, type Course, type Branch 
 } from "@/lib/api";
 
 const defaultColleges: { name: string; short: string; domain: string; uuid?: string }[] = [
@@ -152,8 +152,8 @@ const SignupPage = () => {
   const [cooldown, setCooldown] = useState(0);
   const [colleges, setColleges] = useState(() => shuffleArray(defaultColleges));
   const [coursesList, setCoursesList] = useState<Course[]>([]);
-  const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
-  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [branchesList, setBranchesList] = useState<Branch[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
   const [selectingCollege, setSelectingCollege] = useState<string | null>(null);
 
   // Request College Dialog State
@@ -170,7 +170,7 @@ const SignupPage = () => {
     collegeUuid: "", college: "", collegeShort: "", collegeDomain: "",
     fullName: "", handle: "", email: "", 
     courseUuid: "", course: "", 
-    departmentUuid: "", department: "",
+    branchUuid: "", branch: "",
     year: "1", gender: "Male", password: "",
   });
 
@@ -260,14 +260,14 @@ const SignupPage = () => {
             setCoursesList(cList);
             const initialCourse = cList[0];
             try {
-              const dList = await getDepartmentsByCourse(initialCourse.id);
-              setDepartmentsList(dList);
+              const dList = await getBranchesByCourse(initialCourse.id);
+              setBranchesList(dList);
               setForm((f) => ({
                 ...f,
                 courseUuid: initialCourse.id,
                 course: initialCourse.name,
-                departmentUuid: dList?.[0]?.id || "",
-                department: dList?.[0]?.name || "",
+                branchUuid: dList?.[0]?.id || "",
+                branch: dList?.[0]?.name || "",
               }));
             } catch {
               setForm((f) => ({
@@ -361,14 +361,14 @@ const SignupPage = () => {
           if (cList.length > 0) {
             const initialCourse = cList[0];
             try {
-              const dList = await getDepartmentsByCourse(initialCourse.id);
-              setDepartmentsList(dList);
+              const dList = await getBranchesByCourse(initialCourse.id);
+              setBranchesList(dList);
               setForm(prev => ({
                 ...prev,
                 courseUuid: initialCourse.id,
                 course: initialCourse.name,
-                departmentUuid: dList?.[0]?.id || "",
-                department: dList?.[0]?.name || "",
+                branchUuid: dList?.[0]?.id || "",
+                branch: dList?.[0]?.name || "",
                 year: "1",
               }));
             } catch {
@@ -457,34 +457,34 @@ const SignupPage = () => {
       newYear = "1";
     }
 
-    setLoadingDepartments(true);
-    let dList: Department[] = [];
+    setLoadingBranches(true);
+    let dList: Branch[] = [];
     if (found?.id) {
       try {
-        dList = await getDepartmentsByCourse(found.id);
-        setDepartmentsList(dList);
+        dList = await getBranchesByCourse(found.id);
+        setBranchesList(dList);
       } catch (err) {
         dList = [];
       }
     }
-    setLoadingDepartments(false);
+    setLoadingBranches(false);
 
     setForm(prev => ({
       ...prev,
       course: found ? found.name : courseValue,
       courseUuid: found ? found.id : prev.courseUuid,
-      department: dList[0]?.name || "",
-      departmentUuid: dList[0]?.id || "",
+      branch: dList[0]?.name || "",
+      branchUuid: dList[0]?.id || "",
       year: newYear,
     }));
   };
 
-  const handleDepartmentChange = (deptValue: string) => {
-    const found = departmentsList.find(d => d.id === deptValue || d.name === deptValue);
+  const handleBranchChange = (deptValue: string) => {
+    const found = branchesList.find(d => d.id === deptValue || d.name === deptValue);
     setForm(prev => ({
       ...prev,
-      department: found ? found.name : deptValue,
-      departmentUuid: found ? found.id : deptValue,
+      branch: found ? found.name : deptValue,
+      branchUuid: found ? found.id : deptValue,
     }));
   };
 
@@ -501,7 +501,7 @@ const SignupPage = () => {
     try {
       let resolvedCollegeUuid = form.collegeUuid;
       let resolvedCourseUuid = form.courseUuid;
-      let resolvedDepartmentUuid = form.departmentUuid;
+      let resolvedBranchUuid = form.branchUuid;
 
       // Auto-resolve collegeUuid from API if empty
       if (!resolvedCollegeUuid) {
@@ -529,12 +529,12 @@ const SignupPage = () => {
         } catch (e) {}
       }
 
-      // Auto-resolve departmentUuid from departments API if empty
-      if (!resolvedDepartmentUuid && resolvedCourseUuid) {
+      // Auto-resolve branchUuid from branches API if empty
+      if (!resolvedBranchUuid && resolvedCourseUuid) {
         try {
-          const dList = await getDepartmentsByCourse(resolvedCourseUuid);
+          const dList = await getBranchesByCourse(resolvedCourseUuid);
           if (dList && dList.length > 0) {
-            resolvedDepartmentUuid = dList[0].id;
+            resolvedBranchUuid = dList[0].id;
           }
         } catch (e) {}
       }
@@ -558,12 +558,12 @@ const SignupPage = () => {
         password: form.password,
         collegeId: resolvedCollegeUuid || undefined,
         courseId: resolvedCourseUuid || undefined,
-        departmentId: resolvedDepartmentUuid || undefined,
+        branchId: resolvedBranchUuid || undefined,
         currentYear: parseInt(form.year) || 1,
         gender: form.gender,
         college: form.college,
         course: form.course,
-        department: form.department,
+        branch: form.branch,
       });
 
       localStorage.setItem("cb_user", JSON.stringify({
@@ -574,7 +574,7 @@ const SignupPage = () => {
         college: user.college,
         collegeShort: user.collegeShort,
         course: user.course,
-        department: user.department,
+        branch: user.branch,
         currentYear: user.currentYear,
         defaultBio: user.defaultBio,
         initials: user.initials,
@@ -960,17 +960,17 @@ const SignupPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-2 sm:col-span-2">
-                      <Label>Department</Label>
+                      <Label>Branch</Label>
                       <Select
-                        value={form.departmentUuid || form.department}
-                        onValueChange={handleDepartmentChange}
-                        disabled={departmentsList.length === 0}
+                        value={form.branchUuid || form.branch}
+                        onValueChange={handleBranchChange}
+                        disabled={branchesList.length === 0}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select department"} />
+                          <SelectValue placeholder={loadingBranches ? "Loading branches..." : "Select branch"} />
                         </SelectTrigger>
                         <SelectContent className="max-h-56">
-                          {departmentsList.map(d => (
+                          {branchesList.map(d => (
                             <SelectItem key={d.id} value={d.id}>
                               {d.shortName ? `${d.name} (${d.shortName})` : d.name}
                             </SelectItem>

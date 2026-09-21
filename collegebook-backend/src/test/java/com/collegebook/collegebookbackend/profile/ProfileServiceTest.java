@@ -55,7 +55,7 @@ public class ProfileServiceTest {
     private com.collegebook.collegebookbackend.college.repository.CourseRepository courseRepository;
 
     @Mock
-    private com.collegebook.collegebookbackend.college.repository.DepartmentRepository departmentRepository;
+    private com.collegebook.collegebookbackend.college.repository.BranchRepository branchRepository;
 
     private ProfileServiceImpl profileService;
 
@@ -67,7 +67,7 @@ public class ProfileServiceTest {
                 emailService,
                 storageService,
                 courseRepository,
-                departmentRepository
+                branchRepository
         );
     }
 

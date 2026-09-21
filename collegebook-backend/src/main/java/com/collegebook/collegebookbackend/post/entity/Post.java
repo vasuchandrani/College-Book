@@ -101,8 +101,8 @@ public class Post {
     @Column(name = "author_course")
     private String authorCourse;
 
-    @Column(name = "author_department")
-    private String authorDepartment;
+    @Column(name = "author_branch")
+    private String authorBranch;
 
     @Column(name = "college_name")
     private String collegeName;

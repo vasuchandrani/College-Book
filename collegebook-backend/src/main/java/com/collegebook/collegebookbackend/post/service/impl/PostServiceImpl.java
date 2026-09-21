@@ -252,7 +252,7 @@ public class PostServiceImpl implements PostService {
             post.setAuthorAvatarUrl(p.getAvatarUrl());
             post.setAuthorInitials(p.getInitials() != null ? p.getInitials() : "U");
             post.setAuthorCourse(p.getCourse() != null ? p.getCourse().getName() : "Student");
-            post.setAuthorDepartment(p.getDepartment() != null ? p.getDepartment().getName() : null);
+            post.setAuthorBranch(p.getBranch() != null ? p.getBranch().getName() : null);
         } else {
             post.setAuthorName(author.getEmail());
             post.setAuthorInitials("U");
@@ -503,7 +503,7 @@ public class PostServiceImpl implements PostService {
         String authorHandle = post.getAuthorHandle();
         String avatarUrl = resolveAvatarUrl(post.getAuthorAvatarUrl());
         String initials = post.getAuthorInitials() != null ? post.getAuthorInitials() : "U";
-        String courseName = formatCourseDepartmentShort(post.getAuthorCourse(), post.getAuthorDepartment());
+        String courseName = formatCourseBranchShort(post.getAuthorCourse(), post.getAuthorBranch());
         String collegeName = post.getCollegeName() != null ? post.getCollegeName() : (post.getCollege() != null ? post.getCollege().getName() : null);
 
         dto.setAuthorName(authorName);
@@ -620,8 +620,8 @@ public class PostServiceImpl implements PostService {
         return avatarUrl;
     }
 
-    private String formatCourseDepartmentShort(String course, String department) {
-        if (course == null && department == null) return "Student";
+    private String formatCourseBranchShort(String course, String branch) {
+        if (course == null && branch == null) return "Student";
 
         String shortCourse = "";
         if (course != null && !course.isBlank()) {
@@ -653,8 +653,8 @@ public class PostServiceImpl implements PostService {
         }
 
         String shortDept = "";
-        if (department != null && !department.isBlank()) {
-            String d = department.trim();
+        if (branch != null && !branch.isBlank()) {
+            String d = branch.trim();
             String lower = d.toLowerCase();
             if (lower.contains("information technology") || lower.equals("it")) {
                 shortDept = "IT";

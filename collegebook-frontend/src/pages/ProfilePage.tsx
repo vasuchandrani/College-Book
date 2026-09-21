@@ -120,11 +120,11 @@ import {
   verifyMemoryBookEmail,
   removeMemoryBookEmail,
   getCoursesByCollege,
-  getDepartmentsByCourse,
+  getBranchesByCourse,
   normalizeCourseShort,
   type PublicStudentProfile,
   type Course,
-  type Department,
+  type Branch,
 } from "@/lib/api";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 import { clientCache } from "@/lib/clientCache";
@@ -270,8 +270,8 @@ const ProfilePage = () => {
   let defaultBio =
     user.defaultBio ||
     (initialCourseShort
-      ? user.department
-        ? `${initialCourseShort} ${user.department}`
+      ? user.branch
+        ? `${initialCourseShort} ${user.branch}`
         : initialCourseShort
       : "Student");
   if (defaultBio.includes("Bachelor of Technology")) {
@@ -293,8 +293,8 @@ const ProfilePage = () => {
     collegeId: user.collegeId || "",
     courseId: user.courseId || "",
     courseName: user.course || "",
-    departmentId: user.departmentId || "",
-    departmentName: user.department || "",
+    branchId: user.branchId || "",
+    branchName: user.branch || "",
     email: user.email || "",
     year: userYearStr || "4th Year",
     yearNum: user.currentYear || 4,
@@ -308,8 +308,8 @@ const ProfilePage = () => {
   });
 
   const [collegeCourses, setCollegeCourses] = useState<Course[]>([]);
-  const [courseDepartments, setCourseDepartments] = useState<Department[]>([]);
-  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [courseBranches, setCourseBranches] = useState<Branch[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
 
   const [editForm, setEditForm] = useState({
     name: profile.name,
@@ -318,8 +318,8 @@ const ProfilePage = () => {
     collegeId: profile.collegeId,
     courseId: profile.courseId,
     courseName: profile.courseName,
-    departmentId: profile.departmentId,
-    departmentName: profile.departmentName,
+    branchId: profile.branchId,
+    branchName: profile.branchName,
     year: String(profile.yearNum || 1),
     avatarUrl: profile.avatarUrl,
   });
@@ -405,7 +405,7 @@ const ProfilePage = () => {
 
             const rawCourse = p.courseShortName || p.courseName || localUser.course || "";
             const cName = normalizeCourseShort(rawCourse);
-            const dName = p.departmentName || localUser.department || "";
+            const dName = p.branchName || localUser.branch || "";
             let cleanBio = cName;
             if (dName && !cleanBio.toLowerCase().includes(dName.toLowerCase())) {
               cleanBio = `${cleanBio} ${dName}`.trim();
@@ -429,8 +429,8 @@ const ProfilePage = () => {
               collegeId: p.collegeId || localUser.collegeId || "",
               courseId: p.courseId || localUser.courseId || "",
               courseName: cName,
-              departmentId: p.departmentId || localUser.departmentId || "",
-              departmentName: dName,
+              branchId: p.branchId || localUser.branchId || "",
+              branchName: dName,
               email: localUser.email || "",
               year: loadedYear,
               yearNum: yearNum,
@@ -452,8 +452,8 @@ const ProfilePage = () => {
               collegeId: loaded.collegeId,
               courseId: loaded.courseId,
               courseName: loaded.courseName,
-              departmentId: loaded.departmentId,
-              departmentName: loaded.departmentName,
+              branchId: loaded.branchId,
+              branchName: loaded.branchName,
               year: String(loaded.yearNum),
               avatarUrl: loaded.avatarUrl,
             });
@@ -464,8 +464,8 @@ const ProfilePage = () => {
               }).catch(() => {});
             }
             if (loaded.courseId) {
-              getDepartmentsByCourse(loaded.courseId).then((dList) => {
-                if (alive && dList) setCourseDepartments(dList);
+              getBranchesByCourse(loaded.courseId).then((dList) => {
+                if (alive && dList) setCourseBranches(dList);
               }).catch(() => {});
             }
 
@@ -486,8 +486,8 @@ const ProfilePage = () => {
               collegeShort: loadedCollegeShort,
               course: cName || localUser.course || "Student",
               courseId: loaded.courseId,
-              department: dName || localUser.department,
-              departmentId: loaded.departmentId,
+              branch: dName || localUser.branch,
+              branchId: loaded.branchId,
               currentYear: yearNum,
               defaultBio: cleanBio,
               bioExtra: loaded.customBio,
@@ -578,33 +578,33 @@ const ProfilePage = () => {
     if (parseInt(nextYear) > maxYears) {
       nextYear = "1";
     }
-    setLoadingDepartments(true);
-    let depts: Department[] = [];
+    setLoadingBranches(true);
+    let depts: Branch[] = [];
     if (found?.id) {
       try {
-        depts = await getDepartmentsByCourse(found.id);
-        setCourseDepartments(depts);
+        depts = await getBranchesByCourse(found.id);
+        setCourseBranches(depts);
       } catch {
         depts = [];
       }
     }
-    setLoadingDepartments(false);
+    setLoadingBranches(false);
     setEditForm((prev) => ({
       ...prev,
       courseId: found ? found.id : courseId,
       courseName: found ? found.name : courseId,
-      departmentId: depts[0]?.id || "",
-      departmentName: depts[0]?.name || "",
+      branchId: depts[0]?.id || "",
+      branchName: depts[0]?.name || "",
       year: nextYear,
     }));
   };
 
-  const handleEditDepartmentChange = (deptId: string) => {
-    const found = courseDepartments.find((d) => d.id === deptId || d.name === deptId);
+  const handleEditBranchChange = (deptId: string) => {
+    const found = courseBranches.find((d) => d.id === deptId || d.name === deptId);
     setEditForm((prev) => ({
       ...prev,
-      departmentId: found ? found.id : deptId,
-      departmentName: found ? found.name : deptId,
+      branchId: found ? found.id : deptId,
+      branchName: found ? found.name : deptId,
     }));
   };
 
@@ -621,16 +621,16 @@ const ProfilePage = () => {
       await updateProfile({
         fullName: editForm.name,
         courseId: editForm.courseId || undefined,
-        departmentId: editForm.departmentId || undefined,
+        branchId: editForm.branchId || undefined,
         currentYear: parseInt(editForm.year) || undefined,
         bioExtra: editForm.customBio.slice(0, 250),
         avatarUrl: finalAvatarUrl,
       });
 
       const selCourse = collegeCourses.find((c) => c.id === editForm.courseId);
-      const selDept = courseDepartments.find((d) => d.id === editForm.departmentId);
+      const selDept = courseBranches.find((d) => d.id === editForm.branchId);
       const cName = selCourse?.shortName || selCourse?.name || editForm.courseName || profile.courseName;
-      const dName = selDept?.name || editForm.departmentName || profile.departmentName;
+      const dName = selDept?.name || editForm.branchName || profile.branchName;
       const yNum = parseInt(editForm.year) || profile.yearNum || 1;
       const ySuf = yNum === 1 ? "st" : yNum === 2 ? "nd" : yNum === 3 ? "rd" : "th";
       const yStr = `${yNum}${ySuf} Year`;
@@ -647,8 +647,8 @@ const ProfilePage = () => {
         customBio: editForm.customBio.slice(0, 250),
         courseId: editForm.courseId,
         courseName: cName,
-        departmentId: editForm.departmentId,
-        departmentName: dName,
+        branchId: editForm.branchId,
+        branchName: dName,
         year: yStr,
         yearNum: yNum,
         avatarUrl: finalAvatarUrl || "",
@@ -661,8 +661,8 @@ const ProfilePage = () => {
         collegeId: profile.collegeId,
         course: cName,
         courseId: editForm.courseId,
-        department: dName,
-        departmentId: editForm.departmentId,
+        branch: dName,
+        branchId: editForm.branchId,
         currentYear: yNum,
         defaultBio: bioUpdated,
         bioExtra: editForm.customBio.slice(0, 250),
@@ -1446,13 +1446,13 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-12 p-3 sm:p-4 md:p-6">
       {/* Profile Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="p-6 md:p-8 shadow-card">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-primary/20">
+        <Card className="p-4 sm:p-6 md:p-8 shadow-card">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+            <div className="relative shrink-0">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 border-2 border-primary/20">
                 {profile.avatarUrl ? (
                   <AvatarImage src={profile.avatarUrl} alt={profile.name} />
                 ) : (
@@ -1491,7 +1491,7 @@ const ProfilePage = () => {
                       className="gap-2.5 cursor-pointer py-2 px-3 rounded-lg text-xs font-medium focus:bg-primary/10 focus:text-primary"
                       onClick={() => {
                         const cId = profile.courseId || editForm.courseId || "";
-                        const dId = profile.departmentId || editForm.departmentId || "";
+                        const dId = profile.branchId || editForm.branchId || "";
                         const yStr = String(profile.yearNum || editForm.year || "1");
                         const clgId = profile.collegeId || editForm.collegeId || "";
                         setEditForm({
@@ -1501,8 +1501,8 @@ const ProfilePage = () => {
                           collegeId: clgId,
                           courseId: cId,
                           courseName: profile.courseName || editForm.courseName || "",
-                          departmentId: dId,
-                          departmentName: profile.departmentName || editForm.departmentName || "",
+                          branchId: dId,
+                          branchName: profile.branchName || editForm.branchName || "",
                           year: yStr,
                           avatarUrl: profile.avatarUrl,
                         });
@@ -1512,8 +1512,8 @@ const ProfilePage = () => {
                           }).catch(() => {});
                         }
                         if (cId) {
-                          getDepartmentsByCourse(cId).then((dList) => {
-                            if (dList) setCourseDepartments(dList);
+                          getBranchesByCourse(cId).then((dList) => {
+                            if (dList) setCourseBranches(dList);
                           }).catch(() => {});
                         }
                         setEditOpen(true);
@@ -1641,20 +1641,20 @@ const ProfilePage = () => {
               </Select>
             </div>
 
-            {/* Department & Year of Study */}
+            {/* Branch & Year of Study */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-xs font-semibold">Department</Label>
+                <Label className="text-xs font-semibold">Branch</Label>
                 <Select
-                  value={editForm.departmentId}
-                  onValueChange={handleEditDepartmentChange}
-                  disabled={courseDepartments.length === 0}
+                  value={editForm.branchId}
+                  onValueChange={handleEditBranchChange}
+                  disabled={courseBranches.length === 0}
                 >
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder={loadingDepartments ? "Loading departments..." : "Select department"} />
+                    <SelectValue placeholder={loadingBranches ? "Loading branches..." : "Select branch"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-56">
-                    {courseDepartments.map((d) => (
+                    {courseBranches.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.name}
                       </SelectItem>
@@ -2333,63 +2333,55 @@ const ProfilePage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Profile Navigation Tabs */}
-      <Tabs defaultValue="about" className="space-y-4 sm:space-y-6">
-        <TabsList className="bg-muted w-full flex overflow-x-auto no-scrollbar justify-start sm:justify-center p-1 rounded-xl gap-1">
-          <TabsTrigger value="about" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">About</TabsTrigger>
-          <TabsTrigger value="posts" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Posts</TabsTrigger>
-          <TabsTrigger value="mycon" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">myCon</TabsTrigger>
-          <TabsTrigger value="starred" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Starred</TabsTrigger>
-          <TabsTrigger value="saved" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Saved</TabsTrigger>
-          <TabsTrigger value="peers" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Campus</TabsTrigger>
-        </TabsList>
-
-        {/* 1. About Tab */}
-        <TabsContent value="about" className="space-y-5">
-          {/* Author's Note Section */}
-          <Card className="p-6 shadow-card space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <FileText className="h-4 w-4 text-primary" />
-                <span>Author's Note</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs h-8"
-                onClick={() => {
-                  setEditAboutForm({
-                    authorNote: profile.authorNote || "",
-                    websiteUrl: profile.websiteUrl || "",
-                    githubUrl: profile.githubUrl || "",
-                    contactDetails: [...(profile.contactDetails || [])],
-                    customLinks: [...(profile.customLinks || [])],
-                  });
-                  setEditAboutOpen(true);
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit About
-              </Button>
+      {/* About & Information Card */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <Card className="p-4 sm:p-6 shadow-card space-y-4">
+          <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
+            <div className="flex items-center gap-2 text-sm sm:text-base font-semibold text-foreground">
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              <span>About</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-8 px-2.5 sm:px-3 rounded-lg border-border hover:bg-muted font-medium shrink-0"
+              onClick={() => {
+                setEditAboutForm({
+                  authorNote: profile.authorNote || "",
+                  websiteUrl: profile.websiteUrl || "",
+                  githubUrl: profile.githubUrl || "",
+                  contactDetails: [...(profile.contactDetails || [])],
+                  customLinks: [...(profile.customLinks || [])],
+                });
+                setEditAboutOpen(true);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5 text-primary" />
+              <span>Edit About</span>
+            </Button>
+          </div>
+
+          {/* Author's Note */}
+          <div className="space-y-1.5">
             {profile.authorNote ? (
               <FormattedContent
                 content={profile.authorNote}
                 maxEnters={2}
-                className="text-sm text-foreground/90 leading-relaxed"
+                className="text-xs sm:text-sm text-foreground/90 leading-relaxed break-words"
               />
             ) : (
-              <p className="text-sm text-muted-foreground italic">
-                No author's note added yet. Click "Edit About" to share your in-depth background, research, technical focus, and interests!
+              <p className="text-xs sm:text-sm text-muted-foreground italic">
+                No author's note added yet. Click "Edit About" to share your background, research, technical focus, and interests!
               </p>
             )}
-          </Card>
+          </div>
 
           {/* Contact & Social Links Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Contact Information */}
-            <Card className="p-5 shadow-card space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Mail className="h-3.5 w-3.5 text-primary" /> Contact Details
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 pt-2 border-t border-border/40">
+            {/* Contact Details */}
+            <div className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/50 space-y-2.5">
+              <h3 className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-primary shrink-0" /> Contact Details
               </h3>
               {profile.contactDetails && profile.contactDetails.length > 0 ? (
                 <div className="space-y-2">
@@ -2397,14 +2389,14 @@ const ProfilePage = () => {
                     const l = (contact.label || "").toLowerCase();
                     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((contact.value || "").trim());
                     const isPhone = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test((contact.value || "").trim().replace(/\s/g, ""));
-                    
+
                     return (
                       <div
                         key={contact.id || idx}
-                        className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all group"
+                        className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all group"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                             {l.includes("mail") || l.includes("gmail") || l.includes("email") ? (
                               <Mail className="h-3.5 w-3.5" />
                             ) : l.includes("discord") || l.includes("telegram") || l.includes("slack") || l.includes("chat") ? (
@@ -2419,7 +2411,7 @@ const ProfilePage = () => {
                               <User className="h-3.5 w-3.5" />
                             )}
                           </div>
-                          <span className="text-xs font-semibold text-foreground capitalize truncate max-w-[90px]">
+                          <span className="text-xs font-semibold text-foreground capitalize truncate max-w-[80px] sm:max-w-[100px]">
                             {contact.label}
                           </span>
                         </div>
@@ -2454,7 +2446,7 @@ const ProfilePage = () => {
                               navigator.clipboard.writeText(contact.value);
                               toast.success(`Copied ${contact.label} to clipboard!`);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
                             title="Copy to clipboard"
                           >
                             <Copy className="h-3 w-3" />
@@ -2469,22 +2461,21 @@ const ProfilePage = () => {
                   No contact details added yet. Click "Edit About" to add your contact details.
                 </p>
               )}
-            </Card>
+            </div>
 
             {/* Social & Portfolio Links */}
-            <Card className="p-5 shadow-card space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <LinkIcon className="h-3.5 w-3.5 text-primary" /> Links & Portfolios
+            <div className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/50 space-y-2.5">
+              <h3 className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <LinkIcon className="h-3.5 w-3.5 text-primary shrink-0" /> Links & Portfolios
               </h3>
               <div className="space-y-2">
-                {/* Portfolio */}
                 {profile.websiteUrl ? (
-                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                         <Globe className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">Portfolio</span>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">Portfolio</span>
                     </div>
                     <a
                       href={
@@ -2502,14 +2493,13 @@ const ProfilePage = () => {
                   </div>
                 ) : null}
 
-                {/* GitHub */}
                 {profile.githubUrl ? (
-                  <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                         <Github className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">GitHub</span>
+                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">GitHub</span>
                     </div>
                     <a
                       href={
@@ -2527,18 +2517,17 @@ const ProfilePage = () => {
                   </div>
                 ) : null}
 
-                {/* Custom Links */}
                 {profile.customLinks &&
                   profile.customLinks.map((link) => {
                     if (!link.label || !link.url) return null;
                     const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
                     return (
-                      <div key={link.id} className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-muted/25 hover:bg-muted/45 border border-border/50 transition-all">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <div key={link.id} className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                             <LinkIcon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-xs font-semibold text-foreground truncate max-w-[90px]">{link.label}</span>
+                          <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">{link.label}</span>
                         </div>
                         <a
                           href={fullUrl}
@@ -2561,11 +2550,22 @@ const ProfilePage = () => {
                     </p>
                   )}
               </div>
-            </Card>
+            </div>
           </div>
-        </TabsContent>
+        </Card>
+      </motion.div>
 
-        {/* 2. Posts Tab */}
+      {/* Profile Navigation Tabs */}
+      <Tabs defaultValue="posts" className="space-y-4 sm:space-y-6">
+        <TabsList className="bg-muted w-full flex overflow-x-auto no-scrollbar justify-start sm:justify-center p-1 rounded-xl gap-1">
+          <TabsTrigger value="posts" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Posts</TabsTrigger>
+          <TabsTrigger value="mycon" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">myCon</TabsTrigger>
+          <TabsTrigger value="starred" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Starred</TabsTrigger>
+          <TabsTrigger value="saved" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Saved</TabsTrigger>
+          <TabsTrigger value="peers" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Campus</TabsTrigger>
+        </TabsList>
+
+        {/* Posts Tab */}
         <TabsContent value="posts">
           <div className="max-w-2xl mx-auto space-y-4">
             {activityPosts.length === 0 && (

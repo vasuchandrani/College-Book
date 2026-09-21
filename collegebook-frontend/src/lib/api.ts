@@ -284,12 +284,12 @@ export interface SignupPayload {
   password: string;
   collegeId?: string;
   courseId?: string;
-  departmentId?: string;
+  branchId?: string;
   currentYear?: number;
   gender?: string;
   college?: string;
   course?: string;
-  department?: string;
+  branch?: string;
   year?: string;
 }
 export interface AuthUser {
@@ -304,7 +304,7 @@ export interface AuthUser {
   college: string;
   collegeShort: string;
   course: string;
-  department?: string;
+  branch?: string;
   currentYear?: number;
   defaultBio?: string;
   role?: string;
@@ -1247,7 +1247,7 @@ export const signup = async (payload: SignupPayload): Promise<AuthUser> => {
       handle: payload.handle ? payload.handle.trim().toLowerCase().replace(/^@/, "") : undefined,
       collegeId: payload.collegeId,
       courseId: payload.courseId,
-      departmentId: payload.departmentId,
+      branchId: payload.branchId,
       currentYear: payload.currentYear,
       gender: payload.gender || "PREFER_NOT_TO_SAY",
     }),
@@ -1304,7 +1304,7 @@ export interface Course {
   durationYears: number;
 }
 
-export interface Department {
+export interface Branch {
   id: string;
   courseId: string;
   name: string;
@@ -1315,8 +1315,8 @@ export const getCoursesByCollege = async (collegeUuid: string): Promise<Course[]
   return await request<Course[]>(`/colleges/${collegeUuid}/courses`);
 };
 
-export const getDepartmentsByCourse = async (courseId: string): Promise<Department[]> => {
-  return await request<Department[]>(`/colleges/courses/${courseId}/departments`);
+export const getBranchesByCourse = async (courseId: string): Promise<Branch[]> => {
+  return await request<Branch[]>(`/colleges/courses/${courseId}/branches`);
 };
 
 export interface CollegeRequestPayload {
@@ -1527,7 +1527,7 @@ export const uploadVideoToStream = async (
 export const normalizeCourseShort = (
   courseName?: string,
   courseShortName?: string,
-  departmentName?: string
+  branchName?: string
 ): string => {
   const parseDept = (text?: string): string => {
     if (!text) return "";
@@ -1574,13 +1574,13 @@ export const normalizeCourseShort = (
     return t;
   };
 
-  const rawCombined = `${courseShortName || ""} ${courseName || ""} ${departmentName || ""}`.trim();
+  const rawCombined = `${courseShortName || ""} ${courseName || ""} ${branchName || ""}`.trim();
   if (!rawCombined) return "Student";
 
   const degree = parseDegree(courseShortName || courseName);
-  let dept = parseDept(departmentName);
+  let dept = parseDept(branchName);
 
-  // If department wasn't passed directly, check if courseName contains department info (e.g. "B.Tech IT", "B.Tech CE", "Bachelor of Technology - Computer Engineering")
+  // If branch wasn't passed directly, check if courseName contains branch info (e.g. "B.Tech IT", "B.Tech CE", "Bachelor of Technology - Computer Engineering")
   if (!dept && courseName) {
     const withoutDegree = courseName
       .replace(/bachelor of technology/gi, "")
@@ -1643,10 +1643,10 @@ export interface UserProfileData {
   course: string;
   courseName: string;
   courseShortName?: string;
-  departmentId?: string;
-  department?: string;
-  departmentName?: string;
-  departmentShortName?: string;
+  branchId?: string;
+  branch?: string;
+  branchName?: string;
+  branchShortName?: string;
   currentYear?: number;
   defaultBio: string;
   bioExtra?: string;
@@ -1671,9 +1671,9 @@ export interface PublicStudentProfile {
   courseId?: string;
   courseName: string;
   courseShortName?: string;
-  departmentId?: string;
-  departmentName?: string;
-  departmentShortName?: string;
+  branchId?: string;
+  branchName?: string;
+  branchShortName?: string;
   collegeName: string;
   collegeShortName?: string;
   currentYear?: number;
@@ -1705,10 +1705,10 @@ export interface ProfileHeaderData {
   course: string;
   courseName: string;
   courseShortName: string;
-  departmentId?: string;
-  department?: string;
-  departmentName?: string;
-  departmentShortName?: string;
+  branchId?: string;
+  branch?: string;
+  branchName?: string;
+  branchShortName?: string;
   currentYear?: number;
   defaultBio: string;
   avatarUrl?: string;
@@ -1735,8 +1735,8 @@ export interface PublicStudentHeaderData {
   initials: string;
   courseName: string;
   courseShortName?: string;
-  departmentName?: string;
-  departmentShortName?: string;
+  branchName?: string;
+  branchShortName?: string;
   collegeName: string;
   collegeShortName?: string;
   collegeSlug?: string;
@@ -1779,10 +1779,10 @@ export const getMyProfileHeader = async (): Promise<ProfileHeaderData> => {
     course: shortCourse,
     courseName: shortCourse,
     courseShortName: shortCourse,
-    departmentId: p.departmentId,
-    department: p.departmentName,
-    departmentName: p.departmentName,
-    departmentShortName: p.departmentShortName,
+    branchId: p.branchId,
+    branch: p.branchName,
+    branchName: p.branchName,
+    branchShortName: p.branchShortName,
     currentYear: p.currentYear,
     defaultBio: p.defaultBio || "",
     avatarUrl: p.avatarUrl,
@@ -1816,8 +1816,8 @@ export const getStudentHeaderBySlug = async (slug: string): Promise<PublicStuden
     initials: p.initials || "U",
     courseName: shortCourse,
     courseShortName: shortCourse,
-    departmentName: p.departmentName,
-    departmentShortName: p.departmentShortName,
+    branchName: p.branchName,
+    branchShortName: p.branchShortName,
     collegeName: p.collegeName || "Dharmsinh Desai University",
     collegeShortName: p.collegeShortName || "DDU",
     collegeSlug: p.collegeSlug,
@@ -1863,10 +1863,10 @@ export const getProfile = async (): Promise<UserProfileData> => {
     course: shortCourse,
     courseName: shortCourse,
     courseShortName: shortCourse,
-    departmentId: p.departmentId,
-    department: p.departmentName,
-    departmentName: p.departmentName,
-    departmentShortName: p.departmentShortName,
+    branchId: p.branchId,
+    branch: p.branchName,
+    branchName: p.branchName,
+    branchShortName: p.branchShortName,
     currentYear: p.currentYear,
     defaultBio: p.defaultBio || "",
     bioExtra: p.bioExtra || "",
@@ -1887,7 +1887,7 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     body: JSON.stringify({
       fullName: data.fullName || data.name,
       courseId: data.courseId,
-      departmentId: data.departmentId,
+      branchId: data.branchId,
       currentYear: data.currentYear,
       defaultBio: data.defaultBio,
       bioExtra: data.bioExtra,
@@ -1919,10 +1919,10 @@ export const updateProfile = async (data: Partial<UserProfileData>): Promise<Use
     course: normalizeCourseShort(p.courseName, p.courseShortName) || data.course || "Student",
     courseName: normalizeCourseShort(p.courseName, p.courseShortName) || data.courseName || "Student",
     courseShortName: normalizeCourseShort(p.courseName, p.courseShortName) || data.courseShortName || "Student",
-    departmentId: p.departmentId || data.departmentId,
-    department: p.departmentName || data.department,
-    departmentName: p.departmentName || data.departmentName,
-    departmentShortName: p.departmentShortName || data.departmentShortName,
+    branchId: p.branchId || data.branchId,
+    branch: p.branchName || data.branch,
+    branchName: p.branchName || data.branchName,
+    branchShortName: p.branchShortName || data.branchShortName,
     currentYear: p.currentYear !== undefined ? p.currentYear : data.currentYear,
     defaultBio: p.defaultBio || data.defaultBio || "",
     bioExtra: p.bioExtra || data.bioExtra || "",
@@ -2043,8 +2043,8 @@ export const getStudentBySlug = async (slug: string): Promise<PublicStudentProfi
     initials: p.initials || "U",
     courseName: shortCourse,
     courseShortName: shortCourse,
-    departmentName: p.departmentName,
-    departmentShortName: p.departmentShortName,
+    branchName: p.branchName,
+    branchShortName: p.branchShortName,
     collegeName: p.collegeName || "Dharmsinh Desai University",
     collegeShortName: p.collegeShortName || "DDU",
     currentYear: p.currentYear,
@@ -2075,8 +2075,8 @@ export const getCampusStudents = async (): Promise<PublicStudentProfile[]> => {
       initials: p.initials || "U",
       courseName: shortCourse,
       courseShortName: shortCourse,
-      departmentName: p.departmentName,
-      departmentShortName: p.departmentShortName,
+      branchName: p.branchName,
+      branchShortName: p.branchShortName,
       collegeName: p.collegeName || "Dharmsinh Desai University",
       collegeShortName: p.collegeShortName || "DDU",
       currentYear: p.currentYear,

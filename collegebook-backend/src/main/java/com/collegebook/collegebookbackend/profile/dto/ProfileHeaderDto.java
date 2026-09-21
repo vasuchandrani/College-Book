@@ -27,9 +27,9 @@ public class ProfileHeaderDto {
     private UUID courseId;
     private String courseName;
     private String courseShortName;
-    private UUID departmentId;
-    private String departmentName;
-    private String departmentShortName;
+    private UUID branchId;
+    private String branchName;
+    private String branchShortName;
     private Integer currentYear;
     private String defaultBio;
     private String avatarUrl;

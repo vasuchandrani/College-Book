@@ -26,10 +26,10 @@ import com.collegebook.collegebookbackend.auth.service.EmailService;
 import com.collegebook.collegebookbackend.auth.service.TokenService;
 import com.collegebook.collegebookbackend.college.entity.College;
 import com.collegebook.collegebookbackend.college.entity.Course;
-import com.collegebook.collegebookbackend.college.entity.Department;
+import com.collegebook.collegebookbackend.college.entity.Branch;
 import com.collegebook.collegebookbackend.college.repository.CollegeRepository;
 import com.collegebook.collegebookbackend.college.repository.CourseRepository;
-import com.collegebook.collegebookbackend.college.repository.DepartmentRepository;
+import com.collegebook.collegebookbackend.college.repository.BranchRepository;
 import com.collegebook.collegebookbackend.common.AppException;
 import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.config.JwtService;
@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetRepository passwordResetRepository;
     private final CollegeRepository collegeRepository;
     private final CourseRepository courseRepository;
-    private final DepartmentRepository departmentRepository;
+    private final BranchRepository branchRepository;
     private final ProfileRepository profileRepository;
     private final HandleBloomFilterService handleBloomFilterService;
 
@@ -251,18 +251,18 @@ public class AuthServiceImpl implements AuthService {
             profile.setGender(com.collegebook.collegebookbackend.profile.entity.Gender.PREFER_NOT_TO_SAY);
         }
         profile.setCourse(course);
-        Department department = null;
-        if (request.getDepartmentId() != null) {
-            department = departmentRepository.findById(request.getDepartmentId()).orElse(null);
+        Branch branch = null;
+        if (request.getBranchId() != null) {
+            branch = branchRepository.findById(request.getBranchId()).orElse(null);
         }
-        if (department == null && course != null) {
-            department = departmentRepository.findFirstByCourseId(course.getId()).orElse(null);
+        if (branch == null && course != null) {
+            branch = branchRepository.findFirstByCourseId(course.getId()).orElse(null);
         }
-        profile.setDepartment(department);
+        profile.setBranch(branch);
         profile.setCurrentYear(request.getCurrentYear() != null ? request.getCurrentYear().shortValue() : null);
 
         String courseDisplay = course.getShortName() != null ? course.getShortName() : course.getName();
-        String deptDisplay = department != null ? department.getName() : "";
+        String deptDisplay = branch != null ? branch.getName() : "";
         String defaultBio = deptDisplay.isBlank() ? courseDisplay : courseDisplay + " " + deptDisplay;
         profile.setDefaultBio(defaultBio);
 
@@ -654,10 +654,10 @@ public class AuthServiceImpl implements AuthService {
                 pDto.setCourseId(profile.getCourse().getId());
                 pDto.setCourseName(profile.getCourse().getName());
             }
-            if (profile.getDepartment() != null) {
-                pDto.setDepartmentId(profile.getDepartment().getId());
-                pDto.setDepartmentName(profile.getDepartment().getName());
-                pDto.setDepartmentShortName(profile.getDepartment().getShortName());
+            if (profile.getBranch() != null) {
+                pDto.setBranchId(profile.getBranch().getId());
+                pDto.setBranchName(profile.getBranch().getName());
+                pDto.setBranchShortName(profile.getBranch().getShortName());
             }
             pDto.setCurrentYear(profile.getCurrentYear() != null ? (int) profile.getCurrentYear() : null);
             pDto.setDefaultBio(profile.getDefaultBio());

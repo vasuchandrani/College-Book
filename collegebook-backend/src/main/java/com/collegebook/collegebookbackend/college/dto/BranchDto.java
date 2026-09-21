@@ -11,7 +11,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DepartmentDto {
+public class BranchDto {
 
     private UUID id;
     private UUID courseId;
