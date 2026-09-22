@@ -235,33 +235,32 @@ public class PostServiceImpl implements PostService {
             throw new AppException(ErrorCode.VALIDATION_ERROR, "Post must have either text content or an attached media file");
         }
 
+        Profile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "Profile not found"));
+
+        if (author.getCollege() == null || profile.getCourse() == null || profile.getBranch() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "You must complete your profile (College, Course, and Branch) before posting");
+        }
+
         Post post = new Post();
         post.setAuthor(author);
         post.setCollege(author.getCollege());
+        post.setCourse(profile.getCourse());
+        post.setBranch(profile.getBranch());
         post.setContent(hasContent ? request.getContent().trim() : "");
         post.setGlobal(request.getIsGlobal() != null ? request.getIsGlobal() : true);
         post.setCommentsEnabled(request.getCommentsEnabled() == null || request.getCommentsEnabled());
         post.setImages(request.getImages() != null ? request.getImages() : Collections.emptyList());
 
         // Snapshot author & college details for O(1) read queries
-        Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
-        if (profileOpt.isPresent()) {
-            Profile p = profileOpt.get();
-            post.setAuthorName(p.getFullName() != null ? p.getFullName() : author.getEmail());
-            post.setAuthorHandle(p.getHandle());
-            post.setAuthorAvatarUrl(p.getAvatarUrl());
-            post.setAuthorInitials(p.getInitials() != null ? p.getInitials() : "U");
-            post.setAuthorCourse(p.getCourse() != null ? p.getCourse().getName() : "Student");
-            post.setAuthorBranch(p.getBranch() != null ? p.getBranch().getName() : null);
-        } else {
-            post.setAuthorName(author.getEmail());
-            post.setAuthorInitials("U");
-            post.setAuthorCourse("Student");
-        }
-        if (author.getCollege() != null) {
-            post.setCollegeName(author.getCollege().getName());
-            post.setCollegeShortName(author.getCollege().getShortName());
-        }
+        post.setAuthorName(profile.getFullName() != null ? profile.getFullName() : author.getEmail());
+        post.setAuthorHandle(profile.getHandle());
+        post.setAuthorAvatarUrl(profile.getAvatarUrl());
+        post.setAuthorInitials(profile.getInitials() != null ? profile.getInitials() : "U");
+        post.setAuthorCourse(profile.getCourse().getName());
+        post.setAuthorBranch(profile.getBranch().getName());
+        post.setCollegeName(author.getCollege().getName());
+        post.setCollegeShortName(author.getCollege().getShortName());
 
         if (request.getTags() != null && !request.getTags().isEmpty()) {
             List<Tag> tagEntities = new ArrayList<>();

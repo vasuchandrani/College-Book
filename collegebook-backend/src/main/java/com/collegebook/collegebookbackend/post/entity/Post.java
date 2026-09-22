@@ -2,6 +2,8 @@ package com.collegebook.collegebookbackend.post.entity;
 
 import com.collegebook.collegebookbackend.auth.entity.User;
 import com.collegebook.collegebookbackend.college.entity.College;
+import com.collegebook.collegebookbackend.college.entity.Course;
+import com.collegebook.collegebookbackend.college.entity.Branch;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -50,6 +52,14 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id", nullable = false)
     private College college;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @Column(name = "content", nullable = false, columnDefinition = "text")
     private String content;
