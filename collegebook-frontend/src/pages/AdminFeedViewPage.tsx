@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -86,6 +86,22 @@ const AdminFeedViewPage = () => {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const PAGE_SIZE = 30;
+
+  // Pagination state for campus feed
+  const [campusPage, setCampusPage] = useState(0);
+  const [campusHasMore, setCampusHasMore] = useState(true);
+  const [campusLoadingMore, setCampusLoadingMore] = useState(false);
+  const campusObserverRef = useRef<IntersectionObserver | null>(null);
+  const campusSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Pagination state for explore feed
+  const [explorePage, setExplorePage] = useState(0);
+  const [exploreHasMore, setExploreHasMore] = useState(true);
+  const [exploreLoadingMore, setExploreLoadingMore] = useState(false);
+  const exploreObserverRef = useRef<IntersectionObserver | null>(null);
+  const exploreSentinelRef = useRef<HTMLDivElement | null>(null);
+
   // Post deletion modal
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -122,9 +138,11 @@ const AdminFeedViewPage = () => {
     if (!collegeUuid) return;
     setLoadingPosts(true);
     try {
-      const res: any = await adminGetCampusFeed(collegeUuid, 0, 30);
+      const res: any = await adminGetCampusFeed(collegeUuid, 0, PAGE_SIZE);
       const items = res?.items || res?.posts || res?.content || (Array.isArray(res) ? res : []);
       setCampusPosts(items);
+      setCampusPage(res?.page ?? 0);
+      setCampusHasMore(res?.hasNext ?? (items.length === PAGE_SIZE));
     } catch (err: any) {
       toast.error(err?.message || "Failed to fetch campus posts");
     } finally {
@@ -136,15 +154,103 @@ const AdminFeedViewPage = () => {
   const fetchExplorePosts = async () => {
     setLoadingPosts(true);
     try {
-      const res: any = await adminGetExploreFeed(0, 30);
+      const res: any = await adminGetExploreFeed(0, PAGE_SIZE);
       const items = res?.items || res?.posts || res?.content || (Array.isArray(res) ? res : []);
       setExplorePosts(items);
+      setExplorePage(res?.page ?? 0);
+      setExploreHasMore(res?.hasNext ?? (items.length === PAGE_SIZE));
     } catch (err: any) {
       toast.error(err?.message || "Failed to fetch explore posts");
     } finally {
       setLoadingPosts(false);
     }
   };
+
+  // Load more callbacks
+  const loadMoreCampusPosts = useCallback(() => {
+    if (campusLoadingMore || !campusHasMore || !selectedCollegeUuid) return;
+    setCampusLoadingMore(true);
+    adminGetCampusFeed(selectedCollegeUuid, campusPage + 1, PAGE_SIZE)
+      .then((res: any) => {
+        const items = res?.items || res?.posts || res?.content || (Array.isArray(res) ? res : []);
+        setCampusPosts((prev) => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const fresh = items.filter((p: Post) => !existingIds.has(p.id));
+          return [...prev, ...fresh];
+        });
+        setCampusPage(res?.page ?? campusPage + 1);
+        setCampusHasMore(res?.hasNext ?? (items.length === PAGE_SIZE));
+      })
+      .catch((err) => {
+        console.error(err);
+        setCampusHasMore(false);
+      })
+      .finally(() => setCampusLoadingMore(false));
+  }, [campusPage, campusHasMore, campusLoadingMore, selectedCollegeUuid]);
+
+  const loadMoreExplorePosts = useCallback(() => {
+    if (exploreLoadingMore || !exploreHasMore) return;
+    setExploreLoadingMore(true);
+    adminGetExploreFeed(explorePage + 1, PAGE_SIZE)
+      .then((res: any) => {
+        const items = res?.items || res?.posts || res?.content || (Array.isArray(res) ? res : []);
+        setExplorePosts((prev) => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const fresh = items.filter((p: Post) => !existingIds.has(p.id));
+          return [...prev, ...fresh];
+        });
+        setExplorePage(res?.page ?? explorePage + 1);
+        setExploreHasMore(res?.hasNext ?? (items.length === PAGE_SIZE));
+      })
+      .catch((err) => {
+        console.error(err);
+        setExploreHasMore(false);
+      })
+      .finally(() => setExploreLoadingMore(false));
+  }, [explorePage, exploreHasMore, exploreLoadingMore]);
+
+  // IntersectionObservers
+  useEffect(() => {
+    if (loadingPosts || !campusHasMore || campusPosts.length === 0 || activeTab !== "campus") {
+      if (campusObserverRef.current) campusObserverRef.current.disconnect();
+      return;
+    }
+    if (campusObserverRef.current) campusObserverRef.current.disconnect();
+    campusObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && campusHasMore && !campusLoadingMore) {
+          loadMoreCampusPosts();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    if (campusSentinelRef.current) campusObserverRef.current.observe(campusSentinelRef.current);
+    
+    return () => {
+      if (campusObserverRef.current) campusObserverRef.current.disconnect();
+    };
+  }, [loadingPosts, campusHasMore, campusLoadingMore, loadMoreCampusPosts, campusPosts.length, activeTab]);
+
+  useEffect(() => {
+    if (loadingPosts || !exploreHasMore || explorePosts.length === 0 || activeTab !== "explore") {
+      if (exploreObserverRef.current) exploreObserverRef.current.disconnect();
+      return;
+    }
+    if (exploreObserverRef.current) exploreObserverRef.current.disconnect();
+    exploreObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && exploreHasMore && !exploreLoadingMore) {
+          loadMoreExplorePosts();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    if (exploreSentinelRef.current) exploreObserverRef.current.observe(exploreSentinelRef.current);
+    
+    return () => {
+      if (exploreObserverRef.current) exploreObserverRef.current.disconnect();
+    };
+  }, [loadingPosts, exploreHasMore, exploreLoadingMore, loadMoreExplorePosts, explorePosts.length, activeTab]);
 
   useEffect(() => {
     if (!adminToken) return;
@@ -188,9 +294,9 @@ const AdminFeedViewPage = () => {
   const displayedPosts = (activeTab === "campus" ? campusPosts : explorePosts).filter((p) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    const author = (p as any).author || p.authorName || "";
-    const college = (p as any).college || p.collegeName || "";
-    const course = (p as any).course || p.courseName || "";
+    const author = (p as any).author || (p as any).authorName || "";
+    const college = (p as any).college || (p as any).collegeName || "";
+    const course = (p as any).course || (p as any).courseName || "";
     return (
       p.content?.toLowerCase().includes(q) ||
       author.toLowerCase().includes(q) ||
@@ -369,10 +475,10 @@ const AdminFeedViewPage = () => {
         ) : (
           <div className="space-y-4">
             {displayedPosts.map((post, idx) => {
-              const authorName = (post as any).author || post.authorName || "Student Author";
-              const initials = post.initials || authorName.charAt(0) || "U";
-              const collegeName = (post as any).college || post.collegeName || "Student";
-              const courseName = (post as any).course || post.courseName;
+              const authorName = (post as any).author || (post as any).authorName || "Student Author";
+              const initials = (post as any).initials || authorName.charAt(0) || "U";
+              const collegeName = (post as any).college || (post as any).collegeName || "Student";
+              const courseName = (post as any).course || (post as any).courseName;
               const images = post.images && post.images.length > 0 ? post.images : [];
               const videoMedia = (post as any).media?.find((m: any) => m.mediaType === "VIDEO");
               const videoUrl = post.videoUrl || videoMedia?.url || videoMedia?.videoId;
@@ -486,6 +592,27 @@ const AdminFeedViewPage = () => {
                 </motion.div>
               );
             })}
+
+            {/* Pagination Sentinel */}
+            {activeTab === "campus" && campusHasMore && campusPosts.length > 0 && (
+              <div ref={campusSentinelRef} className="py-4 flex justify-center">
+                {campusLoadingMore ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Scroll to load more</span>
+                )}
+              </div>
+            )}
+            
+            {activeTab === "explore" && exploreHasMore && explorePosts.length > 0 && (
+              <div ref={exploreSentinelRef} className="py-4 flex justify-center">
+                {exploreLoadingMore ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Scroll to load more</span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>

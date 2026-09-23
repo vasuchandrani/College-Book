@@ -3,9 +3,9 @@ spring:
     name: collegebook-backend-test
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://ep-patient-frog-az9fnpft.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&stringtype=unspecified}
-    username: ${DB_USER:neondb_owner}
-    password: ${DB_PASSWORD:npg_sTDYl67hcznI}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/collegebook}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:V@su11o4}
     driver-class-name: org.postgresql.Driver
 
   jpa:

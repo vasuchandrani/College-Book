@@ -22,6 +22,11 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import io.lettuce.core.ClientOptions;
+import io.lettuce.core.SocketOptions;
+import io.lettuce.core.TimeoutOptions;
+import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -98,5 +103,18 @@ public class RedisConfig implements CachingConfigurer {
                 log.warn("Redis clear error for cache {}: {}", cache.getName(), exception.getMessage());
             }
         };
+    }
+
+    @Bean
+    public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
+        return builder -> builder.clientOptions(
+                ClientOptions.builder()
+                        .socketOptions(SocketOptions.builder()
+                                .keepAlive(true)
+                                .connectTimeout(Duration.ofSeconds(10))
+                                .build())
+                        .timeoutOptions(TimeoutOptions.enabled())
+                        .build()
+        );
     }
 }

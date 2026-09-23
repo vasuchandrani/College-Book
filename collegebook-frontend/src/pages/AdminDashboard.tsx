@@ -840,7 +840,7 @@ const AdminDashboard = () => {
                                   {ad.brand}
                                 </Badge>
                               )}
-                              {ad.active ? (
+                              {(ad as any).active ? (
                                 <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
                                   Active
                                 </Badge>
@@ -884,8 +884,8 @@ const AdminDashboard = () => {
                             <div className="flex flex-col items-center gap-1 mr-2">
                               <Label className="text-[10px] text-muted-foreground">Active</Label>
                               <Switch
-                                checked={!!ad.active}
-                                onCheckedChange={() => toggleAdActive(String(ad.id), !!ad.active)}
+                                checked={!!(ad as any).active}
+                                onCheckedChange={() => toggleAdActive(String(ad.id), !!(ad as any).active)}
                               />
                             </div>
                             <div className="flex flex-col items-center gap-1 mr-2">

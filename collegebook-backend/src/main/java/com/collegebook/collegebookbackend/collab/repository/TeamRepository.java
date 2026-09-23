@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 public interface TeamRepository extends JpaRepository<Team, UUID> {
     Page<Team> findByCollegeId(UUID collegeId, Pageable pageable);
@@ -23,6 +24,12 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type ORDER BY t.createdAt DESC")
     List<Team> findMyTeamsByType(@Param("userId") UUID userId, @Param("type") TeamType type);
+
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId ORDER BY t.createdAt DESC")
+    Page<Team> findMyTeamsPaged(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type ORDER BY t.createdAt DESC")
+    Page<Team> findMyTeamsByTypePaged(@Param("userId") UUID userId, @Param("type") TeamType type, Pageable pageable);
 
     List<Team> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId);
 

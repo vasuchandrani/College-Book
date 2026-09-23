@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   BookOpen,
   Calendar,
@@ -210,12 +210,24 @@ const ProfilePage = () => {
   const { triggerToggle } = useDebouncedToggle(400);
 
   const [activityPosts, setActivityPosts] = useState<any[]>(() => clientCache.get<any[]>("my_posts") || []);
+  const [activityPostsPage, setActivityPostsPage] = useState(0);
+  const [activityPostsHasMore, setActivityPostsHasMore] = useState(true);
+  const [activityPostsLoadingMore, setActivityPostsLoadingMore] = useState(false);
+  const activityObserverRef = useRef<IntersectionObserver | null>(null);
+  const activitySentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const [savedPostsList, setSavedPostsList] = useState<any[]>(() => clientCache.get<any[]>("my_saved_posts") || []);
+  const [savedPostsPage, setSavedPostsPage] = useState(0);
+  const [savedPostsHasMore, setSavedPostsHasMore] = useState(true);
+  const [savedPostsLoadingMore, setSavedPostsLoadingMore] = useState(false);
+  const savedObserverRef = useRef<IntersectionObserver | null>(null);
+  const savedSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const [createdProjects, setCreatedProjects] = useState<any[]>(() => clientCache.get<any[]>("my_profile_teams") || []);
   const [myRequests, setMyRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_requests") || []);
   const [incomingRequests, setIncomingRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_incoming") || []);
   const [starredProjects, setStarredProjects] = useState<any[]>(() => clientCache.get<any[]>("my_starred_projects") || []);
-  const [savedPostsList, setSavedPostsList] = useState<any[]>(() => clientCache.get<any[]>("my_saved_posts") || []);
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const [campusStudents, setCampusStudents] = useState<PublicStudentProfile[]>(() => clientCache.get<PublicStudentProfile[]>("campus_students") || []);
   const [confirmAction, setConfirmAction] = useState<{
     projectId: string | number;
@@ -344,230 +356,306 @@ const ProfilePage = () => {
 
     getProfile()
       .then((p) => {
-          if (alive && p) {
-            const localUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
-            const loadedCollege =
-              p.collegeName || p.college || localUser.college || "Dharmsinh Desai University";
-            const loadedCollegeShort =
-              p.collegeShort ||
-              p.collegeShortName ||
-              localUser.collegeShort ||
-              (loadedCollege === "Dharmsinh Desai University"
-                ? "DDU"
-                : loadedCollege.split(" ").map((w: string) => w[0]).join(""));
+        if (alive && p) {
+          const localUser = JSON.parse(localStorage.getItem("cb_user") || "{}");
+          const loadedCollege =
+            p.collegeName || p.college || localUser.college || "Dharmsinh Desai University";
+          const loadedCollegeShort =
+            p.collegeShort ||
+            p.collegeShortName ||
+            localUser.collegeShort ||
+            (loadedCollege === "Dharmsinh Desai University"
+              ? "DDU"
+              : loadedCollege.split(" ").map((w: string) => w[0]).join(""));
 
-            let savedLinks: CustomLink[] = [];
-            if (p.customLinks) {
-              try {
-                const parsed = typeof p.customLinks === "string" ? JSON.parse(p.customLinks) : p.customLinks;
-                if (Array.isArray(parsed)) savedLinks = parsed;
-              } catch (e) { }
-            }
-            if (savedLinks.length === 0) {
-              try {
-                const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || localUser.name));
-                if (raw) savedLinks = JSON.parse(raw);
-              } catch (e) { }
-            }
+          let savedLinks: CustomLink[] = [];
+          if (p.customLinks) {
+            try {
+              const parsed = typeof p.customLinks === "string" ? JSON.parse(p.customLinks) : p.customLinks;
+              if (Array.isArray(parsed)) savedLinks = parsed;
+            } catch (e) { }
+          }
+          if (savedLinks.length === 0) {
+            try {
+              const raw = localStorage.getItem("cb_custom_links_" + (p.userId || p.name || localUser.name));
+              if (raw) savedLinks = JSON.parse(raw);
+            } catch (e) { }
+          }
 
-            let savedContacts: ContactDetail[] = [];
-            if (p.contactDetails) {
-              try {
-                const parsed = typeof p.contactDetails === "string" ? JSON.parse(p.contactDetails) : p.contactDetails;
-                if (Array.isArray(parsed)) {
-                  savedContacts = parsed;
-                } else if (typeof parsed === "object" && parsed !== null) {
-                  savedContacts = Object.entries(parsed).map(([label, value]) => ({ label, value: String(value) }));
-                }
-              } catch (e) {
-                if (typeof p.contactDetails === "string" && p.contactDetails.trim()) {
-                  savedContacts = [{ id: "c1", label: "Contact", value: p.contactDetails.trim() }];
-                }
+          let savedContacts: ContactDetail[] = [];
+          if (p.contactDetails) {
+            try {
+              const parsed = typeof p.contactDetails === "string" ? JSON.parse(p.contactDetails) : p.contactDetails;
+              if (Array.isArray(parsed)) {
+                savedContacts = parsed;
+              } else if (typeof parsed === "object" && parsed !== null) {
+                savedContacts = Object.entries(parsed).map(([label, value]) => ({ label, value: String(value) }));
+              }
+            } catch (e) {
+              if (typeof p.contactDetails === "string" && p.contactDetails.trim()) {
+                savedContacts = [{ id: "c1", label: "Contact", value: p.contactDetails.trim() }];
               }
             }
-            if (savedContacts.length === 0) {
-              try {
-                const raw = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || localUser.name));
-                if (raw) {
-                  try {
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) savedContacts = parsed;
-                  } catch {
-                    if (raw.trim()) savedContacts = [{ id: "c1", label: "Contact", value: raw.trim() }];
-                  }
+          }
+          if (savedContacts.length === 0) {
+            try {
+              const raw = localStorage.getItem("cb_contact_info_" + (p.userId || p.name || localUser.name));
+              if (raw) {
+                try {
+                  const parsed = JSON.parse(raw);
+                  if (Array.isArray(parsed)) savedContacts = parsed;
+                } catch {
+                  if (raw.trim()) savedContacts = [{ id: "c1", label: "Contact", value: raw.trim() }];
                 }
-              } catch (e) { }
-            }
-
-            const yearNum = p.currentYear || localUser.currentYear || 4;
-            const yearSuffix = yearNum === 1 ? "st" : yearNum === 2 ? "nd" : yearNum === 3 ? "rd" : "th";
-            const loadedYear = `${yearNum}${yearSuffix} Year`;
-
-            const rawCourse = p.courseShortName || p.courseName || localUser.course || "";
-            const cName = normalizeCourseShort(rawCourse);
-            const dName = p.branchName || localUser.branch || "";
-            let cleanBio = cName;
-            if (dName && !cleanBio.toLowerCase().includes(dName.toLowerCase())) {
-              cleanBio = `${cleanBio} ${dName}`.trim();
-            }
-            if (!cleanBio) {
-              cleanBio = p.defaultBio ? p.defaultBio.split("•")[0].trim() : "Student";
-            }
-            if (cleanBio.includes("Bachelor of Technology")) {
-              cleanBio = cleanBio.replace(/Bachelor of Technology/g, "B.Tech");
-            }
-            if (cleanBio.includes("Master of Technology")) {
-              cleanBio = cleanBio.replace(/Master of Technology/g, "M.Tech");
-            }
-
-            const loaded = {
-              name: p.fullName || p.name || localUser.name || "Student",
-              handle: p.handle || localUser.handle || "",
-              bio: cleanBio,
-              customBio: p.bioExtra || "",
-              college: loadedCollege,
-              collegeId: p.collegeId || localUser.collegeId || "",
-              courseId: p.courseId || localUser.courseId || "",
-              courseName: cName,
-              branchId: p.branchId || localUser.branchId || "",
-              branchName: dName,
-              email: localUser.email || "",
-              year: loadedYear,
-              yearNum: yearNum,
-              avatarUrl: p.avatarUrl || "",
-              githubUrl: p.githubUrl || "",
-              linkedinUrl: p.linkedinUrl || "",
-              websiteUrl: p.websiteUrl || "",
-              authorNote: p.bioExtra || "",
-              contactDetails: savedContacts,
-              memoryBookEmail: p.memoryBookEmail || "",
-              customLinks: savedLinks,
-            };
-            setProfile(loaded);
-            setMemoryEmailInput(loaded.memoryBookEmail || "");
-            setEditForm({
-              name: loaded.name,
-              customBio: loaded.customBio,
-              college: loaded.college,
-              collegeId: loaded.collegeId,
-              courseId: loaded.courseId,
-              courseName: loaded.courseName,
-              branchId: loaded.branchId,
-              branchName: loaded.branchName,
-              year: String(loaded.yearNum),
-              avatarUrl: loaded.avatarUrl,
-            });
-
-            if (loaded.collegeId) {
-              getCoursesByCollege(loaded.collegeId).then((cList) => {
-                if (alive && cList) setCollegeCourses(cList);
-              }).catch(() => {});
-            }
-            if (loaded.courseId) {
-              getBranchesByCourse(loaded.courseId).then((dList) => {
-                if (alive && dList) setCourseBranches(dList);
-              }).catch(() => {});
-            }
-
-            setEditAboutForm({
-              authorNote: loaded.authorNote,
-              websiteUrl: loaded.websiteUrl,
-              githubUrl: loaded.githubUrl,
-              contactDetails: loaded.contactDetails,
-              customLinks: loaded.customLinks,
-            });
-
-            const updatedUser = {
-              ...localUser,
-              name: loaded.name,
-              handle: loaded.handle,
-              college: loadedCollege,
-              collegeId: loaded.collegeId,
-              collegeShort: loadedCollegeShort,
-              course: cName || localUser.course || "Student",
-              courseId: loaded.courseId,
-              branch: dName || localUser.branch,
-              branchId: loaded.branchId,
-              currentYear: yearNum,
-              defaultBio: cleanBio,
-              bioExtra: loaded.customBio,
-            };
-            localStorage.setItem("cb_user", JSON.stringify(updatedUser));
+              }
+            } catch (e) { }
           }
-        })
-        .catch(() => { })
-        .finally(() => {
-          if (alive) setLoading(false);
+
+          const yearNum = p.currentYear || localUser.currentYear || 4;
+          const yearSuffix = yearNum === 1 ? "st" : yearNum === 2 ? "nd" : yearNum === 3 ? "rd" : "th";
+          const loadedYear = `${yearNum}${yearSuffix} Year`;
+
+          const rawCourse = p.courseShortName || p.courseName || localUser.course || "";
+          const cName = normalizeCourseShort(rawCourse);
+          const dName = p.branchName || localUser.branch || "";
+          let cleanBio = cName;
+          if (dName && !cleanBio.toLowerCase().includes(dName.toLowerCase())) {
+            cleanBio = `${cleanBio} ${dName}`.trim();
+          }
+          if (!cleanBio) {
+            cleanBio = p.defaultBio ? p.defaultBio.split("•")[0].trim() : "Student";
+          }
+          if (cleanBio.includes("Bachelor of Technology")) {
+            cleanBio = cleanBio.replace(/Bachelor of Technology/g, "B.Tech");
+          }
+          if (cleanBio.includes("Master of Technology")) {
+            cleanBio = cleanBio.replace(/Master of Technology/g, "M.Tech");
+          }
+
+          const loaded = {
+            name: p.fullName || p.name || localUser.name || "Student",
+            handle: p.handle || localUser.handle || "",
+            bio: cleanBio,
+            customBio: p.bioExtra || "",
+            college: loadedCollege,
+            collegeId: p.collegeId || localUser.collegeId || "",
+            courseId: p.courseId || localUser.courseId || "",
+            courseName: cName,
+            branchId: p.branchId || localUser.branchId || "",
+            branchName: dName,
+            email: localUser.email || "",
+            year: loadedYear,
+            yearNum: yearNum,
+            avatarUrl: p.avatarUrl || "",
+            githubUrl: p.githubUrl || "",
+            linkedinUrl: p.linkedinUrl || "",
+            websiteUrl: p.websiteUrl || "",
+            authorNote: p.bioExtra || "",
+            contactDetails: savedContacts,
+            memoryBookEmail: p.memoryBookEmail || "",
+            customLinks: savedLinks,
+          };
+          setProfile(loaded);
+          setMemoryEmailInput(loaded.memoryBookEmail || "");
+          setEditForm({
+            name: loaded.name,
+            customBio: loaded.customBio,
+            college: loaded.college,
+            collegeId: loaded.collegeId,
+            courseId: loaded.courseId,
+            courseName: loaded.courseName,
+            branchId: loaded.branchId,
+            branchName: loaded.branchName,
+            year: String(loaded.yearNum),
+            avatarUrl: loaded.avatarUrl,
+          });
+
+          if (loaded.collegeId) {
+            getCoursesByCollege(loaded.collegeId).then((cList) => {
+              if (alive && cList) setCollegeCourses(cList);
+            }).catch(() => { });
+          }
+          if (loaded.courseId) {
+            getBranchesByCourse(loaded.courseId).then((dList) => {
+              if (alive && dList) setCourseBranches(dList);
+            }).catch(() => { });
+          }
+
+          setEditAboutForm({
+            authorNote: loaded.authorNote,
+            websiteUrl: loaded.websiteUrl,
+            githubUrl: loaded.githubUrl,
+            contactDetails: loaded.contactDetails,
+            customLinks: loaded.customLinks,
+          });
+
+          const updatedUser = {
+            ...localUser,
+            name: loaded.name,
+            handle: loaded.handle,
+            college: loadedCollege,
+            collegeId: loaded.collegeId,
+            collegeShort: loadedCollegeShort,
+            course: cName || localUser.course || "Student",
+            courseId: loaded.courseId,
+            branch: dName || localUser.branch,
+            branchId: loaded.branchId,
+            currentYear: yearNum,
+            defaultBio: cleanBio,
+            bioExtra: loaded.customBio,
+          };
+          localStorage.setItem("cb_user", JSON.stringify(updatedUser));
+        }
+      })
+      .catch(() => { })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    // Background non-blocking fetches with client-side caching
+    getMyPosts(0, 15)
+      .then((res) => {
+        if (alive && res.posts) {
+          setActivityPosts(res.posts);
+          clientCache.set("my_posts", res.posts, 300_000);
+          setActivityPostsHasMore(res.hasNext);
+          setActivityPostsPage(res.page);
+        }
+      })
+      .catch(() => { });
+
+    getSavedPosts(0, 15)
+      .then((res) => {
+        if (alive && res.posts) {
+          setSavedPostsList(res.posts);
+          clientCache.set("my_saved_posts", res.posts, 300_000);
+          setSavedPostsHasMore(res.hasNext);
+          setSavedPostsPage(res.page);
+        }
+      })
+      .catch(() => { });
+
+    getStarredProjects()
+      .then((starred) => {
+        if (alive && starred) {
+          setStarredProjects(starred);
+          clientCache.set("my_starred_projects", starred, 300_000);
+        }
+      })
+      .catch(() => { });
+
+    getMyTeams()
+      .then((res) => {
+        if (alive && res) {
+          setCreatedProjects(res.teams || []);
+          clientCache.set("my_profile_teams", res.teams || [], 300_000);
+        }
+      })
+      .catch(() => { });
+
+    getMyJoinRequests()
+      .then((res) => {
+        if (alive && res) {
+          setMyRequests(res.requests || []);
+          clientCache.set("my_profile_requests", res.requests || [], 300_000);
+        }
+      })
+      .catch(() => { });
+
+    getMyIncomingRequests()
+      .then((res) => {
+        if (alive && res) {
+          setIncomingRequests(res.requests || []);
+          clientCache.set("my_profile_incoming", res.requests || [], 300_000);
+        }
+      })
+      .catch(() => { });
+
+    getCampusStudents()
+      .then((students) => {
+        if (alive && students) {
+          setCampusStudents(students);
+          clientCache.set("campus_students", students, 300_000);
+        }
+      })
+      .catch(() => { });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const loadMoreActivityPosts = useCallback(() => {
+    if (activityPostsLoadingMore || !activityPostsHasMore) return;
+    setActivityPostsLoadingMore(true);
+    getMyPosts(activityPostsPage + 1, 15)
+      .then((res) => {
+        setActivityPosts((prev) => {
+          const newPosts = [...prev, ...res.posts];
+          clientCache.set("my_posts", newPosts, 300_000);
+          return newPosts;
         });
+        setActivityPostsHasMore(res.hasNext);
+        setActivityPostsPage(res.page);
+      })
+      .catch(() => { })
+      .finally(() => setActivityPostsLoadingMore(false));
+  }, [activityPostsPage, activityPostsHasMore, activityPostsLoadingMore]);
 
-      // Background non-blocking fetches with client-side caching
-      getMyPosts()
-        .then((posts) => {
-          if (alive && posts) {
-            setActivityPosts(posts);
-            clientCache.set("my_posts", posts, 300_000);
-          }
-        })
-        .catch(() => { });
+  const loadMoreSavedPosts = useCallback(() => {
+    if (savedPostsLoadingMore || !savedPostsHasMore) return;
+    setSavedPostsLoadingMore(true);
+    getSavedPosts(savedPostsPage + 1, 15)
+      .then((res) => {
+        setSavedPostsList((prev) => {
+          const newPosts = [...prev, ...res.posts];
+          clientCache.set("my_saved_posts", newPosts, 300_000);
+          return newPosts;
+        });
+        setSavedPostsHasMore(res.hasNext);
+        setSavedPostsPage(res.page);
+      })
+      .catch(() => { })
+      .finally(() => setSavedPostsLoadingMore(false));
+  }, [savedPostsPage, savedPostsHasMore, savedPostsLoadingMore]);
 
-      getSavedPosts()
-        .then((posts) => {
-          if (alive && posts) {
-            setSavedPostsList(posts);
-            clientCache.set("my_saved_posts", posts, 300_000);
-          }
-        })
-        .catch(() => { });
+  useEffect(() => {
+    if (loading || !activityPostsHasMore) {
+      if (activityObserverRef.current) activityObserverRef.current.disconnect();
+      return;
+    }
+    if (activityObserverRef.current) activityObserverRef.current.disconnect();
+    activityObserverRef.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && activityPostsHasMore && !activityPostsLoadingMore) {
+        loadMoreActivityPosts();
+      }
+    }, { rootMargin: "200px" });
+    if (activitySentinelRef.current) {
+      activityObserverRef.current.observe(activitySentinelRef.current);
+    }
+    return () => {
+      if (activityObserverRef.current) activityObserverRef.current.disconnect();
+    };
+  }, [loading, activityPostsHasMore, activityPostsLoadingMore, loadMoreActivityPosts, activityPosts.length]);
 
-      getStarredProjects()
-        .then((starred) => {
-          if (alive && starred) {
-            setStarredProjects(starred);
-            clientCache.set("my_starred_projects", starred, 300_000);
-          }
-        })
-        .catch(() => { });
-
-      getMyTeams()
-        .then((teams) => {
-          if (alive && teams) {
-            setCreatedProjects(teams);
-            clientCache.set("my_profile_teams", teams, 300_000);
-          }
-        })
-        .catch(() => { });
-
-      getMyJoinRequests()
-        .then((reqs) => {
-          if (alive && reqs) {
-            setMyRequests(reqs);
-            clientCache.set("my_profile_requests", reqs, 300_000);
-          }
-        })
-        .catch(() => { });
-
-      getMyIncomingRequests()
-        .then((inReqs) => {
-          if (alive && inReqs) {
-            setIncomingRequests(inReqs);
-            clientCache.set("my_profile_incoming", inReqs, 300_000);
-          }
-        })
-        .catch(() => { });
-
-      getCampusStudents()
-        .then((students) => {
-          if (alive && students) {
-            setCampusStudents(students);
-            clientCache.set("campus_students", students, 300_000);
-          }
-        })
-        .catch(() => { });
-
-      return () => {
-        alive = false;
-      };
-    }, []);
+  useEffect(() => {
+    if (loading || !savedPostsHasMore) {
+      if (savedObserverRef.current) savedObserverRef.current.disconnect();
+      return;
+    }
+    if (savedObserverRef.current) savedObserverRef.current.disconnect();
+    savedObserverRef.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && savedPostsHasMore && !savedPostsLoadingMore) {
+        loadMoreSavedPosts();
+      }
+    }, { rootMargin: "200px" });
+    if (savedSentinelRef.current) {
+      savedObserverRef.current.observe(savedSentinelRef.current);
+    }
+    return () => {
+      if (savedObserverRef.current) savedObserverRef.current.disconnect();
+    };
+  }, [loading, savedPostsHasMore, savedPostsLoadingMore, loadMoreSavedPosts, savedPostsList.length]);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
@@ -920,16 +1008,16 @@ const ProfilePage = () => {
         const updatePostItem = (p: any) =>
           p.id === id
             ? {
-                ...p,
-                liked: newLiked,
-                likes: newLiked
-                  ? p.liked
-                    ? p.likes
-                    : (p.likes || 0) + 1
-                  : p.liked
+              ...p,
+              liked: newLiked,
+              likes: newLiked
+                ? p.liked
+                  ? p.likes
+                  : (p.likes || 0) + 1
+                : p.liked
                   ? Math.max(0, (p.likes || 0) - 1)
                   : p.likes || 0,
-              }
+            }
             : p;
 
         setActivityPosts((prev) => prev.map(updatePostItem));
@@ -1026,8 +1114,8 @@ const ProfilePage = () => {
         newStatus === "ACCEPTED"
           ? "Applicant accepted! Team member added."
           : newStatus === "PENDING"
-          ? "Rejection undone. Request restored to Pending."
-          : "Join request rejected."
+            ? "Rejection undone. Request restored to Pending."
+            : "Join request rejected."
       );
     } catch (e: any) {
       toast.error(e.message || "Failed to respond to join request");
@@ -1107,11 +1195,11 @@ const ProfilePage = () => {
         prev.map((r) =>
           r.id === editingReq.id
             ? {
-                ...r,
-                role: editReqForm.role.trim(),
-                message: editReqForm.reason.trim(),
-                reason: editReqForm.reason.trim(),
-              }
+              ...r,
+              role: editReqForm.role.trim(),
+              message: editReqForm.reason.trim(),
+              reason: editReqForm.reason.trim(),
+            }
             : r
         )
       );
@@ -1181,10 +1269,10 @@ const ProfilePage = () => {
         prev.map((p) =>
           p.id === editingProject.id
             ? {
-                ...p,
-                members: updated?.members || editMembers,
-                currentMembersCount: updated?.currentMembersCount || (p.currentMembersCount || 1) + 1,
-              }
+              ...p,
+              members: updated?.members || editMembers,
+              currentMembersCount: updated?.currentMembersCount || (p.currentMembersCount || 1) + 1,
+            }
             : p
         )
       );
@@ -1213,10 +1301,10 @@ const ProfilePage = () => {
         prev.map((p) =>
           p.id === editingProject.id
             ? {
-                ...p,
-                members: newMemberList,
-                currentMembersCount: updated?.currentMembersCount || Math.max(1, (p.currentMembersCount || 2) - 1),
-              }
+              ...p,
+              members: newMemberList,
+              currentMembersCount: updated?.currentMembersCount || Math.max(1, (p.currentMembersCount || 2) - 1),
+            }
             : p
         )
       );
@@ -1243,8 +1331,8 @@ const ProfilePage = () => {
       typeStr === "OPEN_SOURCE" || typeStr === "OPEN-SOURCE" || typeStr === "OPEN_SOURCE_PROJECT"
         ? "open_source"
         : typeStr === "HACKATHON" || typeStr === "HACKATHON_TEAM"
-        ? "hackathon"
-        : "project";
+          ? "hackathon"
+          : "project";
     setEditCategory(cat);
 
     let cleanDescription = project.description || "";
@@ -1316,8 +1404,8 @@ const ProfilePage = () => {
         editCategory === "open_source"
           ? "Please enter a repository / project name"
           : editCategory === "hackathon"
-          ? "Please enter a team name"
-          : "Please enter a project title"
+            ? "Please enter a team name"
+            : "Please enter a project title"
       );
       return;
     }
@@ -1336,8 +1424,8 @@ const ProfilePage = () => {
         editCategory === "open_source"
           ? "OPEN_SOURCE"
           : editCategory === "hackathon"
-          ? "HACKATHON"
-          : "PROJECT";
+            ? "HACKATHON"
+            : "PROJECT";
 
       const finalDescription =
         editCategory === "hackathon"
@@ -1364,15 +1452,15 @@ const ProfilePage = () => {
         prev.map((p) =>
           p.id === editingProject.id
             ? {
-                ...p,
-                title: payload.title,
-                type: payload.type,
-                description: payload.description,
-                githubLink: payload.githubLink,
-                skills: payload.skills,
-                requiredExpertise: payload.requiredExpertise,
-                maxMembers: payload.maxMembers,
-              }
+              ...p,
+              title: payload.title,
+              type: payload.type,
+              description: payload.description,
+              githubLink: payload.githubLink,
+              skills: payload.skills,
+              requiredExpertise: payload.requiredExpertise,
+              maxMembers: payload.maxMembers,
+            }
             : p
         )
       );
@@ -1382,8 +1470,8 @@ const ProfilePage = () => {
         editCategory === "open_source"
           ? "Open-source project updated successfully!"
           : editCategory === "hackathon"
-          ? "Hackathon team updated successfully!"
-          : "Team project updated successfully!"
+            ? "Hackathon team updated successfully!"
+            : "Team project updated successfully!"
       );
     } catch (e: any) {
       toast.error(e.message || "Failed to update project");
@@ -1405,16 +1493,16 @@ const ProfilePage = () => {
           prev.map((t) =>
             t.id === teamId
               ? {
-                  ...t,
-                  starred: newStarred,
-                  starsCount: newStarred
-                    ? t.starred
-                      ? t.starsCount
-                      : (t.starsCount || 0) + 1
-                    : t.starred
+                ...t,
+                starred: newStarred,
+                starsCount: newStarred
+                  ? t.starred
+                    ? t.starsCount
+                    : (t.starsCount || 0) + 1
+                  : t.starred
                     ? Math.max(0, (t.starsCount || 0) - 1)
                     : t.starsCount || 0,
-                }
+              }
               : t
           )
         );
@@ -1509,12 +1597,12 @@ const ProfilePage = () => {
                         if (clgId) {
                           getCoursesByCollege(clgId).then((cList) => {
                             if (cList) setCollegeCourses(cList);
-                          }).catch(() => {});
+                          }).catch(() => { });
                         }
                         if (cId) {
                           getBranchesByCourse(cId).then((dList) => {
                             if (dList) setCourseBranches(dList);
-                          }).catch(() => {});
+                          }).catch(() => { });
                         }
                         setEditOpen(true);
                       }}
@@ -1691,8 +1779,8 @@ const ProfilePage = () => {
                 <Label className="text-xs font-semibold">Custom Bio</Label>
                 <span
                   className={`text-[11px] font-semibold ${(editForm.customBio || "").length >= 250
-                      ? "text-destructive"
-                      : "text-muted-foreground"
+                    ? "text-destructive"
+                    : "text-muted-foreground"
                     }`}
                 >
                   {(editForm.customBio || "").length}/250
@@ -2660,14 +2748,12 @@ const ProfilePage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => togglePostLike(post.id)}
-                          className={`gap-1.5 text-xs ${
-                            post.liked ? "text-red-500" : "text-muted-foreground"
-                          }`}
+                          className={`gap-1.5 text-xs ${post.liked ? "text-red-500" : "text-muted-foreground"
+                            }`}
                         >
                           <Heart
-                            className={`h-4 w-4 ${
-                              post.liked ? "fill-red-500" : ""
-                            }`}
+                            className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""
+                              }`}
                           />
                           <span>{post.likes || 0}</span>
                         </Button>
@@ -2681,11 +2767,10 @@ const ProfilePage = () => {
                                 prev === post.id ? null : post.id
                               )
                             }
-                            className={`gap-1.5 text-xs transition-colors ${
-                              expandedCommentsPostId === post.id
+                            className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
                                 ? "text-primary bg-primary/10 font-semibold"
                                 : "text-muted-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <MessageSquare className="h-4 w-4" />
                             <span>{post.commentsCount || 0}</span>
@@ -2696,15 +2781,13 @@ const ProfilePage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => togglePostSave(post.id)}
-                          className={`text-xs px-2.5 ${
-                            post.saved ? "text-accent font-semibold" : "text-muted-foreground"
-                          }`}
+                          className={`text-xs px-2.5 ${post.saved ? "text-accent font-semibold" : "text-muted-foreground"
+                            }`}
                           title={post.saved ? "Unsave post" : "Save post"}
                         >
                           <Bookmark
-                            className={`h-4 w-4 ${
-                              post.saved ? "fill-current" : ""
-                            }`}
+                            className={`h-4 w-4 ${post.saved ? "fill-current" : ""
+                              }`}
                           />
                         </Button>
 
@@ -2748,6 +2831,15 @@ const ProfilePage = () => {
                 </Card>
               </motion.div>
             ))}
+            {activityPostsHasMore && activityPosts.length > 0 && (
+              <div ref={activitySentinelRef} className="py-4 flex justify-center">
+                {activityPostsLoadingMore ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Scroll to load more</span>
+                )}
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -2931,23 +3023,23 @@ const ProfilePage = () => {
                           {/* Tech stack badges */}
                           {((project.requiredExpertise && project.requiredExpertise.length > 0) ||
                             (project.skills && project.skills.length > 0)) && (
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {Array.from(
-                                new Set([
-                                  ...(project.requiredExpertise || []),
-                                  ...(project.skills || []),
-                                ])
-                              ).map((skill: string, idx: number) => (
-                                <Badge
-                                  key={`${project.id}-skill-${skill}-${idx}`}
-                                  variant="outline"
-                                  className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
-                                >
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {Array.from(
+                                  new Set([
+                                    ...(project.requiredExpertise || []),
+                                    ...(project.skills || []),
+                                  ])
+                                ).map((skill: string, idx: number) => (
+                                  <Badge
+                                    key={`${project.id}-skill-${skill}-${idx}`}
+                                    variant="outline"
+                                    className="text-[11px] px-2 py-0.5 font-medium bg-muted/40"
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                         </div>
 
                         {/* Right Actions: View Details, Star */}
@@ -3078,14 +3170,12 @@ const ProfilePage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => togglePostLike(post.id)}
-                          className={`gap-1.5 text-xs ${
-                            post.liked ? "text-red-500" : "text-muted-foreground"
-                          }`}
+                          className={`gap-1.5 text-xs ${post.liked ? "text-red-500" : "text-muted-foreground"
+                            }`}
                         >
                           <Heart
-                            className={`h-4 w-4 ${
-                              post.liked ? "fill-red-500" : ""
-                            }`}
+                            className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""
+                              }`}
                           />
                           <span>{post.likes || 0}</span>
                         </Button>
@@ -3099,11 +3189,10 @@ const ProfilePage = () => {
                                 prev === post.id ? null : post.id
                               )
                             }
-                            className={`gap-1.5 text-xs transition-colors ${
-                              expandedCommentsPostId === post.id
+                            className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
                                 ? "text-primary bg-primary/10 font-semibold"
                                 : "text-muted-foreground hover:text-foreground"
-                            }`}
+                              }`}
                           >
                             <MessageSquare className="h-4 w-4" />
                             <span>{post.commentsCount || 0}</span>
@@ -3160,6 +3249,15 @@ const ProfilePage = () => {
                 </Card>
               </motion.div>
             ))}
+            {savedPostsHasMore && savedPostsList.length > 0 && (
+              <div ref={savedSentinelRef} className="py-4 flex justify-center">
+                {savedPostsLoadingMore ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Scroll to load more</span>
+                )}
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -3224,8 +3322,8 @@ const ProfilePage = () => {
                   {editCategory === "open_source"
                     ? "Edit Open-Source Project"
                     : editCategory === "hackathon"
-                    ? "Edit Hackathon Team"
-                    : "Edit Project Collaboration"}
+                      ? "Edit Hackathon Team"
+                      : "Edit Project Collaboration"}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Update details for your collaboration listing.
@@ -3233,19 +3331,18 @@ const ProfilePage = () => {
               </div>
               <Badge
                 variant="secondary"
-                className={`text-xs px-2.5 py-1 capitalize font-medium ${
-                  editCategory === "open_source"
+                className={`text-xs px-2.5 py-1 capitalize font-medium ${editCategory === "open_source"
                     ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
                     : editCategory === "hackathon"
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                }`}
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                  }`}
               >
                 {editCategory === "open_source"
                   ? "Open Source"
                   : editCategory === "hackathon"
-                  ? "Hackathon"
-                  : "Team Project"}
+                    ? "Hackathon"
+                    : "Team Project"}
               </Badge>
             </div>
           </DialogHeader>
@@ -3272,16 +3369,16 @@ const ProfilePage = () => {
                 {editCategory === "open_source"
                   ? "Repository / Project Name *"
                   : editCategory === "hackathon"
-                  ? "Team Name *"
-                  : "Project Title *"}
+                    ? "Team Name *"
+                    : "Project Title *"}
               </Label>
               <Input
                 placeholder={
                   editCategory === "open_source"
                     ? "e.g. college-book-web, react-native-ui"
                     : editCategory === "hackathon"
-                    ? "e.g. Binary Beasts, Code Crusaders"
-                    : "e.g. AI-Powered Notes Summarizer"
+                      ? "e.g. Binary Beasts, Code Crusaders"
+                      : "e.g. AI-Powered Notes Summarizer"
                 }
                 value={editTeamForm.title}
                 onChange={(e) =>
@@ -3668,16 +3765,15 @@ const ProfilePage = () => {
                             isAccepted
                               ? "default"
                               : isRejected
-                              ? "destructive"
-                              : "secondary"
+                                ? "destructive"
+                                : "secondary"
                           }
-                          className={`text-xs capitalize ${
-                            isAccepted
+                          className={`text-xs capitalize ${isAccepted
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                               : isPending
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                              : ""
-                          }`}
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : ""
+                            }`}
                         >
                           {isAccepted ? "Accepted" : isRejected ? "Rejected" : "Pending"}
                         </Badge>

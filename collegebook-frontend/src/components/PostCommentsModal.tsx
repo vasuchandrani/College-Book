@@ -50,7 +50,7 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
     getComments(post.id)
       .then((data) => {
         if (alive) {
-          setComments(data || []);
+          setComments(data?.comments || []);
         }
       })
       .catch((err) => {

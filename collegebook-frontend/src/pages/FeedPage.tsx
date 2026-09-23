@@ -3,27 +3,20 @@ import {
   Heart,
   Bookmark,
   Share2,
-  Image as ImageIcon,
-  Send,
-  Loader2,
-  X,
   Search,
   ChevronDown,
   ChevronUp,
-  Hash,
-  Globe,
-  School,
   MessageSquare,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
@@ -36,13 +29,9 @@ import { toast } from "sonner";
 import {
   getFeedPosts,
   getFeedAds,
-  createPost as apiCreatePost,
   likePost as apiLikePost,
   savePost as apiSavePost,
-  uploadImageFile,
-  uploadVideoFile,
   getProfile,
-  formatApiError,
   sharePostLink,
   normalizeCourseShort,
   type FeedPost,
@@ -50,19 +39,10 @@ import {
 
 import { clientCache } from "@/lib/clientCache";
 
-interface PendingImage {
-  file: File;
-  previewUrl: string;
-}
-
-interface PendingVideo {
-  file: File;
-  previewUrl: string;
-}
-
 const PAGE_SIZE = 15;
 
 const FeedPage = () => {
+  const navigate = useNavigate();
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const cacheKey = "feed_page_0_" + (selectedTag || "all");
   const cachedFeed = clientCache.get<{ posts: FeedPost[]; hasNext: boolean }>(cacheKey);
@@ -73,26 +53,26 @@ const FeedPage = () => {
   const [hasMore, setHasMore] = useState(() => (cachedFeed ? cachedFeed.hasNext : true));
   const [loadingInitial, setLoadingInitial] = useState(() => !cachedFeed);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  const [newPost, setNewPost] = useState("");
-  const [postTags, setPostTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [showTagInput, setShowTagInput] = useState(false);
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
-  const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatusText, setUploadStatusText] = useState("");
   const [search, setSearch] = useState("");
   const [tagsExpanded, setTagsExpanded] = useState(false);
-  const [isGlobal, setIsGlobal] = useState(true);
-  const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
 
-  const mediaInputRef = useRef<HTMLInputElement>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const { triggerToggle } = useDebouncedToggle(400);
+
+  // Listen for posts created from the dedicated Create Post page
+  useEffect(() => {
+    const handlePostCreated = (e: any) => {
+      if (e?.detail) {
+        setPosts((prev) => [e.detail, ...prev.filter((p) => String(p.id) !== String(e.detail.id))]);
+      }
+    };
+    window.addEventListener("cb_post_created", handlePostCreated);
+    return () => {
+      window.removeEventListener("cb_post_created", handlePostCreated);
+    };
+  }, []);
 
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("cb_user");
@@ -150,7 +130,7 @@ const FeedPage = () => {
     getFeedAds()
       .then((data) => {
         if (alive && data) {
-          setAds(data);
+          setAds(data as any);
           clientCache.set("feed_ads", data, 300_000);
         }
       })
@@ -305,135 +285,6 @@ const FeedPage = () => {
       },
       (signal) => apiSavePost(id, signal)
     );
-  };
-
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const newImages: PendingImage[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.type.startsWith("video/")) {
-        if (file.size > 500 * 1024 * 1024) {
-          toast.error("Video exceeds maximum allowed size (500 MB)");
-          continue;
-        }
-        setPendingVideo({
-          file,
-          previewUrl: URL.createObjectURL(file),
-        });
-      } else {
-        newImages.push({
-          file,
-          previewUrl: URL.createObjectURL(file),
-        });
-      }
-    }
-
-    if (newImages.length > 0) {
-      setPendingImages((prev) => [...prev, ...newImages]);
-    }
-    if (mediaInputRef.current) mediaInputRef.current.value = "";
-  };
-
-  const handleAddTag = (tagToAdd?: string) => {
-    const raw = (tagToAdd || tagInput).trim().replace(/^#/, "");
-    if (!raw) return;
-    if (postTags.includes(raw)) {
-      toast.info("Tag already added");
-      setTagInput("");
-      return;
-    }
-    if (postTags.length >= 5) {
-      toast.error("You can add only 5 hashtags in one post");
-      return;
-    }
-    setPostTags((prev) => [...prev, raw]);
-    setTagInput("");
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === "," || e.key === " ") {
-      e.preventDefault();
-      handleAddTag();
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setPostTags((prev) => prev.filter((t) => t !== tagToRemove));
-  };
-
-  const handlePost = async () => {
-    const hasContent = Boolean(newPost.trim());
-    const hasMedia = pendingImages.length > 0 || Boolean(pendingVideo);
-
-    if (!hasContent && !hasMedia) {
-      toast.error("Please enter some text or attach an image/video to publish.");
-      return;
-    }
-    setIsUploading(true);
-
-    try {
-      const mediaKeys: Array<{
-        objectKey?: string;
-        url?: string;
-        mediaType: string;
-        storageProvider: string;
-        videoId?: string;
-      }> = [];
-
-      if (pendingImages.length > 0) {
-        setUploadStatusText("Uploading images...");
-        for (let i = 0; i < pendingImages.length; i++) {
-          const res = await uploadImageFile(pendingImages[i].file);
-          mediaKeys.push({
-            objectKey: res.objectKey,
-            url: res.publicUrl || res.url,
-            mediaType: "IMAGE",
-            storageProvider: res.storageProvider || "S3",
-          });
-        }
-      }
-
-      if (pendingVideo) {
-        setUploadStatusText("Uploading video (this may take a moment)...");
-        const res = await uploadVideoFile(pendingVideo.file);
-        mediaKeys.push({
-          videoId: res.videoId,
-          objectKey: res.objectKey || res.videoId,
-          url: res.publicUrl || res.url,
-          mediaType: "VIDEO",
-          storageProvider: res.storageProvider || "S3",
-        });
-      }
-
-      setUploadStatusText("Publishing post...");
-      const cleanedContent = newPost.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-      const created = await apiCreatePost({
-        author: user.name,
-        initials: user.initials,
-        course: user.course,
-        content: cleanedContent,
-        mediaKeys,
-        tags: postTags,
-        isGlobal,
-        commentsEnabled,
-      });
-
-      setPosts([created, ...posts]);
-      setNewPost("");
-      setPostTags([]);
-      setShowTagInput(false);
-      setPendingImages([]);
-      setPendingVideo(null);
-      toast.success("Post published!");
-    } catch (err: any) {
-      toast.error(formatApiError(err, "Failed to publish post. Please try again."));
-    } finally {
-      setIsUploading(false);
-      setUploadStatusText("");
-    }
   };
 
   const filtered = useMemo(() => {
@@ -687,11 +538,20 @@ const FeedPage = () => {
         description="Explore live updates, student ideas, hackathon achievements, and campus discussions at your university on CollegeBook."
         keywords="collegebook feed, campus feed, university updates, student posts, college life"
       />
-      <div className="mb-4 sm:mb-6">
-        <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
-        <p className="text-muted-foreground text-xs sm:text-sm">
-          What's happening at {collegeDisplay}
-        </p>
+      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            What's happening at {collegeDisplay}
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/create-post")}
+          className="bg-gradient-hero text-primary-foreground font-semibold gap-1.5 shadow-sm hover:opacity-95 text-xs sm:text-sm h-9 sm:h-10 px-3.5 sm:px-5 rounded-full transition-all shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Post</span>
+        </Button>
       </div>
 
       <div className="relative mb-3">
@@ -760,231 +620,31 @@ const FeedPage = () => {
         </div>
       )}
 
-      {/* Post Creation Card */}
-      <Card className="p-4 mb-6 shadow-card">
-        <div className="flex gap-3">
-          <Avatar className="hidden sm:flex h-9 w-9 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {user.initials || "YO"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <Textarea
-              placeholder="Share an idea, achievement, or opportunity..."
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value.replace(/\n{3,}/g, "\n\n"))}
-              className="min-h-[80px] border-none shadow-none resize-none p-2 bg-muted/20 rounded-md focus-visible:ring-0 text-sm"
-              disabled={isUploading}
-            />
-
-            {/* Post Tags Chips */}
-            {postTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-border/40">
-                {postTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="text-xs px-2.5 py-0.5 gap-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors"
-                  >
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="text-primary/70 hover:text-destructive transition-colors ml-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* Inline Hashtag Input */}
-            {showTagInput && (
-              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40">
-                <div className="relative flex-1">
-                  <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    ref={tagInputRef}
-                    placeholder="Type a hashtag and press Enter (e.g. collegebook)..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    className="h-8 pl-8 text-xs bg-muted/30 border-muted"
-                    autoFocus
-                  />
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 text-xs px-3"
-                  onClick={() => handleAddTag()}
-                  disabled={!tagInput.trim()}
-                >
-                  Add
-                </Button>
-              </div>
-            )}
-
-            {/* Image Previews */}
-            {pendingImages.length > 0 && (
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {pendingImages.map((img, idx) => (
-                  <div key={idx} className="relative group">
-                    <img
-                      src={img.previewUrl}
-                      alt=""
-                      className="h-16 w-16 object-cover rounded-md border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPendingImages(
-                          pendingImages.filter((_, j) => j !== idx)
-                        )
-                      }
-                      className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Video Preview */}
-            {pendingVideo && (
-              <div className="relative group mt-2 inline-block">
-                <video
-                  src={pendingVideo.previewUrl}
-                  className="h-24 w-40 object-cover rounded-md border"
-                  controls
-                />
-                <button
-                  type="button"
-                  onClick={() => setPendingVideo(null)}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                <span className="text-[10px] text-muted-foreground mt-0.5 block">
-                  Video attached ({Math.round(pendingVideo.file.size / 1024 / 1024)} MB)
-                </span>
-              </div>
-            )}
-
-            {isUploading && (
-              <div className="flex items-center gap-2 mt-2 text-xs text-primary font-medium">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>{uploadStatusText}</span>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                  multiple
-                  className="hidden"
-                  onChange={handleMediaSelect}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground gap-1 px-2 sm:px-3 h-8 text-xs"
-                  onClick={() => mediaInputRef.current?.click()}
-                  disabled={isUploading}
-                >
-                  <ImageIcon className="h-3.5 w-3.5" /> Media
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={`gap-1 px-2 sm:px-3 h-8 text-xs ${
-                    showTagInput || postTags.length > 0
-                      ? "text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => {
-                    setShowTagInput(!showTagInput);
-                    if (!showTagInput) {
-                      setTimeout(() => tagInputRef.current?.focus(), 100);
-                    }
-                  }}
-                  disabled={isUploading}
-                >
-                  <Hash className="h-3.5 w-3.5" /> Hashtag
-                </Button>
-
-                <div className="flex bg-muted p-0.5 rounded-full border border-border/40">
-                  <button
-                    type="button"
-                    onClick={() => setIsGlobal(true)}
-                    className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 ${
-                      isGlobal
-                        ? "bg-background text-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Globe className="h-3 w-3" />
-                    Global
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsGlobal(false)}
-                    className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 ${
-                      !isGlobal
-                        ? "bg-background text-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <School className="h-3 w-3" />
-                    Campus
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCommentsEnabled(!commentsEnabled)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all duration-200 ${
-                    commentsEnabled
-                      ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/15"
-                      : "bg-muted text-muted-foreground border-border/60 hover:text-foreground"
-                  }`}
-                  title={commentsEnabled ? "Comments allowed on your post" : "Comments turned off"}
-                >
-                  <MessageSquare className="h-3 w-3" />
-                  <span>{commentsEnabled ? "Comments On" : "Comments Off"}</span>
-                </button>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  onClick={handlePost}
-                  disabled={
-                    (!newPost.trim() && pendingImages.length === 0 && !pendingVideo) ||
-                    isUploading
-                  }
-                  className="bg-gradient-hero text-primary-foreground gap-1.5 h-8 px-4 text-xs font-semibold w-full sm:w-auto"
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="h-3.5 w-3.5" />
-                  )}
-                  Post
-                </Button>
-              </div>
-            </div>
+      {/* Post Action Button / Trigger Bar */}
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate("/create-post")}
+          className="w-full p-3 sm:p-4 rounded-xl border border-border/80 bg-card/90 hover:bg-card hover:border-primary/40 shadow-card hover:shadow-elevated transition-all flex items-center justify-between gap-3 group text-left cursor-pointer"
+          aria-label="Create a post"
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar className="h-9 w-9 shrink-0 border border-border">
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {user.initials || "YO"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs sm:text-sm text-muted-foreground group-hover:text-foreground transition-colors truncate">
+              Share an idea, achievement, or opportunity...
+            </span>
           </div>
-        </div>
-      </Card>
+          <div className="inline-flex items-center gap-1.5 bg-gradient-hero text-primary-foreground text-xs sm:text-sm font-semibold h-8 sm:h-9 px-3.5 sm:px-4 rounded-lg shadow-xs shrink-0 group-hover:opacity-95 transition-opacity">
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>Post</span>
+          </div>
+        </button>
+      </div>
 
       {/* Posts List */}
       <div className="space-y-4">{renderFeed()}</div>

@@ -43,6 +43,7 @@ spring:
       password: ${REDIS_PASS:}
       ssl:
         enabled: ${REDIS_SSL:true}
+      timeout: 10000ms
 
   mail:
     host: ${MAIL_HOST:smtp-relay.brevo.com}
@@ -127,3 +128,8 @@ server:
     threads:
       max: 20
       min-spare: 2
+
+management:
+  health:
+    mail:
+      enabled: false

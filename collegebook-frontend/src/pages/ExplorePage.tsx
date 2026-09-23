@@ -95,7 +95,7 @@ const ExplorePage = () => {
     getExploreAds()
       .then((data) => {
         if (alive && data) {
-          setAds(data);
+          setAds(data as any);
           clientCache.set("explore_ads", data, 300_000);
         }
       })

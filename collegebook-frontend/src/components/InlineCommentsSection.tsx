@@ -42,7 +42,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
     getComments(post.id)
       .then((data) => {
         if (alive) {
-          setComments(data || []);
+          setComments(data?.comments || []);
         }
       })
       .catch((err) => {

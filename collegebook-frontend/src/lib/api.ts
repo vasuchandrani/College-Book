@@ -5,8 +5,8 @@
  * Signatures and return types are strictly preserved.
  */
 
-import type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto } from "@/types";
-export type { FeedPost, ExplorePost, AdData, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto };
+import type { FeedPost, ExplorePost, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto } from "@/types";
+export type { FeedPost, ExplorePost, PostComment, TeamDiscussion, TeamChatMessage, ChatUser, TypingEvent, PresenceEventDto };
 export type Post = FeedPost;
 export type { PageResponse };
 import { appConfig } from "@/config/app.config";
@@ -719,13 +719,22 @@ export interface CommentPayload {
   body: string;
 }
 
+export interface PaginatedCommentsResponse {
+  comments: PostComment[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
 export const getComments = async (
   postId: number | string,
   page = 0,
-  size = 50
-): Promise<PostComment[]> => {
+  size = 20
+): Promise<PaginatedCommentsResponse> => {
   const res = await request<PageResponse<any>>(`/posts/${postId}/comments?page=${page}&size=${size}`);
-  return (res.items || []).map((c: any) => ({
+  const comments = (res.items || []).map((c: any) => ({
     id: c.id,
     postId,
     author: c.authorName,
@@ -738,6 +747,14 @@ export const getComments = async (
     time: c.time || "Just now",
     createdAt: c.createdAt,
   }));
+  return {
+    comments,
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? comments.length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? (comments.length === size),
+  };
 };
 
 export const addComment = async (payload: CommentPayload): Promise<PostComment> => {
@@ -825,9 +842,12 @@ export const deleteTeamDiscussion = async (
   });
 };
 
-export const getSavedPosts = async (): Promise<FeedPost[]> => {
-  const res = await request<PageResponse<any>>("/saved-posts");
-  return (res.items || []).map((post) => {
+export const getSavedPosts = async (
+  page = 0,
+  size = 15
+): Promise<PaginatedPostsResponse<FeedPost>> => {
+  const res = await request<PageResponse<any>>(`/saved-posts?page=${page}&size=${size}`);
+  const posts = (res.items || []).map((post) => {
     const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
     return {
       id: post.id,
@@ -851,11 +871,22 @@ export const getSavedPosts = async (): Promise<FeedPost[]> => {
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
+  return {
+    posts,
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? posts.length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? (posts.length === size),
+  };
 };
 
-export const getMyPosts = async (): Promise<FeedPost[]> => {
-  const res = await request<PageResponse<any>>("/my-posts");
-  return (res.items || []).map((post) => {
+export const getMyPosts = async (
+  page = 0,
+  size = 15
+): Promise<PaginatedPostsResponse<FeedPost>> => {
+  const res = await request<PageResponse<any>>(`/my-posts?page=${page}&size=${size}`);
+  const posts = (res.items || []).map((post) => {
     const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
     return {
       id: post.id,
@@ -879,6 +910,14 @@ export const getMyPosts = async (): Promise<FeedPost[]> => {
       isGlobal: post.global ?? post.isGlobal ?? true,
     };
   });
+  return {
+    posts,
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? posts.length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? (posts.length === size),
+  };
 };
 
 export const getStarredProjects = async (): Promise<any[]> => {
@@ -900,10 +939,33 @@ export const unstarProject = async (projectId: number | string, signal?: AbortSi
 // Collab Hub
 // ---------------------------------------------------------------------------
 
-export const getCollabTeams = async (type?: "PROJECT" | "HACKATHON" | "OPEN_SOURCE") => {
-  const query = type ? `?type=${type}` : "";
-  const res = await request<PageResponse<any>>(`/teams${query}`);
-  return res.items || [];
+export interface PaginatedCollabResponse {
+  teams: any[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export const getCollabTeams = async (
+  page = 0,
+  size = 15,
+  type?: "PROJECT" | "HACKATHON" | "OPEN_SOURCE"
+): Promise<PaginatedCollabResponse> => {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("size", String(size));
+  if (type) params.set("type", type);
+  const res = await request<PageResponse<any>>(`/teams?${params.toString()}`);
+  return {
+    teams: res.items || [],
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? (res.items || []).length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? ((res.items || []).length === size),
+  };
 };
 
 export const getStudentTeams = async (userId: string) => {
@@ -998,9 +1060,21 @@ export const toggleStarTeam = async (projectId: number | string, signal?: AbortS
   });
 };
 
-export const getMyTeams = async (type?: string) => {
-  const query = type ? `?type=${type}` : "";
-  return await request<any[]>("/teams/my" + query);
+export const getMyTeams = async (
+  page = 0,
+  size = 15,
+  type?: string
+): Promise<PaginatedCollabResponse> => {
+  const query = type ? `&type=${type}` : "";
+  const res = await request<PageResponse<any>>(`/teams/my?page=${page}&size=${size}${query}`);
+  return {
+    teams: res.items || [],
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? (res.items || []).length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? ((res.items || []).length === size),
+  };
 };
 
 export const getMyCreatedTeams = getMyTeams;
@@ -1009,8 +1083,28 @@ export const getMyOpenSourceProjects = async () => {
   return await request<any[]>("/teams/my/open-source");
 };
 
-export const getMyJoinRequests = async () => {
-  return await request<any[]>("/join-requests/my");
+export interface PaginatedJoinRequestResponse {
+  requests: any[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export const getMyJoinRequests = async (
+  page = 0,
+  size = 15
+): Promise<PaginatedJoinRequestResponse> => {
+  const res = await request<PageResponse<any>>(`/join-requests/my?page=${page}&size=${size}`);
+  return {
+    requests: res.items || [],
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? (res.items || []).length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? ((res.items || []).length === size),
+  };
 };
 
 export const getMyJoinedRequests = getMyJoinRequests;
@@ -1019,8 +1113,19 @@ export const getTeamJoinRequests = async (teamId: string | number) => {
   return await request<any[]>(`/teams/${teamId}/requests`);
 };
 
-export const getMyIncomingRequests = async () => {
-  return await request<any[]>("/teams/my/incoming-requests");
+export const getMyIncomingRequests = async (
+  page = 0,
+  size = 15
+): Promise<PaginatedJoinRequestResponse> => {
+  const res = await request<PageResponse<any>>(`/teams/my/incoming-requests?page=${page}&size=${size}`);
+  return {
+    requests: res.items || [],
+    page: res.page ?? page,
+    size: res.size ?? size,
+    totalItems: res.totalItems ?? (res.items || []).length,
+    totalPages: res.totalPages ?? 1,
+    hasNext: res.hasNext ?? ((res.items || []).length === size),
+  };
 };
 
 export const getIncomingJoinRequests = getMyIncomingRequests;
@@ -1057,7 +1162,7 @@ export const getCollabBadgeCounts = async (forceRefresh = false): Promise<Collab
         getMyCreatedTeams().catch(() => []),
       ]);
 
-      const pendingReqCount = (requests || []).filter(
+      const pendingReqCount = ((requests as any)?.requests || requests || []).filter(
         (r: any) => String(r.status).toUpperCase() === "PENDING"
       ).length;
 
@@ -2449,9 +2554,9 @@ export const adminDeletePost = async (id: string): Promise<void> => {
 };
 
 export const adminLogin = async (
-  credentials: AdminLoginPayload
-): Promise<AuthResponse> => {
-  const res = await request<AuthResponse>("/auth/admin-login", {
+  credentials: Record<string, any>
+): Promise<{ accessToken: string; user?: any; [key: string]: any }> => {
+  const res = await request<{ accessToken: string; user?: any; [key: string]: any }>("/auth/admin-login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });

@@ -22,9 +22,12 @@ public interface CollabService {
     PageResponse<TeamResponseDto> getPublicTeams(UUID collegeId, TeamType type, int page, int size);
     List<TeamResponseDto> getMyTeams(UUID userId);
     List<TeamResponseDto> getMyTeams(UUID userId, TeamType type);
+    PageResponse<TeamResponseDto> getMyTeamsPaged(UUID userId, TeamType type, int page, int size);
     List<TeamResponseDto> getTeamsByUserId(UUID requesterId, UUID targetUserId);
     List<JoinRequestResponseDto> getMyJoinRequests(UUID userId);
+    PageResponse<JoinRequestResponseDto> getMyJoinRequestsPaged(UUID userId, int page, int size);
     List<JoinRequestResponseDto> getMyIncomingRequests(UUID ownerId);
+    PageResponse<JoinRequestResponseDto> getMyIncomingRequestsPaged(UUID ownerId, int page, int size);
     List<JoinRequestResponseDto> getTeamJoinRequests(UUID ownerId, UUID teamId);
     JoinRequestResponseDto updateJoinRequest(UUID userId, UUID requestId, UpdateJoinRequestDto request);
     TeamResponseDto createTeam(UUID userId, CreateTeamRequest request);

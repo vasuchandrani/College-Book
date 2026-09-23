@@ -26,6 +26,7 @@ import {
   MessageSquare,
   User,
   UserX,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,7 +52,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import FormattedContent from "@/components/FormattedContent";
 import ThemedLoader from "@/components/ThemedLoader";
 import ImageCarousel from "@/components/ImageCarousel";
@@ -101,6 +102,12 @@ const StudentProfilePage = () => {
 
   const [student, setStudent] = useState<PublicStudentProfile | null>(() => cachedStudent || null);
   const [studentPosts, setStudentPosts] = useState<FeedPost[]>(() => cachedPosts || []);
+  const [studentPostsPage, setStudentPostsPage] = useState(0);
+  const [studentPostsHasMore, setStudentPostsHasMore] = useState(true);
+  const [studentPostsLoadingMore, setStudentPostsLoadingMore] = useState(false);
+  const studentObserverRef = useRef<IntersectionObserver | null>(null);
+  const studentSentinelRef = useRef<HTMLDivElement | null>(null);
+
   const [studentTeams, setStudentTeams] = useState<any[]>(() => cachedTeams || []);
   const [loading, setLoading] = useState(() => !cachedStudent);
   const [notFound, setNotFound] = useState(false);
@@ -144,7 +151,7 @@ const StudentProfilePage = () => {
                   clientCache.set(`student_teams_${decodedName}`, teams, 300_000);
                 }
               })
-              .catch(() => {})
+              .catch(() => { })
               .finally(() => {
                 if (alive) setTeamsLoading(false);
               });
@@ -162,15 +169,17 @@ const StudentProfilePage = () => {
         if (alive) setLoading(false);
       });
 
-    getStudentPosts(decodedName)
+    getStudentPosts(decodedName, 0, 15)
       .then((res) => {
         if (alive) {
           const freshPosts = res.posts || [];
           setStudentPosts(freshPosts);
           clientCache.set(`student_posts_${decodedName}`, freshPosts, 300_000);
+          setStudentPostsHasMore(res.hasNext);
+          setStudentPostsPage(res.page);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (alive) setPostsLoading(false);
       });
@@ -179,6 +188,42 @@ const StudentProfilePage = () => {
       alive = false;
     };
   }, [decodedName]);
+
+  const loadMoreStudentPosts = useCallback(() => {
+    if (studentPostsLoadingMore || !studentPostsHasMore) return;
+    setStudentPostsLoadingMore(true);
+    getStudentPosts(decodedName, studentPostsPage + 1, 15)
+      .then((res) => {
+        setStudentPosts((prev) => {
+          const newPosts = [...prev, ...(res.posts || [])];
+          clientCache.set(`student_posts_${decodedName}`, newPosts, 300_000);
+          return newPosts;
+        });
+        setStudentPostsHasMore(res.hasNext);
+        setStudentPostsPage(res.page);
+      })
+      .catch(() => { })
+      .finally(() => setStudentPostsLoadingMore(false));
+  }, [decodedName, studentPostsPage, studentPostsHasMore, studentPostsLoadingMore]);
+
+  useEffect(() => {
+    if (postsLoading || !studentPostsHasMore) {
+      if (studentObserverRef.current) studentObserverRef.current.disconnect();
+      return;
+    }
+    if (studentObserverRef.current) studentObserverRef.current.disconnect();
+    studentObserverRef.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && studentPostsHasMore && !studentPostsLoadingMore) {
+        loadMoreStudentPosts();
+      }
+    }, { rootMargin: "200px" });
+    if (studentSentinelRef.current) {
+      studentObserverRef.current.observe(studentSentinelRef.current);
+    }
+    return () => {
+      if (studentObserverRef.current) studentObserverRef.current.disconnect();
+    };
+  }, [postsLoading, studentPostsHasMore, studentPostsLoadingMore, loadMoreStudentPosts, studentPosts.length]);
 
   const toggleLike = (id: string | number) => {
     const post = studentPosts.find((p) => p.id === id);
@@ -193,16 +238,16 @@ const StudentProfilePage = () => {
           prev.map((p) =>
             p.id === id
               ? {
-                  ...p,
-                  liked: newLiked,
-                  likes: newLiked
-                    ? p.liked
-                      ? p.likes
-                      : p.likes + 1
-                    : p.liked
+                ...p,
+                liked: newLiked,
+                likes: newLiked
+                  ? p.liked
+                    ? p.likes
+                    : p.likes + 1
+                  : p.liked
                     ? Math.max(0, p.likes - 1)
                     : p.likes,
-                }
+              }
               : p
           )
         );
@@ -241,16 +286,16 @@ const StudentProfilePage = () => {
           prev.map((t) =>
             t.id === teamId
               ? {
-                  ...t,
-                  starred: newStarred,
-                  starsCount: newStarred
-                    ? t.starred
-                      ? t.starsCount
-                      : (t.starsCount || 0) + 1
-                    : t.starred
+                ...t,
+                starred: newStarred,
+                starsCount: newStarred
+                  ? t.starred
+                    ? t.starsCount
+                    : (t.starsCount || 0) + 1
+                  : t.starred
                     ? Math.max(0, (t.starsCount || 0) - 1)
                     : t.starsCount || 0,
-                }
+              }
               : t
           )
         );
@@ -646,7 +691,7 @@ const StudentProfilePage = () => {
                     try {
                       const parsed = typeof student.customLinks === "string" ? JSON.parse(student.customLinks) : student.customLinks;
                       if (Array.isArray(parsed)) customLinks = parsed;
-                    } catch {}
+                    } catch { }
                   }
                   return customLinks.map((link, idx) => {
                     if (!link.label || !link.url) return null;
@@ -780,9 +825,8 @@ const StudentProfilePage = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleLike(post.id)}
-                            className={`gap-1.5 text-xs ${
-                              post.liked ? "text-red-500" : "text-muted-foreground"
-                            }`}
+                            className={`gap-1.5 text-xs ${post.liked ? "text-red-500" : "text-muted-foreground"
+                              }`}
                           >
                             <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} />{" "}
                             {post.likes}
@@ -796,11 +840,10 @@ const StudentProfilePage = () => {
                                   prev === post.id ? null : post.id
                                 )
                               }
-                              className={`gap-1.5 text-xs transition-colors ${
-                                expandedCommentsPostId === post.id
+                              className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
                                   ? "text-primary bg-primary/10 font-semibold"
                                   : "text-muted-foreground hover:text-foreground"
-                              }`}
+                                }`}
                             >
                               <MessageSquare className="h-4 w-4" />
                               <span>{post.commentsCount || 0}</span>
@@ -810,9 +853,8 @@ const StudentProfilePage = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleSave(post.id)}
-                            className={`text-xs px-2.5 ${
-                              post.saved ? "text-accent" : "text-muted-foreground"
-                            }`}
+                            className={`text-xs px-2.5 ${post.saved ? "text-accent" : "text-muted-foreground"
+                              }`}
                             title={post.saved ? "Unsave post" : "Save post"}
                           >
                             <Bookmark className={`h-4 w-4 ${post.saved ? "fill-current" : ""}`} />
@@ -857,6 +899,15 @@ const StudentProfilePage = () => {
                   </Card>
                 </motion.div>
               ))}
+              {studentPostsHasMore && studentPosts.length > 0 && (
+                <div ref={studentSentinelRef} className="py-4 flex justify-center">
+                  {studentPostsLoadingMore ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Scroll to load more</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -985,11 +1036,10 @@ const StudentProfilePage = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleToggleStar(project.id)}
-                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                              project.starred
+                            className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${project.starred
                                 ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
                                 : "text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             <Star className={`h-3.5 w-3.5 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                             <span className="font-semibold text-xs">{project.starsCount || 0}</span>
@@ -1038,11 +1088,10 @@ const StudentProfilePage = () => {
 
                           <Badge
                             variant="secondary"
-                            className={`text-xs capitalize shrink-0 ${
-                              team.type === "HACKATHON" || team.type === "hackathon"
+                            className={`text-xs capitalize shrink-0 ${team.type === "HACKATHON" || team.type === "hackathon"
                                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            }`}
+                              }`}
                           >
                             {team.type === "HACKATHON" || team.type === "hackathon"
                               ? "Hackathon Team"
@@ -1138,9 +1187,8 @@ const StudentProfilePage = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleToggleStar(team.id)}
-                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                                team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                              }`}
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                                }`}
                             >
                               <Star className={`h-3.5 w-3.5 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                               <span className="font-semibold text-xs">{team.starsCount || 0}</span>
@@ -1190,11 +1238,10 @@ const StudentProfilePage = () => {
 
                           <Badge
                             variant="secondary"
-                            className={`text-xs capitalize shrink-0 ${
-                              team.type === "HACKATHON" || team.type === "hackathon"
+                            className={`text-xs capitalize shrink-0 ${team.type === "HACKATHON" || team.type === "hackathon"
                                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            }`}
+                              }`}
                           >
                             {team.type === "HACKATHON" || team.type === "hackathon"
                               ? "Hackathon Team"
@@ -1283,9 +1330,8 @@ const StudentProfilePage = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleToggleStar(team.id)}
-                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${
-                                team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
-                              }`}
+                              className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 ${team.starred ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20" : "text-muted-foreground"
+                                }`}
                             >
                               <Star className={`h-3.5 w-3.5 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                               <span className="font-semibold text-xs">{team.starsCount || 0}</span>

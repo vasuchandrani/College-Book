@@ -161,8 +161,8 @@ const CollabPage = () => {
     ])
       .then(([teamsData, reqsData]) => {
         if (alive) {
-          const freshTeams = teamsData || [];
-          const freshReqs = reqsData || [];
+          const freshTeams = (teamsData as any)?.teams || teamsData || [];
+          const freshReqs = (reqsData as any)?.requests || reqsData || [];
           setTeams(freshTeams);
           setMyRequests(freshReqs);
           clientCache.set("collab_teams", freshTeams, 300_000);
@@ -1403,8 +1403,8 @@ const CollabPage = () => {
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
                           className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${project.starred
-                              ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
-                              : "text-muted-foreground"
+                            ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                            : "text-muted-foreground"
                             }`}
                         >
                           <Star className={`h-4 w-4 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />
@@ -1600,8 +1600,8 @@ const CollabPage = () => {
                           variant="ghost"
                           onClick={() => handleToggleStar(team.id)}
                           className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto ${team.starred
-                              ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
-                              : "text-muted-foreground"
+                            ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                            : "text-muted-foreground"
                             }`}
                         >
                           <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
@@ -1822,8 +1822,8 @@ const CollabPage = () => {
                           variant="ghost"
                           onClick={() => handleToggleStar(project.id)}
                           className={`gap-1.5 text-xs h-8 px-2.5 border border-border/50 hover:border-border w-auto inline-flex ${project.starred
-                              ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
-                              : "text-muted-foreground"
+                            ? "text-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                            : "text-muted-foreground"
                             }`}
                         >
                           <Star className={`h-4 w-4 ${project.starred ? "fill-amber-500 text-amber-500" : ""}`} />

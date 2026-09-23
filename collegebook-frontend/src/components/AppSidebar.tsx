@@ -92,6 +92,7 @@ export function AppSidebar() {
                 const showBadge = isCollab && pendingCollabCount > 0;
                 const isActive =
                   location.pathname === item.url ||
+                  (item.url === "/feed" && (location.pathname === "/create-post" || location.pathname === "/post/new")) ||
                   (item.url === "/collab" && (location.pathname === "/collab" || location.pathname.startsWith("/collab/"))) ||
                   (item.url === "/my-collaboration" && (
                     location.pathname === "/my-collaboration" ||

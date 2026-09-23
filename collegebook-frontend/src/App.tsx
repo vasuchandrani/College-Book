@@ -22,6 +22,7 @@ const MyCollaborationPage = lazy(() => import("./pages/MyCollaborationPage.tsx")
 const ProfilePage = lazy(() => import("./pages/ProfilePage.tsx"));
 const MyConPage = lazy(() => import("./pages/MyConPage.tsx"));
 const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage.tsx"));
+const CreatePostPage = lazy(() => import("./pages/CreatePostPage.tsx"));
 const PostPage = lazy(() => import("./pages/PostPage.tsx"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage.tsx"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.tsx"));
@@ -62,6 +63,8 @@ const App = () => (
             <Route path="/manage-admin/feed-view" element={<AdminFeedViewPage />} />
             <Route element={<AppLayout />}>
               <Route path="/feed" element={<FeedPage />} />
+              <Route path="/create-post" element={<CreatePostPage />} />
+              <Route path="/post/new" element={<CreatePostPage />} />
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/post/:id" element={<PostPage />} />
               <Route path="/posts/:id" element={<PostPage />} />

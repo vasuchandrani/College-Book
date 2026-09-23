@@ -52,11 +52,13 @@ public class CollabController {
     }
 
     @GetMapping("/teams/my")
-    public ResponseEntity<List<TeamResponseDto>> getMyTeams(
+    public ResponseEntity<PageResponse<TeamResponseDto>> getMyTeams(
             @CurrentUser UserPrincipal currentUser,
-            @RequestParam(value = "type", required = false) TeamType type) {
+            @RequestParam(value = "type", required = false) TeamType type,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size) {
         UUID userId = currentUser != null ? currentUser.getId() : null;
-        return ResponseEntity.ok(collabService.getMyTeams(userId, type));
+        return ResponseEntity.ok(collabService.getMyTeamsPaged(userId, type, page, size));
     }
 
     @GetMapping("/teams/my/open-source")
@@ -113,15 +115,21 @@ public class CollabController {
     }
 
     @GetMapping("/teams/my/incoming-requests")
-    public ResponseEntity<List<JoinRequestResponseDto>> getMyIncomingRequests(@CurrentUser UserPrincipal currentUser) {
+    public ResponseEntity<PageResponse<JoinRequestResponseDto>> getMyIncomingRequests(
+            @CurrentUser UserPrincipal currentUser,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size) {
         UUID userId = currentUser != null ? currentUser.getId() : null;
-        return ResponseEntity.ok(collabService.getMyIncomingRequests(userId));
+        return ResponseEntity.ok(collabService.getMyIncomingRequestsPaged(userId, page, size));
     }
 
     @GetMapping("/join-requests/my")
-    public ResponseEntity<List<JoinRequestResponseDto>> getMyJoinRequests(@CurrentUser UserPrincipal currentUser) {
+    public ResponseEntity<PageResponse<JoinRequestResponseDto>> getMyJoinRequests(
+            @CurrentUser UserPrincipal currentUser,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "15") int size) {
         UUID userId = currentUser != null ? currentUser.getId() : null;
-        return ResponseEntity.ok(collabService.getMyJoinRequests(userId));
+        return ResponseEntity.ok(collabService.getMyJoinRequestsPaged(userId, page, size));
     }
 
     @PutMapping("/join-requests/{id}")

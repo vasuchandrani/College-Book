@@ -101,7 +101,7 @@ export default function CollabDetailPage() {
       .then(([teamData, reqsData, discussionsData]) => {
         if (alive) {
           setTeam(teamData);
-          setMyRequests(reqsData || []);
+          setMyRequests((reqsData as any)?.requests || reqsData || []);
           setDiscussions(discussionsData || []);
         }
       })

@@ -154,6 +154,29 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<TeamResponseDto> getMyTeamsPaged(UUID userId, TeamType type, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Team> teamPage;
+        if (type != null) {
+            teamPage = teamRepository.findMyTeamsByTypePaged(userId, type, pageable);
+        } else {
+            teamPage = teamRepository.findMyTeamsPaged(userId, pageable);
+        }
+        List<TeamResponseDto> items = teamPage.getContent().stream()
+                .map(t -> mapToTeamDto(t, userId))
+                .collect(Collectors.toList());
+        return PageResponse.<TeamResponseDto>builder()
+                .items(items)
+                .page(teamPage.getNumber())
+                .size(teamPage.getSize())
+                .totalItems(teamPage.getTotalElements())
+                .totalPages(teamPage.getTotalPages())
+                .hasNext(teamPage.hasNext())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<TeamResponseDto> getTeamsByUserId(UUID requesterId, UUID targetUserId) {
         List<Team> teams = teamRepository.findMyTeams(targetUserId);
         return teams.stream()
@@ -172,11 +195,47 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<JoinRequestResponseDto> getMyJoinRequestsPaged(UUID userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<JoinRequest> reqPage = joinRequestRepository.findByApplicantIdOrderByCreatedAtDesc(userId, pageable);
+        List<JoinRequestResponseDto> items = reqPage.getContent().stream()
+                .map(this::mapToJoinRequestDto)
+                .collect(Collectors.toList());
+        return PageResponse.<JoinRequestResponseDto>builder()
+                .items(items)
+                .page(reqPage.getNumber())
+                .size(reqPage.getSize())
+                .totalItems(reqPage.getTotalElements())
+                .totalPages(reqPage.getTotalPages())
+                .hasNext(reqPage.hasNext())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<JoinRequestResponseDto> getMyIncomingRequests(UUID ownerId) {
         List<JoinRequest> requests = joinRequestRepository.findByTeamOwnerIdOrderByCreatedAtDesc(ownerId);
         return requests.stream()
                 .map(this::mapToJoinRequestDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<JoinRequestResponseDto> getMyIncomingRequestsPaged(UUID ownerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<JoinRequest> reqPage = joinRequestRepository.findByTeamOwnerIdOrderByCreatedAtDesc(ownerId, pageable);
+        List<JoinRequestResponseDto> items = reqPage.getContent().stream()
+                .map(this::mapToJoinRequestDto)
+                .collect(Collectors.toList());
+        return PageResponse.<JoinRequestResponseDto>builder()
+                .items(items)
+                .page(reqPage.getNumber())
+                .size(reqPage.getSize())
+                .totalItems(reqPage.getTotalElements())
+                .totalPages(reqPage.getTotalPages())
+                .hasNext(reqPage.hasNext())
+                .build();
     }
 
     @Override

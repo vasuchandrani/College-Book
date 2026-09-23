@@ -218,9 +218,9 @@ export default function MyCollaborationPage() {
         getMyJoinedRequests().catch(() => []),
         getIncomingJoinRequests().catch(() => []),
       ]);
-      const freshTeams = teamsData || [];
-      const freshReqs = reqsData || [];
-      const freshIncoming = incomingData || [];
+      const freshTeams = (teamsData as any)?.teams || teamsData || [];
+      const freshReqs = (reqsData as any)?.requests || reqsData || [];
+      const freshIncoming = (incomingData as any)?.requests || incomingData || [];
       setMyTeams(freshTeams);
       setMyRequests(freshReqs);
       setIncomingRequests(freshIncoming);
@@ -229,7 +229,7 @@ export default function MyCollaborationPage() {
       // Check unread messages for collaboration rooms
       const unreadMap = new Set<string>();
       await Promise.all(
-        (teamsData || []).map(async (t: any) => {
+        (freshTeams || []).map(async (t: any) => {
           if (!t?.id) return;
           if (typeof t.hasUnreadMessages === "boolean") {
             if (t.hasUnreadMessages) {
@@ -827,7 +827,7 @@ export default function MyCollaborationPage() {
       window.dispatchEvent(new Event("cb_collab_updated"));
       // Reload teams to update member count
       const updatedTeams = await getMyCreatedTeams();
-      setMyTeams(updatedTeams || []);
+      setMyTeams((updatedTeams as any)?.teams || updatedTeams || []);
     } catch (e: any) {
       toast.error(e?.message || "Failed to update request");
     } finally {
@@ -1148,10 +1148,10 @@ export default function MyCollaborationPage() {
                                     : "secondary"
                               }
                               className={`text-xs capitalize shrink-0 ${isAccepted
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                  : isPending
-                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                    : ""
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                : isPending
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                  : ""
                                 }`}
                             >
                               {isAccepted ? "Accepted" : isRejected ? "Rejected" : "Pending Review"}
@@ -1255,8 +1255,8 @@ export default function MyCollaborationPage() {
                             <Badge
                               variant="secondary"
                               className={`text-xs capitalize shrink-0 ${project.type === "HACKATHON" || project.type === "hackathon"
-                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                                 }`}
                             >
                               {project.type === "HACKATHON" || project.type === "hackathon"
@@ -1399,8 +1399,8 @@ export default function MyCollaborationPage() {
                                 variant="outline"
                                 size="sm"
                                 className={`gap-1.5 text-xs h-8 px-2.5 ${pendingRequests.length > 0
-                                    ? "border-primary text-primary bg-primary/5 font-semibold"
-                                    : ""
+                                  ? "border-primary text-primary bg-primary/5 font-semibold"
+                                  : ""
                                   }`}
                                 onClick={() => handleOpenViewRequests(project)}
                               >
@@ -1436,8 +1436,8 @@ export default function MyCollaborationPage() {
                                 navigate(`/my-collaboration/${project.id}?tab=chat`);
                               }}
                               className={`gap-1.5 text-xs h-8 px-2.5 ${unreadRooms.has(project.id)
-                                  ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
-                                  : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                                ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                                : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
                                 }`}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
@@ -1505,8 +1505,8 @@ export default function MyCollaborationPage() {
                         <Badge
                           variant="secondary"
                           className={`text-xs capitalize shrink-0 ${project.type === "HACKATHON" || project.type === "hackathon"
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             }`}
                         >
                           {project.type === "HACKATHON" || project.type === "hackathon"
@@ -1611,8 +1611,8 @@ export default function MyCollaborationPage() {
                               navigate(`/my-collaboration/${project.id}?tab=chat`);
                             }}
                             className={`gap-1.5 text-xs h-8 px-2.5 ${unreadRooms.has(project.id)
-                                ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
-                                : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
+                              ? "bg-primary/10 text-primary border-primary font-bold shadow-2xs"
+                              : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 font-semibold"
                               }`}
                           >
                             <MessageSquare className="h-3.5 w-3.5" />

@@ -79,7 +79,7 @@ const PostPage = () => {
           setCommentsLoading(true);
           getComments(data.id)
             .then((c) => {
-              if (isMounted) setComments(c || []);
+              if (isMounted) setComments(c?.comments || []);
             })
             .catch(() => {})
             .finally(() => {
