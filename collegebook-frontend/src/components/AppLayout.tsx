@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { Outlet, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
+import { isAuthTokenValid, clearAuthSession } from "@/lib/api";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
@@ -10,16 +11,17 @@ const AppLayout = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("cb_token");
-    localStorage.removeItem("cb_refresh_token");
-    localStorage.removeItem("cb_user");
-    localStorage.removeItem("cb_profile");
+    clearAuthSession();
     navigate("/");
   };
 
-  // If student is not authenticated or token expired/removed, redirect to landing page
-  if (!token) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+  // If student is not authenticated or token expired/removed, redirect to login page
+  if (!isAuthTokenValid(token)) {
+    clearAuthSession();
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
+    }
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   const isMyCon = location.pathname === "/mycon";

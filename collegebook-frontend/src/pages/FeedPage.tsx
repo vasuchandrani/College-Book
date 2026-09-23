@@ -538,20 +538,11 @@ const FeedPage = () => {
         description="Explore live updates, student ideas, hackathon achievements, and campus discussions at your university on CollegeBook."
         keywords="collegebook feed, campus feed, university updates, student posts, college life"
       />
-      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-        <div>
-          <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            What's happening at {collegeDisplay}
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate("/create-post")}
-          className="bg-gradient-hero text-primary-foreground font-semibold gap-1.5 shadow-sm hover:opacity-95 text-xs sm:text-sm h-9 sm:h-10 px-3.5 sm:px-5 rounded-full transition-all shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Post</span>
-        </Button>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm">
+          What's happening at {collegeDisplay}
+        </p>
       </div>
 
       <div className="relative mb-3">

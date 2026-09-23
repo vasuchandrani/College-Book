@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation, Navigate } from "react-router-dom";
 import {
   ArrowLeft,
   Heart,
@@ -31,6 +31,8 @@ import {
   addComment,
   deleteComment,
   normalizeCourseShort,
+  isAuthTokenValid,
+  clearAuthSession,
   type FeedPost,
   type PostComment,
 } from "@/lib/api";
@@ -39,6 +41,19 @@ import { formatSmartDate } from "@/lib/dateUtils";
 const PostPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
+  const isAuthenticated = isAuthTokenValid(token);
+
+  if (!isAuthenticated) {
+    clearAuthSession();
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
+    }
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
   const { triggerToggle } = useDebouncedToggle(400);
 
   const [post, setPost] = useState<FeedPost | null>(null);
@@ -55,14 +70,8 @@ const PostPage = () => {
     localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}'
   );
 
-  const isLoggedIn = !!localStorage.getItem("cb_token") || !!localStorage.getItem("cb_user");
-
   const handleBack = () => {
-    if (isLoggedIn) {
-      navigate("/feed");
-    } else {
-      navigate("/");
-    }
+    navigate("/feed");
   };
 
   useEffect(() => {
@@ -89,6 +98,14 @@ const PostPage = () => {
       })
       .catch((err) => {
         if (isMounted) {
+          if (err?.status === 401 || err?.status === 403) {
+            clearAuthSession();
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
+            }
+            navigate("/login", { replace: true, state: { from: location } });
+            return;
+          }
           setError(err?.message || "Post not found or has been removed.");
         }
       })
@@ -298,7 +315,7 @@ const PostPage = () => {
             className="mt-5 rounded-xl font-medium"
             size="sm"
           >
-            {isLoggedIn ? "Go to Campus Feed" : "Go to CollegeBook"}
+            Go to Campus Feed
           </Button>
         </Card>
       </div>

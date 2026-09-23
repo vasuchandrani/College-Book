@@ -246,7 +246,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
                         {comment.authorHandle && (
                           <Link
                             to={`/student/${comment.authorHandle}`}
-                            className="text-[10px] text-muted-foreground hover:text-primary transition-colors font-mono"
+                            className="hidden sm:inline text-[10px] text-muted-foreground hover:text-primary transition-colors font-mono"
                           >
                             @{comment.authorHandle}
                           </Link>

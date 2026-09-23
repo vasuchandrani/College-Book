@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getCollabBadgeCount } from "@/lib/api";
+import { getCollabBadgeCount, isAuthTokenValid, clearAuthSession } from "@/lib/api";
 
 const mainNav = [
   { title: "Campus Feed", url: "/feed", icon: Newspaper },
@@ -34,7 +34,7 @@ export function AppSidebar() {
 
   const fetchPendingCount = async (forceRefresh = false) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
-    if (!token) return;
+    if (!isAuthTokenValid(token)) return;
     try {
       const count = await getCollabBadgeCount(forceRefresh);
       setPendingCollabCount(count);
@@ -65,10 +65,7 @@ export function AppSidebar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("cb_token");
-    localStorage.removeItem("cb_refresh_token");
-    localStorage.removeItem("cb_user");
-    localStorage.removeItem("cb_profile");
+    clearAuthSession();
     navigate("/");
   };
 

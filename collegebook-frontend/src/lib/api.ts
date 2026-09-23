@@ -129,6 +129,55 @@ export function formatApiError(
 }
 
 /**
+ * Clear all authentication and user data from storage.
+ */
+export const clearAuthSession = (): void => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("cb_token");
+    localStorage.removeItem("cb_refresh_token");
+    localStorage.removeItem("cb_user");
+    localStorage.removeItem("cb_profile");
+  }
+};
+
+/**
+ * Validates whether a token string is present, non-empty, and (if JWT) not expired.
+ */
+export const isAuthTokenValid = (token?: string | null): boolean => {
+  const t = token !== undefined ? token : (typeof window !== "undefined" ? localStorage.getItem("cb_token") : null);
+  if (!t || typeof t !== "string") return false;
+  const trimmed = t.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") return false;
+
+  try {
+    const parts = trimmed.split(".");
+    if (parts.length === 3) {
+      let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const pad = base64.length % 4;
+      if (pad) {
+        base64 += "=".repeat(4 - pad);
+      }
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      const payload = JSON.parse(jsonPayload);
+      if (payload && typeof payload.exp === "number") {
+        if (Date.now() >= payload.exp * 1000) {
+          return false;
+        }
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * Thin fetch wrapper to call the Spring Boot backend.
  */
 export async function request<T>(
@@ -139,10 +188,16 @@ export async function request<T>(
     typeof window !== "undefined" ? sessionStorage.getItem("cb_admin_token") : null;
   const userToken =
     typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
-  const token =
-    (path.startsWith("/admin") || path.startsWith("admin"))
-      ? adminToken
-      : userToken;
+  const isAdminPath = path.startsWith("/admin") || path.startsWith("admin");
+  const rawToken = isAdminPath ? adminToken : userToken;
+
+  let token = rawToken;
+  if (!isAdminPath && rawToken) {
+    if (!isAuthTokenValid(rawToken)) {
+      clearAuthSession();
+      token = null;
+    }
+  }
 
   // Intercept write operations for the demo@collegebook.edu guest user
   const method = init.method?.toUpperCase() || "GET";
@@ -252,16 +307,14 @@ export async function request<T>(
       }
     }
 
-    if (res.status === 401) {
+    if (res.status === 401 || (res.status === 403 && !path.startsWith("/admin") && !path.startsWith("admin"))) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("cb_token");
-        localStorage.removeItem("cb_refresh_token");
-        localStorage.removeItem("cb_user");
-        localStorage.removeItem("cb_profile");
+        clearAuthSession();
         const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
         const currentPath = window.location.pathname;
         if (!publicPaths.includes(currentPath)) {
-          window.location.replace("/");
+          sessionStorage.setItem("cb_redirect_url", currentPath + window.location.search);
+          window.location.replace("/login");
         }
       }
     }

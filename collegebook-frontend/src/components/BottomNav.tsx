@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Newspaper, Compass, Users, UserCircle, FolderGit2 } from "lucide-react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { getCollabBadgeCount } from "@/lib/api";
+import { getCollabBadgeCount, isAuthTokenValid } from "@/lib/api";
 
 const navItems = [
   { title: "Feed", url: "/feed", icon: Newspaper },
@@ -18,7 +18,7 @@ export function BottomNav() {
 
   const fetchCount = async (forceRefresh = false) => {
     const token = localStorage.getItem("cb_token");
-    if (!token) return;
+    if (!isAuthTokenValid(token)) return;
     try {
       const count = await getCollabBadgeCount(forceRefresh);
       setPendingCount(count);

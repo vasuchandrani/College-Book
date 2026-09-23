@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, AlertCircle } from "lucide-react";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,19 @@ import { toast } from "sonner";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectQuery = searchParams.get("redirect");
+  const stateFrom = (location.state as any)?.from;
+  const statePath =
+    typeof stateFrom === "string"
+      ? stateFrom
+      : stateFrom?.pathname
+      ? `${stateFrom.pathname}${stateFrom.search || ""}`
+      : null;
+  const storedRedirect =
+    typeof window !== "undefined" ? sessionStorage.getItem("cb_redirect_url") : null;
+  const redirectTo = statePath || redirectQuery || storedRedirect || "/feed";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +65,10 @@ const LoginPage = () => {
         })
       );
       toast.success(`Welcome back, ${user.name}!`);
-      window.location.replace("/feed");
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("cb_redirect_url");
+      }
+      window.location.replace(redirectTo);
     } catch (e: any) {
       setError(formatApiError(e, "Invalid email or password. Please try again."));
     } finally {
