@@ -52,6 +52,54 @@
     --shadow-elevated: 0 12px 40px -8px hsl(230 60% 28% / 0.12);
   }
 
+  .app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    color: #1e3a5f;
+  }
+
+  .app-splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .app-splash-logo {
+    width: min(52vw, 260px);
+    height: auto;
+    object-fit: contain;
+    animation: collegebook-splash-zoom 1500ms ease-out both;
+  }
+
+  .app-splash h1 {
+    margin: 1.25rem 0 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(2rem, 8vw, 3.25rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .app-splash p {
+    margin: 0.7rem 0 0;
+    color: #52627a;
+    font-family: "Inter", sans-serif;
+    font-size: clamp(0.95rem, 3.5vw, 1.25rem);
+  }
+
+  @keyframes collegebook-splash-zoom {
+    from {
+      transform: scale(0.7);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
   .dark {
     --background: 230 25% 8%;
     --foreground: 220 20% 95%;

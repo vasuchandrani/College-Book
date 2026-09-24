@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920">
-  <rect width="1080" height="1920" fill="#fff"/>
-  <image href="/logo.png" x="290" y="680" width="500" height="500" preserveAspectRatio="xMidYMid meet"/>
-  <text x="540" y="1280" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#1e3a5f">CollegeBook</text>
-  <text x="540" y="1360" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#52627a">Build Your College Story</text>
-</svg>
