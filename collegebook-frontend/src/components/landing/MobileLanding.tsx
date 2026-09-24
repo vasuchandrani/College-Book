@@ -19,10 +19,10 @@ const MobileLanding = ({ onExplore }: { onExplore: () => void }) => {
           <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-3xl border border-border bg-white p-4 shadow-sm">
             <img src={logo} alt="" className="h-full w-full object-contain" />
           </div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Digital campus network</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Authentic student social network</p>
           <h1 className="font-heading text-4xl font-bold tracking-tight">CollegeBook</h1>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Connect with your campus, collaborate on ideas, and build your college story.
+            Connect with your campus, explore what students are sharing across colleges, collaborate on ideas, manage your space, and build your college story.
           </p>
         </div>
 

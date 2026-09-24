@@ -23,29 +23,32 @@ const drawableDirectory = resolve(resourceRoot, "drawable");
 mkdirSync(drawableDirectory, { recursive: true });
 writeFileSync(resolve(drawableDirectory, "collegebook_blank_launch.xml"), blankDrawable);
 
-const styleFiles = [
-  resolve(resourceRoot, "values", "styles.xml"),
-  resolve(resourceRoot, "values-v31", "styles.xml"),
-].filter(existsSync);
-
-if (styleFiles.length === 0) {
+const baseStyleFile = resolve(resourceRoot, "values", "styles.xml");
+if (!existsSync(baseStyleFile)) {
   console.error("Capacitor Android styles.xml was not found.");
   process.exit(1);
 }
 
-for (const styleFile of styleFiles) {
-  const source = readFileSync(styleFile, "utf8");
-  const updated = source.replace(
-    /(<item\s+name="android:windowSplashScreenAnimatedIcon">)[^<]+(<\/item>)/g,
-    "$1@drawable/collegebook_blank_launch$2",
-  );
+const styleSource = readFileSync(baseStyleFile, "utf8");
+const baseStyle = styleSource.replace(
+  /(<item\s+name="android:background">)[^<]+(<\/item>)/g,
+  "$1@drawable/splash$2",
+);
+writeFileSync(baseStyleFile, baseStyle);
 
-  if (updated === source && !source.includes("collegebook_blank_launch")) {
-    console.error(`Android launch icon entry was not found in ${styleFile}.`);
-    process.exit(1);
-  }
+const v31Directory = resolve(resourceRoot, "values-v31");
+mkdirSync(v31Directory, { recursive: true });
+writeFileSync(
+  resolve(v31Directory, "styles.xml"),
+  `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/collegebook_blank_launch</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>
+`,
+);
 
-  writeFileSync(styleFile, updated);
-}
-
-console.log(`Patched ${styleFiles.length} Android launch style file(s).`);
+console.log("Patched Android launch surface with a white background and transparent icon.");

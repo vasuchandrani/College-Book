@@ -27,7 +27,7 @@ const HeroSection = () => {
             className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-              <span className="text-xs font-semibold text-primary">CollegeBook • The Digital Campus Platform</span>
+              <span className="text-xs font-semibold text-primary">CollegeBook • Authentic Student Social Network</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold leading-[1.15] tracking-tight">
@@ -36,8 +36,8 @@ const HeroSection = () => {
             </h1>
 
             <p className="text-sm sm:text-lg md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              A purpose-built digital campus platform — focused on collaboration, student life, and meaningful connections.
-              Share fun activities across your campus and turn your awesome ideas into reality.
+              An authentic student social network built for collaboration, student life, and meaningful connections.
+              Connect with your campus, explore what students are sharing across colleges, collaborate on ideas, and manage your space — all in one place.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 pt-1">
