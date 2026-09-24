@@ -22,9 +22,10 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,
+      launchFadeOutDuration: 0,
       backgroundColor: "#FFFFFF",
       showSpinner: false,
-      androidScaleType: "CENTER_CROP",
+      androidScaleType: "CENTER_INSIDE",
       splashImmersive: true,
     },
     PushNotifications: {

@@ -32,6 +32,9 @@ npm install
 echo "==> Building web assets (dist/)"
 npm run build
 
+echo "==> Generating native icon and splash resources"
+npm run cap:assets
+
 if [ ! -d ios ]; then
   echo "==> Adding iOS platform"
   npx cap add ios

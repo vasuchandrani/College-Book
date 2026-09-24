@@ -22,6 +22,9 @@ npm install
 echo "==> Building web assets (dist/)"
 npm run build
 
+echo "==> Generating native icon and splash resources"
+npm run cap:assets
+
 if [ ! -d android ]; then
   echo "==> Adding Android platform"
   npx cap add android

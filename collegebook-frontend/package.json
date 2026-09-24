@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "cap:sync": "vite build && cap sync",
+    "cap:assets": "npx @capacitor/assets generate",
     "cap:android": "vite build && cap sync android && cap run android",
     "cap:ios": "vite build && cap sync ios && cap run ios",
     "build:android": "bash scripts/build-android.sh",
