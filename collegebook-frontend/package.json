@@ -14,6 +14,7 @@
     "cap:sync": "vite build && cap sync",
     "cap:assets:android": "npx @capacitor/assets generate --android --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#FFFFFF\"",
     "cap:assets:ios": "npx @capacitor/assets generate --ios --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#FFFFFF\"",
+    "cap:android:blank-launch": "node scripts/patch-android-launch-screen.mjs",
     "cap:android": "vite build && cap sync android && cap run android",
     "cap:ios": "vite build && cap sync ios && cap run ios",
     "build:android": "bash scripts/build-android.sh",

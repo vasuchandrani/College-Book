@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Download, Smartphone, Share, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, Smartphone, Share, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +21,16 @@ const DownloadAppButton = () => {
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState<"android" | "ios" | "desktop">("desktop");
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState(0);
   const { available, installed } = usePwaInstall();
+
+  useEffect(() => {
+    if (!open) {
+      setInstalling(false);
+      setInstallProgress(0);
+    }
+  }, [open]);
 
   const handleOpen = () => {
     setPlatform(detectVisitorPlatform());
@@ -30,13 +39,36 @@ const DownloadAppButton = () => {
   };
 
   const handleInstall = async () => {
-    if (available) {
-      const result = await promptPwaInstall();
-      if (result === "accepted") setOpen(false);
+    if (!available || installing) {
+      setShowInstallInstructions(true);
       return;
     }
 
-    setShowInstallInstructions(true);
+    setInstalling(true);
+    setInstallProgress(15);
+
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    setInstallProgress(35);
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    setInstallProgress(60);
+
+    try {
+      const result = await promptPwaInstall();
+      if (result === "accepted") {
+        setInstallProgress(100);
+        await new Promise((resolve) => window.setTimeout(resolve, 350));
+        setOpen(false);
+      } else {
+        setInstalling(false);
+        setInstallProgress(0);
+        if (result === "unavailable") setShowInstallInstructions(true);
+      }
+    } catch (error) {
+      console.error("CollegeBook installation prompt failed", error);
+      setInstalling(false);
+      setInstallProgress(0);
+      setShowInstallInstructions(true);
+    }
   };
 
   return (
@@ -118,9 +150,27 @@ const DownloadAppButton = () => {
               </Button>
             ) : (
               <>
-                <Button onClick={handleInstall} className="w-full bg-gradient-hero text-primary-foreground font-semibold">
-                  <Download className="h-4 w-4 mr-2" />
-                  Install CollegeBook
+                <Button
+                  onClick={handleInstall}
+                  disabled={installing}
+                  className="relative w-full overflow-hidden bg-gradient-hero text-primary-foreground font-semibold disabled:opacity-100"
+                  aria-label={installing ? `Installing CollegeBook, ${installProgress}% complete` : "Install CollegeBook"}
+                >
+                  {installing && (
+                    <span
+                      className="absolute inset-y-0 left-0 bg-white/15 transition-[width] duration-300"
+                      style={{ width: `${installProgress}%` }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex items-center">
+                    {installing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    {installing ? `Installing... ${installProgress}%` : "Install CollegeBook"}
+                  </span>
                 </Button>
                 {showInstallInstructions && (
                   <Button onClick={() => setOpen(false)} variant="outline" className="w-full">

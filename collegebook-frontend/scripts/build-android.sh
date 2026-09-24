@@ -33,6 +33,9 @@ npm run cap:assets:android
 echo "==> Syncing web assets + plugins into android/"
 npx cap sync android
 
+echo "==> Making Android system launch surface plain white"
+npm run cap:android:blank-launch
+
 # The dev hot-reload server block must NOT be present in a distributable build.
 if grep -q "server:" capacitor.config.ts; then
   echo "!! WARNING: capacitor.config.ts still contains a 'server' block."
