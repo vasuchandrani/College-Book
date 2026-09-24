@@ -20,16 +20,23 @@ import { promptPwaInstall, usePwaInstall } from "@/lib/pwa";
 const DownloadAppButton = () => {
   const [open, setOpen] = useState(false);
   const [platform, setPlatform] = useState<"android" | "ios" | "desktop">("desktop");
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
   const { available, installed } = usePwaInstall();
 
   const handleOpen = () => {
     setPlatform(detectVisitorPlatform());
+    setShowInstallInstructions(false);
     setOpen(true);
   };
 
-  const handleAndroidInstall = async () => {
-    const result = await promptPwaInstall();
-    if (result === "accepted") setOpen(false);
+  const handleInstall = async () => {
+    if (available) {
+      const result = await promptPwaInstall();
+      if (result === "accepted") setOpen(false);
+      return;
+    }
+
+    setShowInstallInstructions(true);
   };
 
   return (
@@ -80,12 +87,7 @@ const DownloadAppButton = () => {
                 <div className="p-4 rounded-xl bg-muted/50 border border-border/60 text-sm text-muted-foreground leading-relaxed">
                   Install CollegeBook like a mobile app. Your account and data stay connected to the same secure CollegeBook service.
                 </div>
-                {available ? (
-                  <Button onClick={handleAndroidInstall} className="w-full bg-gradient-hero text-primary-foreground font-semibold">
-                    <Download className="h-4 w-4 mr-2" />
-                    Install CollegeBook
-                  </Button>
-                ) : (
+                {showInstallInstructions && (
                   <div className="p-4 rounded-xl bg-muted/50 border border-border/60 text-sm text-muted-foreground leading-relaxed">
                     Open your browser menu and choose <strong className="text-foreground">Install app</strong> or <strong className="text-foreground">Add to Home screen</strong>.
                   </div>
@@ -96,11 +98,13 @@ const DownloadAppButton = () => {
                 <div className="p-4 rounded-xl bg-muted/50 border border-border/60 text-sm text-muted-foreground leading-relaxed">
                   For now, keep CollegeBook on your iPhone home screen for a fast, app-like experience:
                 </div>
-                <ol className="space-y-3 text-sm text-left text-muted-foreground">
-                  <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">1</span><span>Tap Safari's <strong className="text-foreground">Share</strong> button <Share className="inline h-4 w-4 align-text-bottom" />.</span></li>
-                  <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">2</span><span>Choose <strong className="text-foreground">Add to Home Screen</strong>.</span></li>
-                  <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">3</span><span>Tap <strong className="text-foreground">Add</strong>. CollegeBook will launch from your home screen.</span></li>
-                </ol>
+                {showInstallInstructions && (
+                  <ol className="space-y-3 text-sm text-left text-muted-foreground">
+                    <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">1</span><span>Tap Safari's <strong className="text-foreground">Share</strong> button <Share className="inline h-4 w-4 align-text-bottom" />.</span></li>
+                    <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">2</span><span>Choose <strong className="text-foreground">Add to Home Screen</strong>.</span></li>
+                    <li className="flex gap-3"><span className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 font-semibold">3</span><span>Tap <strong className="text-foreground">Add</strong>. CollegeBook will launch from your home screen.</span></li>
+                  </ol>
+                )}
               </>
             ) : (
               <div className="p-4 rounded-xl bg-muted/50 border border-border/60 text-sm text-muted-foreground leading-relaxed">
@@ -108,13 +112,23 @@ const DownloadAppButton = () => {
               </div>
             )}
 
-            <Button
-              onClick={() => setOpen(false)}
-              variant={platform === "android" && available && !installed ? "outline" : "default"}
-              className={platform === "android" && available && !installed ? "w-full" : "w-full bg-gradient-hero text-primary-foreground font-semibold"}
-            >
-              {installed ? "Continue to CollegeBook" : "Got it"}
-            </Button>
+            {installed ? (
+              <Button onClick={() => setOpen(false)} className="w-full bg-gradient-hero text-primary-foreground font-semibold">
+                Continue to CollegeBook
+              </Button>
+            ) : (
+              <>
+                <Button onClick={handleInstall} className="w-full bg-gradient-hero text-primary-foreground font-semibold">
+                  <Download className="h-4 w-4 mr-2" />
+                  Install CollegeBook
+                </Button>
+                {showInstallInstructions && (
+                  <Button onClick={() => setOpen(false)} variant="outline" className="w-full">
+                    Got it
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
