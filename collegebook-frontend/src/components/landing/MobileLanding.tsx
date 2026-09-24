@@ -1,10 +1,10 @@
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen, Compass } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { isAuthTokenValid } from "@/lib/api";
 import DownloadAppButton from "@/components/DownloadAppButton";
 import logo from "@/assets/logo.png";
 
-const MobileLanding = () => {
+const MobileLanding = ({ onExplore }: { onExplore: () => void }) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
 
   if (isAuthTokenValid(token)) {
@@ -29,6 +29,14 @@ const MobileLanding = () => {
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-3">
           <ButtonLink to="/signup" label="Create your account" primary />
           <ButtonLink to="/login" label="I already have an account" />
+          <button
+            type="button"
+            onClick={onExplore}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
+            <Compass className="h-4 w-4" />
+            Explore CollegeBook
+          </button>
           <DownloadAppButton />
         </div>
 

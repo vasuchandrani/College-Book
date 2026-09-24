@@ -1,4 +1,4 @@
-const CACHE_NAME = "collegebook-shell-v1";
+const CACHE_NAME = "collegebook-shell-v2";
 const SHELL_ASSETS = ["/", "/index.html", "/site.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
