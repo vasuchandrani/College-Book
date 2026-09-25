@@ -30,5 +30,14 @@ export async function initNativeShell() {
     else App.exitApp();
   });
 
-  await SplashScreen.hide();
+}
+
+export async function hideNativeSplash() {
+  if (!isNative()) return;
+
+  try {
+    await SplashScreen.hide();
+  } catch {
+    // The native splash may already be hidden during a hot reload.
+  }
 }

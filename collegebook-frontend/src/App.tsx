@@ -4,7 +4,6 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import ThemedLoader from "@/components/ThemedLoader";
 
 // Eagerly loaded (landing + auth — small, critical path)
 import Index from "./pages/Index.tsx";
@@ -41,9 +40,7 @@ const queryClient = new QueryClient({
 });
 
 const LazyFallback = () => (
-  <div className="flex items-center justify-center min-h-[50vh]">
-    <ThemedLoader />
-  </div>
+  <div className="fixed inset-0 z-[9998] bg-white" role="status" aria-label="Loading CollegeBook" />
 );
 
 const App = () => (
