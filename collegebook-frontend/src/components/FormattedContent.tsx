@@ -31,8 +31,8 @@ export const FormattedContent: React.FC<FormattedContentProps> = ({
     );
   }
 
-  // Regex matching HTTP/HTTPS/WWW URLs or @mentions
-  const tokenRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|@[a-zA-Z0-9_]+)/gi;
+  // Regex matching HTTP/HTTPS/WWW URLs or @mentions (handles allow a-z, 0-9, _, .)
+  const tokenRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|@[a-zA-Z0-9_.]+)/gi;
   const parts = normalized.split(tokenRegex);
 
   return (
@@ -60,8 +60,8 @@ export const FormattedContent: React.FC<FormattedContentProps> = ({
           );
         }
 
-        // Check if part is an @mention
-        if (part.startsWith("@") && part.length > 1 && /^@[a-zA-Z0-9_]+$/.test(part)) {
+        // Check if part is an @mention (allow dots in handles like @shiv.gowda)
+        if (part.startsWith("@") && part.length > 1 && /^@[a-zA-Z0-9_.]+$/.test(part)) {
           const handle = part.slice(1);
           return (
             <Link

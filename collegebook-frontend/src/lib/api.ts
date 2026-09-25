@@ -515,6 +515,29 @@ export const getFeedPosts = async (
   };
 };
 
+export const normalizeCollegeShort = (
+  collegeName?: string | null,
+  collegeShortName?: string | null
+): string => {
+  if (collegeShortName && collegeShortName.trim().length > 0) {
+    return collegeShortName.trim();
+  }
+  if (!collegeName) return "College";
+
+  // Remove location like ", Nadiad"
+  const beforeComma = collegeName.split(",")[0].trim();
+  
+  // Exclude common joining words
+  const excludeWords = new Set(["of", "and", "in", "the", "for", "at"]);
+  
+  const words = beforeComma.split(/\s+/).filter(w => w.length > 0 && !excludeWords.has(w.toLowerCase()));
+  
+  if (words.length > 1) {
+    return words.map(w => w[0].toUpperCase()).join("");
+  }
+  return beforeComma;
+};
+
 export const getExplorePosts = async (
   page = 0,
   size = 15,
@@ -535,6 +558,7 @@ export const getExplorePosts = async (
       avatarUrl: post.avatarUrl,
       initials: post.initials,
       college: post.collegeName || "College",
+      collegeShortName: normalizeCollegeShort(post.collegeName, post.collegeShortName),
       time: formatSmartDate(post.createdAt || post.time),
       createdAt: post.createdAt,
       content: post.content,
@@ -615,6 +639,20 @@ export const getFeedTags = async (): Promise<string[]> => {
 
 export const getTrendingTags = async (): Promise<string[]> => {
   return await request<string[]>("/tags/trending");
+};
+
+export const getTopHashtags = async (): Promise<{tag: string, count: number}[]> => {
+  try {
+    const data = await request<any>("/tags/trending?limit=100");
+    if (Array.isArray(data)) {
+      return data.map((t: any) => 
+        typeof t === 'string' ? { tag: t, count: 0 } : { tag: t.tag || t.name || t, count: t.count || 0 }
+      );
+    }
+    return [];
+  } catch {
+    return [];
+  }
 };
 
 export interface MediaKeyPayload {
@@ -796,6 +834,7 @@ export const getComments = async (
     initials: c.initials || "U",
     collegeName: c.collegeName,
     collegeShortName: c.collegeShortName,
+    course: c.course,
     body: c.body,
     time: c.time || "Just now",
     createdAt: c.createdAt,
@@ -824,6 +863,7 @@ export const addComment = async (payload: CommentPayload): Promise<PostComment> 
     initials: c.initials || "U",
     collegeName: c.collegeName,
     collegeShortName: c.collegeShortName,
+    course: c.course,
     body: c.body,
     time: formatSmartDate(c.createdAt || c.time),
     createdAt: c.createdAt,

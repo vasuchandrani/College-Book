@@ -47,6 +47,7 @@ export interface ExplorePost {
   avatarUrl?: string;
   initials: string;
   college: string;
+  collegeShortName?: string;
   time?: string;
   content: string;
   likes: number;
@@ -84,6 +85,7 @@ export interface PostComment {
   initials: string;
   collegeName?: string;
   collegeShortName?: string;
+  course?: string;
   body: string;
   time: string;
   createdAt?: string;

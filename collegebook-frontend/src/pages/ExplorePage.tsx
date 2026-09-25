@@ -8,20 +8,20 @@ import {
   ChevronUp,
   Loader2,
   MessageSquare,
+  ArrowUpRight,
 } from "lucide-react";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import { FeedSkeleton } from "@/components/Skeletons";
-import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { formatCount } from "@/lib/formatCount";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { formatSmartDate } from "@/lib/dateUtils";
@@ -32,6 +32,7 @@ import {
   likePost as apiLikePost,
   savePost as apiSavePost,
   sharePostLink,
+  getTopHashtags,
 } from "@/lib/api";
 import type { ExplorePost } from "@/types";
 import { clientCache } from "@/lib/clientCache";
@@ -39,15 +40,22 @@ import { clientCache } from "@/lib/clientCache";
 const PAGE_SIZE = 15;
 
 const ExplorePage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
+
+  // Top Hashtags
+  const [topHashtags, setTopHashtags] = useState<{tag: string, count: number}[]>([]);
+
+  useEffect(() => {
+    getTopHashtags().then(setTopHashtags).catch(() => {});
+  }, []);
 
   const cacheKey = "explore_page_0_" + (selectedTag || "all");
   const cachedExplore = clientCache.get<{ posts: ExplorePost[]; hasNext: boolean }>(cacheKey);
 
   const [posts, setPosts] = useState<ExplorePost[]>(() => cachedExplore?.posts || []);
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
   const [ads, setAds] = useState<AdData[]>(() => clientCache.get<AdData[]>("explore_ads") || []);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(() => (cachedExplore ? cachedExplore.hasNext : true));
@@ -158,21 +166,7 @@ const ExplorePage = () => {
     };
   }, [loadMorePosts, hasMore, loadingMore, loadingInitial, posts.length]);
 
-  // Compute dynamic hashtags with usage counts, sorted descending (most used to least used)
-  const dynamicTagsWithCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    posts.forEach((p) => {
-      (p.tags || []).forEach((t) => {
-        const clean = t.replace(/^#/, "").trim();
-        if (clean) {
-          counts[clean] = (counts[clean] || 0) + 1;
-        }
-      });
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag, count]) => ({ tag, count }));
-  }, [posts]);
+
 
   const toggleLike = (id: string | number) => {
     const post = posts.find((p) => p.id === id);
@@ -281,44 +275,52 @@ const ExplorePage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: Math.min(i * 0.03, 0.3) }}
         >
-          <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-            {/* Top Section: Author Profile Header */}
-            <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
-              <div className="flex items-center gap-3 min-w-0">
+          <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow relative">
+            {/* Open Post Arrow */}
+            <button
+              type="button"
+              onClick={() => navigate(`/post/${post.id}`)}
+              className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-all z-10"
+              title="Open post"
+              aria-label="Open post detail"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+
+            {/* Author Header */}
+            <div className="flex items-center gap-3 pb-3 mb-3 border-b border-border pr-8">
+              <Link
+                to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                className="shrink-0 transition-transform active:scale-95"
+              >
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarImage src={post.avatarUrl} alt={post.author} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                    {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="min-w-0">
                 <Link
                   to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                  className="shrink-0 transition-transform active:scale-95"
+                  className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
                 >
-                  <Avatar className="h-10 w-10 border border-border">
-                    <AvatarImage src={post.avatarUrl} alt={post.author} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                      {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  {post.author}
                 </Link>
-                <div className="min-w-0">
-                  <Link
-                    to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                    className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
-                  >
-                    {post.author}
-                  </Link>
-                  <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-                    {post.authorHandle && (
-                      <span className="font-mono text-primary/90 font-medium">
-                        @{post.authorHandle}
-                      </span>
-                    )}
-                    {post.authorHandle && post.college && <span>•</span>}
-                    {post.college && <span className="truncate">{post.college}</span>}
-                  </div>
+                <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                  {post.authorHandle && (
+                    <span className="font-mono text-primary/90 font-medium">
+                      @{post.authorHandle}
+                    </span>
+                  )}
+                  {post.authorHandle && (post.collegeShortName || post.college) && <span>•</span>}
+                  {(post.collegeShortName || post.college) && <span className="truncate">{post.collegeShortName || post.college}</span>}
                 </div>
               </div>
             </div>
 
-            {/* Bottom Section: Full Width Body, Media, Actions, Comments */}
+            {/* Body, Media, Actions */}
             <div className="w-full">
-              {/* Multiline, 2-line gap normalized, auto-linked content */}
               <FormattedContent content={post.content} className="mt-1" />
 
               {/* Images */}
@@ -331,37 +333,28 @@ const ExplorePage = () => {
               {/* Video */}
               {post.videoUrl && (
                 <div className="mt-3">
-                  <VideoPlayer
-                    videoUrl={post.videoUrl}
-                    videoId={post.videoUrl}
-                  />
+                  <VideoPlayer videoUrl={post.videoUrl} videoId={post.videoUrl} />
                 </div>
               )}
 
-              {/* Hashtags below content/media and above actions bar */}
+              {/* Hashtags (plain text, not clickable) */}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex gap-1.5 mt-3 flex-wrap">
                   {post.tags.map((t) => {
                     const cleanTag = t.replace(/^#/, "");
-                    const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
                     return (
-                      <button
+                      <span
                         key={cleanTag}
-                        type="button"
-                        onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                        }`}
+                        className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground select-none"
                       >
                         #{cleanTag}
-                      </button>
+                      </span>
                     );
                   })}
                 </div>
               )}
 
+              {/* Actions Bar */}
               <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Button
@@ -383,16 +376,8 @@ const ExplorePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        setExpandedCommentsPostId((prev) =>
-                          prev === post.id ? null : post.id
-                        )
-                      }
-                      className={`gap-1.5 text-xs transition-colors ${
-                        expandedCommentsPostId === post.id
-                          ? "text-primary bg-primary/10 font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      onClick={() => navigate(`/post/${post.id}`)}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>{formatCount(post.commentsCount)}</span>
@@ -423,32 +408,13 @@ const ExplorePage = () => {
                       toast.success("Post link copied to clipboard!");
                     }}
                   >
-                    <Share2 className="h-4 w-4" /> Share
+                    <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                <span className="text-[10px] text-muted-foreground shrink-0 select-none ml-auto">
                   {formatSmartDate(post.createdAt || post.time)}
                 </span>
               </div>
-
-              {/* Inline Expandable Comments Stream */}
-              <AnimatePresence>
-                {expandedCommentsPostId === post.id && (
-                  <InlineCommentsSection
-                    post={post}
-                    onCommentCountChange={(newCount) => {
-                      setPosts((prev) =>
-                        prev.map((p) =>
-                          p.id === post.id
-                            ? { ...p, commentsCount: newCount }
-                            : p
-                        )
-                      );
-                    }}
-                    onClose={() => setExpandedCommentsPostId(null)}
-                  />
-                )}
-              </AnimatePresence>
             </div>
           </Card>
         </motion.div>
@@ -489,10 +455,10 @@ const ExplorePage = () => {
       </div>
 
       {/* Dynamic Trending Hashtags Filter (Fixed-position Expand/Collapse button, no scrollbars) */}
-      {dynamicTagsWithCounts.length > 0 && (
+      {topHashtags.length > 0 && (
         <div className="mb-6 bg-card/60 border border-border/70 rounded-xl p-2.5 shadow-xs backdrop-blur-sm relative">
-          <div className={`flex items-center gap-1.5 flex-wrap ${dynamicTagsWithCounts.length > 6 ? "pr-24" : ""}`}>
-            {(tagsExpanded ? dynamicTagsWithCounts : dynamicTagsWithCounts.slice(0, 6)).map(({ tag }) => {
+          <div className={`flex items-center gap-1.5 flex-wrap ${topHashtags.length > 6 ? "pr-8" : ""}`}>
+            {(tagsExpanded ? topHashtags : topHashtags.slice(0, 6)).map(({ tag }) => {
               const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === tag.toLowerCase();
               return (
                 <button
@@ -511,14 +477,13 @@ const ExplorePage = () => {
             })}
           </div>
 
-          {dynamicTagsWithCounts.length > 6 && (
+          {topHashtags.length > 6 && (
             <button
               type="button"
               onClick={() => setTagsExpanded(!tagsExpanded)}
-              className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
+              className="absolute top-2.5 right-2.5 inline-flex items-center justify-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1.5 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
               title={tagsExpanded ? "Collapse hashtags" : "Expand all hashtags"}
             >
-              <span>{tagsExpanded ? "Collapse" : "Expand"}</span>
               {tagsExpanded ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (

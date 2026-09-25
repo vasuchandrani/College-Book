@@ -9,20 +9,20 @@ import {
   MessageSquare,
   Plus,
   Loader2,
+  ArrowUpRight,
 } from "lucide-react";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
 import { FeedSkeleton } from "@/components/Skeletons";
-import InlineCommentsSection from "@/components/InlineCommentsSection";
 import { formatCount } from "@/lib/formatCount";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { formatSmartDate } from "@/lib/dateUtils";
@@ -35,6 +35,7 @@ import {
   getProfile,
   sharePostLink,
   normalizeCourseShort,
+  getTopHashtags,
   type FeedPost,
 } from "@/lib/api";
 
@@ -48,254 +49,161 @@ const FeedPage = () => {
   const cacheKey = "feed_page_0_" + (selectedTag || "all");
   const cachedFeed = clientCache.get<{ posts: FeedPost[]; hasNext: boolean }>(cacheKey);
 
-  const [posts, setPosts] = useState<FeedPost[]>(() => cachedFeed?.posts || []);
-  const [ads, setAds] = useState<AdData[]>(() => clientCache.get<AdData[]>("feed_ads") || []);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(() => (cachedFeed ? cachedFeed.hasNext : true));
-  const [loadingInitial, setLoadingInitial] = useState(() => !cachedFeed);
+  const [posts, setPosts] = useState<FeedPost[]>(cachedFeed?.posts || []);
+  const [loadingInitial, setLoadingInitial] = useState(!cachedFeed);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(cachedFeed?.hasNext ?? true);
   const [search, setSearch] = useState("");
   const [tagsExpanded, setTagsExpanded] = useState(false);
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
 
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  // Ads
+  const [ads, setAds] = useState<AdData[]>([]);
+
+  // Top Hashtags
+  const [topHashtags, setTopHashtags] = useState<{tag: string, count: number}[]>([]);
+
+  const pageRef = useRef(cachedFeed ? 1 : 0);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const { triggerToggle } = useDebouncedToggle(400);
 
-  // Listen for posts created from the dedicated Create Post page
-  useEffect(() => {
-    const handlePostCreated = (e: any) => {
-      if (e?.detail) {
-        setPosts((prev) => [e.detail, ...prev.filter((p) => String(p.id) !== String(e.detail.id))]);
-      }
-    };
-    window.addEventListener("cb_post_created", handlePostCreated);
-    return () => {
-      window.removeEventListener("cb_post_created", handlePostCreated);
-    };
-  }, []);
-
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem("cb_user");
-    return raw
-      ? JSON.parse(raw)
-      : {
-          name: "You",
-          initials: "YO",
-          college: "Dharmsinh Desai University",
-          collegeShort: "DDU",
-          course: "B.Tech",
-        };
+  // User/profile state for the header trigger bar
+  const [user, setUser] = useState<{
+    name: string;
+    initials: string;
+    avatarUrl?: string;
+  }>({
+    name: "You",
+    initials: "YO",
+    avatarUrl: undefined,
   });
 
-  const collegeDisplay =
-    user.collegeShort ||
-    (user.college === "Dharmsinh Desai University" ? "DDU" : user.college) ||
-    "DDU";
-
-  // Initial fetch / tag filter change (Stale-While-Revalidate)
+  // Load user
   useEffect(() => {
-    let alive = true;
-    const currentKey = "feed_page_0_" + (selectedTag || "all");
-    const existing = clientCache.get<{ posts: FeedPost[]; hasNext: boolean }>(currentKey);
-
-    if (existing) {
-      setPosts(existing.posts || []);
-      setHasMore(existing.hasNext);
-      setLoadingInitial(false);
-    } else {
-      setLoadingInitial(true);
-    }
-    setPage(0);
-
-    getFeedPosts(0, PAGE_SIZE, selectedTag || undefined)
-      .then((res) => {
-        if (alive) {
-          const freshPosts = res.posts || [];
-          const nextVal = Boolean(res.hasNext && freshPosts.length > 0);
-          setPosts(freshPosts);
-          setHasMore(nextVal);
-          clientCache.set(currentKey, { posts: freshPosts, hasNext: nextVal }, 300_000);
-        }
-      })
-      .catch(() => {
-        if (alive && !existing) {
-          setPosts([]);
-          setHasMore(false);
-        }
-      })
-      .finally(() => {
-        if (alive) setLoadingInitial(false);
-      });
-
-    getFeedAds()
-      .then((data) => {
-        if (alive && data) {
-          setAds(data as any);
-          clientCache.set("feed_ads", data, 300_000);
-        }
-      })
-      .catch(() => {});
-
     getProfile()
-      .then((p) => {
-        if (alive && p) {
-          const loadedCollege = p.collegeName || p.college || "Dharmsinh Desai University";
-          const loadedCollegeShort =
-            p.collegeShort ||
-            p.collegeShortName ||
-            (loadedCollege === "Dharmsinh Desai University"
-              ? "DDU"
-              : loadedCollege
-                  .split(" ")
-                  .map((w: string) => w[0])
-                  .join(""));
-          setUser((currentUser) => {
-            const updated = {
-              ...currentUser,
-              id: p.userId || currentUser.id,
-              name: p.name || p.fullName || currentUser.name,
-              college: loadedCollege,
-              collegeShort: loadedCollegeShort,
-              course: p.courseName || currentUser.course,
-              currentYear: p.currentYear || currentUser.currentYear,
-              defaultBio: p.defaultBio || currentUser.defaultBio,
-            };
-            localStorage.setItem("cb_user", JSON.stringify(updated));
-            return updated;
-          });
-        }
+      .then((p: any) => {
+        setUser({
+          name: p.name || p.fullName || "You",
+          initials: p.initials || "YO",
+          avatarUrl: p.avatarUrl,
+        });
       })
       .catch(() => {});
+  }, []);
 
+  useEffect(() => {
+    getFeedAds().then(setAds).catch(() => {});
+    getTopHashtags().then(setTopHashtags).catch(() => {});
+  }, []);
+
+  const fetchPage = useCallback(
+    async (page: number) => {
+      try {
+        const res = await getFeedPosts(page, PAGE_SIZE, selectedTag || undefined);
+        return res;
+      } catch {
+        return { posts: [], hasNext: false };
+      }
+    },
+    [selectedTag]
+  );
+
+  useEffect(() => {
+    if (cachedFeed) return;
+    let alive = true;
+    setLoadingInitial(true);
+    fetchPage(0).then((res) => {
+      if (!alive) return;
+      setPosts(res.posts);
+      setHasMore(res.hasNext);
+      setLoadingInitial(false);
+      pageRef.current = 1;
+      clientCache.set(cacheKey, res);
+    });
     return () => {
       alive = false;
     };
-  }, [selectedTag]);
+  }, [selectedTag]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load next page of posts
-  const loadMorePosts = useCallback(() => {
-    if (loadingMore || !hasMore || loadingInitial) return;
-    setLoadingMore(true);
-    const nextPage = page + 1;
-
-    getFeedPosts(nextPage, PAGE_SIZE, selectedTag || undefined)
-      .then((res) => {
-        setPosts((prev) => {
-          const existingIds = new Set(prev.map((p) => String(p.id)));
-          const fresh = (res.posts || []).filter((p) => !existingIds.has(String(p.id)));
-          return [...prev, ...fresh];
-        });
-        setPage(nextPage);
-        setHasMore(Boolean(res.hasNext && res.posts && res.posts.length > 0));
-      })
-      .catch(() => {
-        setHasMore(false);
-      })
-      .finally(() => {
-        setLoadingMore(false);
-      });
-  }, [page, hasMore, loadingMore, loadingInitial, selectedTag]);
-
-  // IntersectionObserver for infinite scrolling sentinel
   useEffect(() => {
-    if (loadingInitial || !hasMore || posts.length === 0) {
-      if (observerRef.current) observerRef.current.disconnect();
-      return;
-    }
-
-    if (observerRef.current) observerRef.current.disconnect();
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMorePosts();
+    if (!hasMore || loadingMore || loadingInitial) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setLoadingMore(true);
+          fetchPage(pageRef.current).then((res) => {
+            setPosts((prev) => {
+              const ids = new Set(prev.map((p) => p.id));
+              const unique = res.posts.filter((p: FeedPost) => !ids.has(p.id));
+              return [...prev, ...unique];
+            });
+            setHasMore(res.hasNext);
+            pageRef.current += 1;
+            setLoadingMore(false);
+          });
         }
       },
-      { threshold: 0.1, rootMargin: "200px" }
+      { rootMargin: "200px" }
     );
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadingInitial, fetchPage]);
 
-    if (loadMoreRef.current) {
-      observerRef.current.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) observerRef.current.disconnect();
-    };
-  }, [loadMorePosts, hasMore, loadingMore, loadingInitial, posts.length]);
-
-  // Compute dynamic hashtags with usage counts, sorted descending
-  const dynamicTagsWithCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    posts.forEach((p) => {
-      (p.tags || []).forEach((t) => {
-        const clean = t.replace(/^#/, "").trim();
-        if (clean) {
-          counts[clean] = (counts[clean] || 0) + 1;
-        }
-      });
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag, count]) => ({ tag, count }));
-  }, [posts]);
-
-  const toggleLike = (id: string | number) => {
-    const post = posts.find((p) => p.id === id);
-    if (!post) return;
-    const currentLiked = !!post.liked;
-
+  // Like / Save toggling (optimistic, debounced)
+  const toggleLike = (postId: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }
+          : p
+      )
+    );
     triggerToggle(
-      id,
-      currentLiked,
-      (newLiked) => {
+      String(postId) + "-like",
+      () => apiLikePost(postId),
+      (err) => {
         setPosts((prev) =>
           prev.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  liked: newLiked,
-                  likes: newLiked
-                    ? p.liked
-                      ? p.likes
-                      : p.likes + 1
-                    : p.liked
-                    ? Math.max(0, p.likes - 1)
-                    : p.likes,
-                }
+            p.id === postId
+              ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }
               : p
           )
         );
-      },
-      (signal) => apiLikePost(id, signal)
+        toast.error(err.message || "Failed to update like");
+      }
     );
   };
 
-  const toggleSave = (id: string | number) => {
-    const post = posts.find((p) => p.id === id);
-    if (!post) return;
-    const currentSaved = !!post.saved;
-
+  const toggleSave = (postId: string | number) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, saved: !p.saved } : p
+      )
+    );
     triggerToggle(
-      id,
-      currentSaved,
-      (newSaved) => {
+      String(postId) + "-save",
+      () => apiSavePost(postId),
+      (err) => {
         setPosts((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, saved: newSaved } : p))
+          prev.map((p) =>
+            p.id === postId ? { ...p, saved: !p.saved } : p
+          )
         );
-      },
-      (signal) => apiSavePost(id, signal)
+        toast.error(err.message || "Failed to update save");
+      }
     );
   };
 
+
+  // Filter posts
   const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase().replace(/^#/, "");
     return posts.filter((p) => {
+      const q = search.toLowerCase();
       const matchesSearch =
-        !query ||
-        p.content.toLowerCase().includes(query) ||
-        p.author.toLowerCase().includes(query) ||
-        (p.tags && p.tags.some((t) => t.toLowerCase().replace(/^#/, "").includes(query)));
+        !q ||
+        p.content?.toLowerCase().includes(q) ||
+        p.author?.toLowerCase().includes(q) ||
+        p.authorHandle?.toLowerCase().includes(q) ||
+        (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)));
       const matchesTag =
         !selectedTag ||
         (p.tags &&
@@ -308,6 +216,8 @@ const FeedPage = () => {
 
   const getAdForSlot = (index: number) =>
     ads[Math.floor(index / 5) % Math.max(ads.length, 1)];
+
+
 
   const renderFeed = () => {
     if (loadingInitial) {
@@ -326,7 +236,7 @@ const FeedPage = () => {
           </p>
           {selectedTag && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setSelectedTag(null)}
               className="mt-3 text-xs"
@@ -340,6 +250,7 @@ const FeedPage = () => {
 
     const items: React.ReactNode[] = [];
     filtered.forEach((post, i) => {
+
       items.push(
         <motion.div
           key={post.id}
@@ -347,44 +258,52 @@ const FeedPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: Math.min(i * 0.03, 0.3) }}
         >
-          <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-            {/* Top Section: Author Profile Header */}
-            <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
-              <div className="flex items-center gap-3 min-w-0">
+          <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow relative">
+            {/* Open Post Arrow */}
+            <button
+              type="button"
+              onClick={() => navigate(`/post/${post.id}`)}
+              className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-all z-10"
+              title="Open post"
+              aria-label="Open post detail"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+
+            {/* Author Header */}
+            <div className="flex items-center gap-3 pb-3 mb-3 border-b border-border pr-8">
+              <Link
+                to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+                className="shrink-0 transition-transform active:scale-95"
+              >
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarImage src={post.avatarUrl} alt={post.author} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                    {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="min-w-0 flex-1">
                 <Link
                   to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                  className="shrink-0 transition-transform active:scale-95"
+                  className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
                 >
-                  <Avatar className="h-10 w-10 border border-border">
-                    <AvatarImage src={post.avatarUrl} alt={post.author} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                      {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  {post.author}
                 </Link>
-                <div className="min-w-0">
-                  <Link
-                    to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                    className="font-semibold text-sm hover:text-primary hover:underline transition-colors block leading-tight truncate"
-                  >
-                    {post.author}
-                  </Link>
-                  <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-                    {post.authorHandle && (
-                      <span className="font-mono text-primary/90 font-medium">
-                        @{post.authorHandle}
-                      </span>
-                    )}
-                    {post.authorHandle && post.course && <span>•</span>}
-                    {post.course && <span className="truncate">{normalizeCourseShort(post.course)}</span>}
-                  </div>
+                <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                  {post.authorHandle && (
+                    <span className="font-mono text-primary/90 font-medium">
+                      @{post.authorHandle}
+                    </span>
+                  )}
+                  {post.authorHandle && <span>•</span>}
+                  <span>{normalizeCourseShort(post.course) || post.college || "Campus Student"}</span>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Section: Full Width Body, Media, Actions, Comments */}
+            {/* Body, Media, Actions */}
             <div className="w-full">
-              {/* Multiline, 2-line gap normalized, clickable content */}
               <FormattedContent content={post.content} className="mt-1" />
 
               {/* Images */}
@@ -401,30 +320,24 @@ const FeedPage = () => {
                 </div>
               )}
 
-              {/* Hashtags below content, above buttons */}
+              {/* Hashtags (plain text, not clickable) */}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex gap-1.5 mt-3 flex-wrap">
                   {post.tags.map((t) => {
                     const cleanTag = t.replace(/^#/, "");
-                    const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === cleanTag.toLowerCase();
                     return (
-                      <button
+                      <span
                         key={cleanTag}
-                        type="button"
-                        onClick={() => setSelectedTag(isSelected ? null : cleanTag)}
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                        }`}
+                        className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground select-none"
                       >
                         #{cleanTag}
-                      </button>
+                      </span>
                     );
                   })}
                 </div>
               )}
 
+              {/* Actions Bar */}
               <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Button
@@ -446,16 +359,8 @@ const FeedPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        setExpandedCommentsPostId((prev) =>
-                          prev === post.id ? null : post.id
-                        )
-                      }
-                      className={`gap-1.5 text-xs transition-colors ${
-                        expandedCommentsPostId === post.id
-                          ? "text-primary bg-primary/10 font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      onClick={() => navigate(`/post/${post.id}`)}
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span>{formatCount(post.commentsCount)}</span>
@@ -486,32 +391,14 @@ const FeedPage = () => {
                       toast.success("Post link copied to clipboard!");
                     }}
                   >
-                    <Share2 className="h-4 w-4" /> Share
+                    <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
-                  {formatSmartDate(post.createdAt || post.time)}
-                </span>
+                <div className="flex flex-col items-end gap-0.5 ml-auto shrink-0 select-none text-[10px] text-muted-foreground">
+                  <span>{formatSmartDate(post.createdAt || post.time)}</span>
+                  <span>{post.isGlobal ? "Global" : "Campus"}</span>
+                </div>
               </div>
-
-              {/* Inline Expandable Comments Stream */}
-              <AnimatePresence>
-                {expandedCommentsPostId === post.id && (
-                  <InlineCommentsSection
-                    post={post}
-                    onCommentCountChange={(newCount) => {
-                      setPosts((prev) =>
-                        prev.map((p) =>
-                          p.id === post.id
-                            ? { ...p, commentsCount: newCount }
-                            : p
-                        )
-                      );
-                    }}
-                    onClose={() => setExpandedCommentsPostId(null)}
-                  />
-                )}
-              </AnimatePresence>
             </div>
           </Card>
         </motion.div>
@@ -538,7 +425,7 @@ const FeedPage = () => {
       <div className="mb-4 sm:mb-6">
         <h1 className="font-heading text-xl sm:text-2xl font-bold">Campus Feed</h1>
         <p className="text-muted-foreground text-xs sm:text-sm">
-          What's happening at {collegeDisplay}
+          What's happening at {user.name !== "You" ? "your campus" : "campus"}
         </p>
       </div>
 
@@ -552,11 +439,11 @@ const FeedPage = () => {
         />
       </div>
 
-      {/* Dynamic Trending Hashtags Filter (Fixed-position Expand/Collapse button) */}
-      {dynamicTagsWithCounts.length > 0 && (
+      {/* Dynamic Trending Hashtags Filter */}
+      {topHashtags.length > 0 && (
         <div className="mb-6 bg-card/60 border border-border/70 rounded-xl p-2.5 shadow-xs backdrop-blur-sm relative">
-          <div className={`flex items-center gap-1.5 flex-wrap ${dynamicTagsWithCounts.length > 6 ? "pr-24" : ""}`}>
-            {(tagsExpanded ? dynamicTagsWithCounts : dynamicTagsWithCounts.slice(0, 6)).map(({ tag }) => {
+          <div className={`flex items-center gap-1.5 flex-wrap ${topHashtags.length > 6 ? "pr-8" : ""}`}>
+            {(tagsExpanded ? topHashtags : topHashtags.slice(0, 6)).map(({ tag }) => {
               const isSelected = selectedTag?.toLowerCase().replace(/^#/, "") === tag.toLowerCase();
               return (
                 <button
@@ -575,14 +462,13 @@ const FeedPage = () => {
             })}
           </div>
 
-          {dynamicTagsWithCounts.length > 6 && (
+          {topHashtags.length > 6 && (
             <button
               type="button"
               onClick={() => setTagsExpanded(!tagsExpanded)}
-              className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
+              className="absolute top-2.5 right-2.5 inline-flex items-center justify-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1.5 rounded-full bg-muted/60 hover:bg-muted border border-border/50 hover:border-border shadow-xs"
               title={tagsExpanded ? "Collapse hashtags" : "Expand all hashtags"}
             >
-              <span>{tagsExpanded ? "Collapse" : "Expand"}</span>
               {tagsExpanded ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (

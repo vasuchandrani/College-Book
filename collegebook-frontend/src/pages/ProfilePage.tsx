@@ -76,7 +76,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import FormattedContent from "@/components/FormattedContent";
@@ -84,7 +84,7 @@ import { ProfileSkeleton } from "@/components/Skeletons";
 import { formatCount } from "@/lib/formatCount";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
-import InlineCommentsSection from "@/components/InlineCommentsSection";
+
 import { formatSmartDate } from "@/lib/dateUtils";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
@@ -225,7 +225,7 @@ const ProfilePage = () => {
   const savedObserverRef = useRef<IntersectionObserver | null>(null);
   const savedSentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
+
   const [createdProjects, setCreatedProjects] = useState<any[]>(() => clientCache.get<any[]>("my_profile_teams") || []);
   const [myRequests, setMyRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_requests") || []);
   const [incomingRequests, setIncomingRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_incoming") || []);
@@ -2758,15 +2758,8 @@ const ProfilePage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              setExpandedCommentsPostId((prev) =>
-                                prev === post.id ? null : post.id
-                              )
-                            }
-                            className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
-                                ? "text-primary bg-primary/10 font-semibold"
-                                : "text-muted-foreground hover:text-foreground"
-                              }`}
+                            onClick={() => navigate(`/post/${post.id}`)}
+                            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                           >
                             <MessageSquare className="h-4 w-4" />
                             <span>{formatCount(post.commentsCount)}</span>
@@ -2796,33 +2789,15 @@ const ProfilePage = () => {
                             handleSharePost(post.id);
                           }}
                         >
-                          <Share2 className="h-4 w-4" /> Share
+                          <Share2 className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none ml-auto">
                         {formatSmartDate(post.createdAt || post.time || post.date)}
                       </span>
                     </div>
 
-                    {/* Inline Expandable Comments Stream */}
-                    <AnimatePresence>
-                      {expandedCommentsPostId === post.id && (
-                        <InlineCommentsSection
-                          post={post}
-                          onCommentCountChange={(newCount) => {
-                            setActivityPosts((prev) =>
-                              prev.map((p) =>
-                                p.id === post.id
-                                  ? { ...p, commentsCount: newCount }
-                                  : p
-                              )
-                            );
-                          }}
-                          onClose={() => setExpandedCommentsPostId(null)}
-                        />
-                      )}
-                    </AnimatePresence>
                   </div>
                 </Card>
               </motion.div>
@@ -3180,15 +3155,8 @@ const ProfilePage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              setExpandedCommentsPostId((prev) =>
-                                prev === post.id ? null : post.id
-                              )
-                            }
-                            className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
-                                ? "text-primary bg-primary/10 font-semibold"
-                                : "text-muted-foreground hover:text-foreground"
-                              }`}
+                            onClick={() => navigate(`/post/${post.id}`)}
+                            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                           >
                             <MessageSquare className="h-4 w-4" />
                             <span>{formatCount(post.commentsCount)}</span>
@@ -3214,33 +3182,15 @@ const ProfilePage = () => {
                             handleSharePost(post.id);
                           }}
                         >
-                          <Share2 className="h-4 w-4" /> Share
+                          <Share2 className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                      <span className="text-[10px] text-muted-foreground shrink-0 select-none ml-auto">
                         {formatSmartDate(post.createdAt || post.time || post.date)}
                       </span>
                     </div>
 
-                    {/* Inline Expandable Comments Stream */}
-                    <AnimatePresence>
-                      {expandedCommentsPostId === post.id && (
-                        <InlineCommentsSection
-                          post={post}
-                          onCommentCountChange={(newCount) => {
-                            setSavedPostsList((prev) =>
-                              prev.map((p) =>
-                                p.id === post.id
-                                  ? { ...p, commentsCount: newCount }
-                                  : p
-                              )
-                            );
-                          }}
-                          onClose={() => setExpandedCommentsPostId(null)}
-                        />
-                      )}
-                    </AnimatePresence>
                   </div>
                 </Card>
               </motion.div>

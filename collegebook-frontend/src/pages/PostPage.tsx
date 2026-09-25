@@ -10,11 +10,19 @@ import {
   Send,
   Lock,
   Trash2,
+  MoreHorizontal,
+  Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import ImageCarousel from "@/components/ImageCarousel";
@@ -72,7 +80,11 @@ const PostPage = () => {
   );
 
   const handleBack = () => {
-    navigate("/feed");
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/feed");
+    }
   };
 
   useEffect(() => {
@@ -344,36 +356,34 @@ const PostPage = () => {
         transition={{ duration: 0.2 }}
       >
         <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
-          {/* Top Section: Author Profile Header */}
-          <div className="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-border">
-            <div className="flex items-center gap-3 min-w-0">
+          {/* Author Header */}
+          <div className="flex items-center gap-3 pb-3 mb-3 border-b border-border">
+            <Link
+              to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
+              className="shrink-0 transition-transform active:scale-95"
+            >
+              <Avatar className="h-11 w-11 border border-border">
+                <AvatarImage src={post.avatarUrl} alt={post.author} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+            <div className="min-w-0">
               <Link
                 to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                className="shrink-0 transition-transform active:scale-95"
+                className="font-semibold text-base hover:text-primary hover:underline transition-colors block leading-tight truncate"
               >
-                <Avatar className="h-11 w-11 border border-border">
-                  <AvatarImage src={post.avatarUrl} alt={post.author} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                    {post.initials || (post.author || "U").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                {post.author}
               </Link>
-              <div className="min-w-0">
-                <Link
-                  to={`/student/${encodeURIComponent(post.authorHandle || post.author)}`}
-                  className="font-semibold text-base hover:text-primary hover:underline transition-colors block leading-tight truncate"
-                >
-                  {post.author}
-                </Link>
-                <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-                  {post.authorHandle && (
-                    <span className="font-mono text-primary/90 font-medium">
-                      @{post.authorHandle}
-                    </span>
-                  )}
-                  {post.authorHandle && <span>•</span>}
-                  <span>{normalizeCourseShort(post.course) || post.college || "Campus Student"}</span>
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                {post.authorHandle && (
+                  <span className="font-mono text-primary/90 font-medium">
+                    @{post.authorHandle}
+                  </span>
+                )}
+                {post.authorHandle && <span>•</span>}
+                <span>{normalizeCourseShort(post.course) || post.college || "Campus Student"}</span>
               </div>
             </div>
           </div>
@@ -397,19 +407,18 @@ const PostPage = () => {
               </div>
             )}
 
-            {/* Hashtags */}
+            {/* Hashtags (plain text, not clickable) */}
             {post.tags && post.tags.length > 0 && (
               <div className="flex gap-1.5 mt-3.5 flex-wrap">
                 {post.tags.map((t) => {
                   const cleanTag = t.replace(/^#/, "");
                   return (
-                    <Link
+                    <span
                       key={cleanTag}
-                      to={`/explore?tag=${encodeURIComponent(cleanTag)}`}
-                      className="text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                      className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground select-none"
                     >
                       #{cleanTag}
-                    </Link>
+                    </span>
                   );
                 })}
               </div>
@@ -472,11 +481,10 @@ const PostPage = () => {
                   }}
                 >
                   <Share2 className="h-4 w-4" />
-                  <span>Share</span>
                 </Button>
               </div>
 
-              <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+              <span className="text-[10px] text-muted-foreground shrink-0 select-none ml-auto">
                 {formatSmartDate(post.createdAt || post.time)}
               </span>
             </div>
@@ -572,54 +580,79 @@ const PostPage = () => {
                     </Avatar>
                   </Link>
 
-                  <div className="relative flex-1 min-w-0 bg-muted/40 hover:bg-muted/60 transition-colors rounded-2xl px-3.5 py-2.5 border border-border/40">
-                    {/* Top Row: Author on Left, Time in Top-Right Corner */}
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  {/* Comment Content Area */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    {/* Top Row: Author + 3-dot menu */}
+                    <div className="flex items-start justify-between gap-2 px-1">
+                      <div className="min-w-0 flex flex-col">
                         <Link
                           to={comment.authorHandle ? `/student/${comment.authorHandle}` : "#"}
-                          className="text-xs font-semibold text-foreground hover:text-primary transition-colors truncate"
+                          className="text-xs font-bold text-foreground hover:text-primary hover:underline transition-colors truncate"
                         >
                           {comment.author}
                         </Link>
-                        {comment.authorHandle && (
-                          <Link
-                            to={`/student/${comment.authorHandle}`}
-                            className="text-[11px] text-muted-foreground hover:text-primary transition-colors font-mono"
-                          >
-                            @{comment.authorHandle}
-                          </Link>
-                        )}
-                        {(comment.collegeShortName || comment.collegeName) && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary text-secondary-foreground font-medium">
-                            {comment.collegeShortName || comment.collegeName}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {comment.authorHandle && (
+                            <Link
+                              to={`/student/${comment.authorHandle}`}
+                              className="text-[10px] text-muted-foreground hover:text-primary transition-colors font-mono truncate"
+                            >
+                              @{comment.authorHandle}
+                            </Link>
+                          )}
+                          {comment.authorHandle && <span className="text-[10px] text-muted-foreground">•</span>}
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground font-medium shrink-0">
+                            {post.isGlobal
+                              ? comment.collegeShortName || comment.collegeName || "Student"
+                              : normalizeCourseShort(comment.course) || "Student"}
                           </span>
-                        )}
+                        </div>
                       </div>
 
-                      {/* Time placed cleanly in the top-right corner */}
-                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">
+                      {/* 3-dot menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-all shrink-0"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[120px]">
+                          {isAuthor ? (
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-destructive focus:text-destructive gap-2 text-xs"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => toast.info("Report feature coming soon.")}
+                              className="gap-2 text-xs"
+                            >
+                              <Flag className="h-3.5 w-3.5" /> Report
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Comment Bubble */}
+                    <div className="bg-muted/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-border/40">
+                      <FormattedContent
+                        content={comment.body}
+                        className="text-xs leading-relaxed text-foreground"
+                      />
+                    </div>
+
+                    {/* Time at bottom */}
+                    <div className="flex justify-start px-2">
+                      <span className="text-[10px] text-muted-foreground select-none">
                         {formatSmartDate(comment.createdAt || comment.time)}
                       </span>
                     </div>
-
-                    {/* Content */}
-                    <FormattedContent
-                      content={comment.body}
-                      className="text-xs leading-relaxed text-foreground"
-                    />
-
-                    {/* Delete button positioned at the bottom-right corner */}
-                    {isAuthor && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="absolute bottom-2 right-2 p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
-                        title="Delete comment"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
                   </div>
                 </div>
               );

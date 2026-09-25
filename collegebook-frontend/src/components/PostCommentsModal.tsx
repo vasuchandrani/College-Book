@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Send, Lock, Trash2, MessageSquare } from "lucide-react";
+import { Send, Lock, Trash2, MessageSquare, MoreHorizontal, Flag } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FormattedContent } from "@/components/FormattedContent";
 import { CommentsSkeleton } from "@/components/Skeletons";
-import { getComments, addComment, deleteComment } from "@/lib/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getComments, addComment, deleteComment, normalizeCourseShort } from "@/lib/api";
+import { formatSmartDate } from "@/lib/dateUtils";
 import type { FeedPost, ExplorePost, PostComment } from "@/types";
 import { toast } from "sonner";
 
@@ -252,50 +259,79 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
                     </Avatar>
                   </Link>
 
-                  <div className="relative flex-1 min-w-0 bg-muted/40 hover:bg-muted/60 transition-colors rounded-2xl px-3.5 py-2.5 border border-border/40">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  {/* Comment Content Area */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    {/* Top Row: Author + 3-dot menu */}
+                    <div className="flex items-start justify-between gap-2 px-1">
+                      <div className="min-w-0 flex flex-col">
                         <Link
                           to={comment.authorHandle ? `/student/${comment.authorHandle}` : "#"}
-                          className="text-xs font-semibold text-foreground hover:text-primary transition-colors truncate"
+                          className="text-xs font-bold text-foreground hover:text-primary hover:underline transition-colors truncate"
                         >
                           {comment.author}
                         </Link>
-                        {comment.authorHandle && (
-                          <Link
-                            to={`/student/${comment.authorHandle}`}
-                            className="text-[11px] text-muted-foreground hover:text-primary transition-colors font-mono"
-                          >
-                            @{comment.authorHandle}
-                          </Link>
-                        )}
-                        {(comment.collegeShortName || comment.collegeName) && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-secondary text-secondary-foreground font-medium">
-                            {comment.collegeShortName || comment.collegeName}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {comment.authorHandle && (
+                            <Link
+                              to={`/student/${comment.authorHandle}`}
+                              className="text-[10px] text-muted-foreground hover:text-primary transition-colors font-mono truncate"
+                            >
+                              @{comment.authorHandle}
+                            </Link>
+                          )}
+                          {comment.authorHandle && <span className="text-[10px] text-muted-foreground">•</span>}
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground font-medium shrink-0">
+                            {post.isGlobal
+                              ? comment.collegeShortName || comment.collegeName || "Student"
+                              : normalizeCourseShort(comment.course) || "Student"}
                           </span>
-                        )}
+                        </div>
                       </div>
 
-                      <span className="text-[10px] text-muted-foreground shrink-0 select-none">
-                        {comment.time}
-                      </span>
+                      {/* 3-dot menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-all shrink-0"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[120px]">
+                          {isAuthor ? (
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-destructive focus:text-destructive gap-2 text-xs"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => toast.info("Report feature coming soon.")}
+                              className="gap-2 text-xs"
+                            >
+                              <Flag className="h-3.5 w-3.5" /> Report
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
-                    <FormattedContent
-                      content={comment.body}
-                      className="text-xs leading-relaxed text-foreground"
-                    />
+                    {/* Comment Bubble */}
+                    <div className="bg-muted/40 rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-border/40">
+                      <FormattedContent
+                        content={comment.body}
+                        className="text-xs leading-relaxed text-foreground"
+                      />
+                    </div>
 
-                    {isAuthor && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="absolute bottom-2 right-2 p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
-                        title="Delete comment"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                    {/* Time at bottom */}
+                    <div className="flex justify-start px-2">
+                      <span className="text-[10px] text-muted-foreground select-none">
+                        {formatSmartDate(comment.createdAt || comment.time)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

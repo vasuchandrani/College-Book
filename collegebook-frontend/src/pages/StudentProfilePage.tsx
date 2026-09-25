@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Calendar,
@@ -51,7 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import FormattedContent from "@/components/FormattedContent";
@@ -59,7 +59,7 @@ import { ProfileSkeleton, FeedSkeleton, CollabSkeleton } from "@/components/Skel
 import { formatCount } from "@/lib/formatCount";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
-import InlineCommentsSection from "@/components/InlineCommentsSection";
+
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { formatSmartDate } from "@/lib/dateUtils";
 import {
@@ -115,7 +115,7 @@ const StudentProfilePage = () => {
   const [notFound, setNotFound] = useState(false);
   const [postsLoading, setPostsLoading] = useState(() => !cachedPosts);
   const [teamsLoading, setTeamsLoading] = useState(() => !cachedTeams);
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | number | null>(null);
+  const navigate = useNavigate();
   const { triggerToggle } = useDebouncedToggle(400);
 
   // Join Dialog
@@ -831,15 +831,8 @@ const StudentProfilePage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                setExpandedCommentsPostId((prev) =>
-                                  prev === post.id ? null : post.id
-                                )
-                              }
-                              className={`gap-1.5 text-xs transition-colors ${expandedCommentsPostId === post.id
-                                  ? "text-primary bg-primary/10 font-semibold"
-                                  : "text-muted-foreground hover:text-foreground"
-                                }`}
+                              onClick={() => navigate(`/post/${post.id}`)}
+                              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                             >
                               <MessageSquare className="h-4 w-4" />
                               <span>{formatCount(post.commentsCount)}</span>
@@ -865,32 +858,14 @@ const StudentProfilePage = () => {
                               toast.success("Post link copied to clipboard!");
                             }}
                           >
-                            <Share2 className="h-4 w-4" /> Share
+                            <Share2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <span className="text-[11px] text-muted-foreground shrink-0 select-none ml-auto">
+                        <span className="text-[10px] text-muted-foreground shrink-0 select-none ml-auto">
                           {formatSmartDate(post.createdAt || post.time)}
                         </span>
                       </div>
 
-                      {/* Inline Expandable Comments Stream */}
-                      <AnimatePresence>
-                        {expandedCommentsPostId === post.id && (
-                          <InlineCommentsSection
-                            post={post}
-                            onCommentCountChange={(newCount) => {
-                              setStudentPosts((prev) =>
-                                prev.map((p) =>
-                                  p.id === post.id
-                                    ? { ...p, commentsCount: newCount }
-                                    : p
-                                )
-                              );
-                            }}
-                            onClose={() => setExpandedCommentsPostId(null)}
-                          />
-                        )}
-                      </AnimatePresence>
                     </div>
                   </Card>
                 </motion.div>
