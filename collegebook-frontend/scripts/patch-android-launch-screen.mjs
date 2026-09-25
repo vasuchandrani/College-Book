@@ -51,4 +51,23 @@ writeFileSync(
 `,
 );
 
-console.log("Patched Android launch surface with a white background and transparent icon.");
+const adaptiveIconFiles = [
+  resolve(resourceRoot, "mipmap-anydpi-v26", "ic_launcher.xml"),
+  resolve(resourceRoot, "mipmap-anydpi-v26", "ic_launcher_round.xml"),
+].filter(existsSync);
+
+for (const iconFile of adaptiveIconFiles) {
+  const source = readFileSync(iconFile, "utf8");
+  const updated = source.replace(
+    /<foreground>\s*<inset\s+android:drawable="@mipmap\/ic_launcher_foreground"\s+android:inset="16\.7%"\s*\/>\s*<\/foreground>/,
+    '<foreground android:drawable="@mipmap/ic_launcher_foreground" />',
+  );
+
+  if (updated !== source) {
+    writeFileSync(iconFile, updated);
+  }
+}
+
+console.log(
+  `Patched Android launch surface and ${adaptiveIconFiles.length} adaptive icon file(s).`,
+);
