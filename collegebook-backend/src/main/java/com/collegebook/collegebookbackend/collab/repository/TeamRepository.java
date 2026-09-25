@@ -28,16 +28,16 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsPaged(@Param("userId") UUID userId, Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.isCompleted = :completed ORDER BY t.createdAt DESC")
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.completed = :completed ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsByCompletedPaged(@Param("userId") UUID userId, @Param("completed") boolean completed, Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.isCompleted = :completed AND t.type <> com.collegebook.collegebookbackend.collab.entity.TeamType.OPEN_SOURCE ORDER BY t.createdAt DESC")
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.completed = :completed AND t.type <> com.collegebook.collegebookbackend.collab.entity.TeamType.OPEN_SOURCE ORDER BY t.createdAt DESC")
     Page<Team> findMyRegularTeamsByCompletedPaged(@Param("userId") UUID userId, @Param("completed") boolean completed, Pageable pageable);
 
     @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsByTypePaged(@Param("userId") UUID userId, @Param("type") TeamType type, Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type AND t.isCompleted = :completed ORDER BY t.createdAt DESC")
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type AND t.completed = :completed ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsByTypeAndCompletedPaged(@Param("userId") UUID userId, @Param("type") TeamType type, @Param("completed") boolean completed, Pageable pageable);
 
     List<Team> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId);
