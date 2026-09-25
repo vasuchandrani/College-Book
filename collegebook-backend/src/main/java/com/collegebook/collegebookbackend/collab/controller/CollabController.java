@@ -55,10 +55,12 @@ public class CollabController {
     public ResponseEntity<PageResponse<TeamResponseDto>> getMyTeams(
             @CurrentUser UserPrincipal currentUser,
             @RequestParam(value = "type", required = false) TeamType type,
+            @RequestParam(value = "completed", required = false) Boolean completed,
+            @RequestParam(value = "excludeOpenSource", required = false) Boolean excludeOpenSource,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size) {
         UUID userId = currentUser != null ? currentUser.getId() : null;
-        return ResponseEntity.ok(collabService.getMyTeamsPaged(userId, type, page, size));
+        return ResponseEntity.ok(collabService.getMyTeamsPaged(userId, type, completed, excludeOpenSource, page, size));
     }
 
     @GetMapping("/teams/my/open-source")

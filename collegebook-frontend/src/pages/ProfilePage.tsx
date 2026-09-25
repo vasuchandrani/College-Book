@@ -225,6 +225,11 @@ const ProfilePage = () => {
   const savedObserverRef = useRef<IntersectionObserver | null>(null);
   const savedSentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // On-demand tab tracking
+  type ProfileTabKey = "posts" | "mycon" | "starred" | "saved" | "peers";
+  const [activeProfileTab, setActiveProfileTab] = useState<ProfileTabKey>("posts");
+  const [tabLoaded, setTabLoaded] = useState<Record<string, boolean>>({ posts: false });
+
 
   const [createdProjects, setCreatedProjects] = useState<any[]>(() => clientCache.get<any[]>("my_profile_teams") || []);
   const [myRequests, setMyRequests] = useState<any[]>(() => clientCache.get<any[]>("my_profile_requests") || []);
@@ -514,38 +519,7 @@ const ProfilePage = () => {
         if (alive) setLoading(false);
       });
 
-    // Background non-blocking fetches with client-side caching
-    getMyPosts(0, 15)
-      .then((res) => {
-        if (alive && res.posts) {
-          setActivityPosts(res.posts);
-          clientCache.set("my_posts", res.posts, 300_000);
-          setActivityPostsHasMore(res.hasNext);
-          setActivityPostsPage(res.page);
-        }
-      })
-      .catch(() => { });
-
-    getSavedPosts(0, 15)
-      .then((res) => {
-        if (alive && res.posts) {
-          setSavedPostsList(res.posts);
-          clientCache.set("my_saved_posts", res.posts, 300_000);
-          setSavedPostsHasMore(res.hasNext);
-          setSavedPostsPage(res.page);
-        }
-      })
-      .catch(() => { });
-
-    getStarredProjects()
-      .then((starred) => {
-        if (alive && starred) {
-          setStarredProjects(starred);
-          clientCache.set("my_starred_projects", starred, 300_000);
-        }
-      })
-      .catch(() => { });
-
+    // Collab data always loaded (needed for header badges)
     getMyTeams()
       .then((res) => {
         if (alive && res) {
@@ -573,19 +547,74 @@ const ProfilePage = () => {
       })
       .catch(() => { });
 
-    getCampusStudents()
-      .then((students) => {
-        if (alive && students) {
-          setCampusStudents(students);
-          clientCache.set("campus_students", students, 300_000);
-        }
-      })
-      .catch(() => { });
-
     return () => {
       alive = false;
     };
   }, []);
+
+  // On-demand tab data fetching
+  useEffect(() => {
+    if (tabLoaded[activeProfileTab]) return;
+    let alive = true;
+
+    if (activeProfileTab === "posts") {
+      getMyPosts(0, 15)
+        .then((res) => {
+          if (alive && res.posts) {
+            setActivityPosts(res.posts);
+            clientCache.set("my_posts", res.posts, 300_000);
+            setActivityPostsHasMore(res.hasNext);
+            setActivityPostsPage(res.page);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setTabLoaded((p) => ({ ...p, posts: true }));
+        });
+    } else if (activeProfileTab === "saved") {
+      getSavedPosts(0, 15)
+        .then((res) => {
+          if (alive && res.posts) {
+            setSavedPostsList(res.posts);
+            clientCache.set("my_saved_posts", res.posts, 300_000);
+            setSavedPostsHasMore(res.hasNext);
+            setSavedPostsPage(res.page);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setTabLoaded((p) => ({ ...p, saved: true }));
+        });
+    } else if (activeProfileTab === "starred") {
+      getStarredProjects()
+        .then((starred) => {
+          if (alive && starred) {
+            setStarredProjects(starred);
+            clientCache.set("my_starred_projects", starred, 300_000);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setTabLoaded((p) => ({ ...p, starred: true }));
+        });
+    } else if (activeProfileTab === "peers") {
+      getCampusStudents()
+        .then((students) => {
+          if (alive && students) {
+            setCampusStudents(students);
+            clientCache.set("campus_students", students, 300_000);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) setTabLoaded((p) => ({ ...p, peers: true }));
+        });
+    } else {
+      setTabLoaded((p) => ({ ...p, [activeProfileTab]: true }));
+    }
+
+    return () => { alive = false; };
+  }, [activeProfileTab, tabLoaded]);
 
   const loadMoreActivityPosts = useCallback(() => {
     if (activityPostsLoadingMore || !activityPostsHasMore) return;
@@ -2640,7 +2669,7 @@ const ProfilePage = () => {
       </motion.div>
 
       {/* Profile Navigation Tabs */}
-      <Tabs defaultValue="posts" className="space-y-4 sm:space-y-6">
+      <Tabs value={activeProfileTab} onValueChange={(v) => setActiveProfileTab(v as ProfileTabKey)} className="space-y-4 sm:space-y-6">
         <TabsList className="bg-muted w-full flex overflow-x-auto no-scrollbar justify-start sm:justify-center p-1 rounded-xl gap-1">
           <TabsTrigger value="posts" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">Posts</TabsTrigger>
           <TabsTrigger value="mycon" className="shrink-0 text-xs sm:text-sm px-3 py-1.5 font-medium">myCon</TabsTrigger>

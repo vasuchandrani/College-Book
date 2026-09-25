@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Users,
   Plus,
@@ -48,7 +48,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { getCollabTeams, getMyJoinedRequests, createTeam, starProject, sendJoinRequest, lookupStudent } from "@/lib/api";
-import { CollabSkeleton } from "@/components/Skeletons";
+import { CollabListSkeleton } from "@/components/Skeletons";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
@@ -98,14 +98,44 @@ interface MemberEntry {
   role: string;
 }
 
+type CollabTabKey = "open_source" | "hackathon" | "project";
+const TAB_TYPE_MAP: Record<CollabTabKey, "OPEN_SOURCE" | "HACKATHON" | "PROJECT"> = {
+  open_source: "OPEN_SOURCE",
+  hackathon: "HACKATHON",
+  project: "PROJECT",
+};
+
 const CollabPage = () => {
   const [search, setSearch] = useState("");
-  const cachedTeams = clientCache.get<any[]>("collab_teams");
   const cachedReqs = clientCache.get<any[]>("collab_my_requests");
 
-  const [teams, setTeams] = useState<any[]>(() => cachedTeams || []);
+  // Per-tab team storage
+  const [activeCollabTab, setActiveCollabTab] = useState<CollabTabKey>("open_source");
+  const [tabTeams, setTabTeams] = useState<Record<CollabTabKey, any[]>>({
+    open_source: [],
+    hackathon: [],
+    project: [],
+  });
+  const [tabPagination, setTabPagination] = useState<Record<CollabTabKey, { page: number; hasMore: boolean; loaded: boolean }>>({
+    open_source: { page: 0, hasMore: true, loaded: false },
+    hackathon: { page: 0, hasMore: true, loaded: false },
+    project: { page: 0, hasMore: true, loaded: false },
+  });
+  const [tabLoading, setTabLoading] = useState<Record<CollabTabKey, boolean>>({
+    open_source: false,
+    hackathon: false,
+    project: false,
+  });
+
+  // Backwards-compat: flat teams array for filter derivation
+  const teams = useMemo(() => [
+    ...tabTeams.open_source,
+    ...tabTeams.hackathon,
+    ...tabTeams.project,
+  ], [tabTeams]);
+
   const [myRequests, setMyRequests] = useState<any[]>(() => cachedReqs || []);
-  const [loading, setLoading] = useState(() => !cachedTeams);
+  const [loading, setLoading] = useState(true);
   const { triggerToggle } = useDebouncedToggle(400);
 
   // 3 Filters (No Sort By)
@@ -149,78 +179,97 @@ const CollabPage = () => {
 
   const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}');
 
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+
+
+  // Fetch join requests once on mount
   useEffect(() => {
     let alive = true;
-    const existingTeams = clientCache.get<{teams: any[], hasNext: boolean}>("collab_teams_cache");
-    if (existingTeams && existingTeams.teams.length > 0) {
-      setTeams(existingTeams.teams);
-      setHasMore(existingTeams.hasNext);
-    } else {
-      setLoading(true);
-    }
-    
-    Promise.all([
-      getCollabTeams(0, 15).catch(() => ({ teams: [], hasNext: false })),
-      getMyJoinedRequests().catch(() => []),
-    ])
-      .then(([teamsData, reqsData]) => {
+    getMyJoinedRequests()
+      .then((res) => {
         if (alive) {
-          const freshTeams = (teamsData as any)?.teams || [];
-          const nextVal = (teamsData as any)?.hasNext || false;
-          const freshReqs = (reqsData as any)?.requests || reqsData || [];
-          
-          setTeams(freshTeams);
-          setHasMore(nextVal);
-          setPage(0);
-          setMyRequests(freshReqs);
-          
-          clientCache.set("collab_teams_cache", { teams: freshTeams, hasNext: nextVal }, 300_000);
-          clientCache.set("collab_my_requests", freshReqs, 300_000);
+          const reqs = (res as any)?.requests || res || [];
+          setMyRequests(reqs);
+          clientCache.set("collab_my_requests", reqs, 300_000);
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // On-demand fetch for the active tab
+  useEffect(() => {
+    if (tabPagination[activeCollabTab].loaded) {
+      setLoading(false);
+      return;
+    }
+
+    let alive = true;
+    setLoading(true);
+    setTabLoading((p) => ({ ...p, [activeCollabTab]: true }));
+
+    getCollabTeams(0, 15, TAB_TYPE_MAP[activeCollabTab])
+      .then((res) => {
+        if (alive) {
+          const freshTeams = res.teams || [];
+          setTabTeams((p) => ({ ...p, [activeCollabTab]: freshTeams }));
+          setTabPagination((p) => ({
+            ...p,
+            [activeCollabTab]: { page: 0, hasMore: res.hasNext || false, loaded: true },
+          }));
         }
       })
       .catch(() => {
-        if (alive && !existingTeams) toast.error("Failed to load collaboration projects");
+        if (alive) toast.error("Failed to load projects");
       })
       .finally(() => {
-        if (alive) setLoading(false);
+        if (alive) {
+          setLoading(false);
+          setTabLoading((p) => ({ ...p, [activeCollabTab]: false }));
+        }
       });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
+    return () => { alive = false; };
+  }, [activeCollabTab]);
+
+  // Load more for the active tab
   const loadMoreTeams = useCallback(() => {
-    if (!hasMore || loadingMore || loading) return;
+    const tp = tabPagination[activeCollabTab];
+    if (!tp.hasMore || loadingMore || !tp.loaded) return;
+
     setLoadingMore(true);
-    getCollabTeams(page + 1, 15)
+    getCollabTeams(tp.page + 1, 15, TAB_TYPE_MAP[activeCollabTab])
       .then((res) => {
         const freshTeams = res.teams || [];
-        const nextVal = res.hasNext || false;
-        setTeams((prev) => {
-          const newTeams = [...prev, ...freshTeams];
-          clientCache.set("collab_teams_cache", { teams: newTeams, hasNext: nextVal }, 300_000);
-          return newTeams;
-        });
-        setHasMore(nextVal);
-        setPage((p) => p + 1);
+        setTabTeams((p) => ({
+          ...p,
+          [activeCollabTab]: [...p[activeCollabTab], ...freshTeams],
+        }));
+        setTabPagination((p) => ({
+          ...p,
+          [activeCollabTab]: {
+            ...p[activeCollabTab],
+            page: p[activeCollabTab].page + 1,
+            hasMore: res.hasNext || false,
+          },
+        }));
       })
       .catch(() => toast.error("Failed to load more projects"))
       .finally(() => setLoadingMore(false));
-  }, [hasMore, loadingMore, loading, page]);
+  }, [activeCollabTab, tabPagination, loadingMore]);
 
+  // IntersectionObserver for infinite scroll
   useEffect(() => {
-    if (loading || loadingMore || !hasMore) return;
+    const tp = tabPagination[activeCollabTab];
+    if (tabLoading[activeCollabTab] || loadingMore || !tp.hasMore || !tp.loaded) return;
+
+    if (observerRef.current) observerRef.current.disconnect();
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMoreTeams();
-        }
+        if (entries[0].isIntersecting) loadMoreTeams();
       },
       { rootMargin: "200px" }
     );
@@ -230,7 +279,7 @@ const CollabPage = () => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [hasMore, loadingMore, loading, loadMoreTeams]);
+  }, [activeCollabTab, tabPagination, loadingMore, tabLoading, loadMoreTeams]);
 
   const handleToggleStar = (teamId: string | number) => {
     const team = teams.find((t) => t.id === teamId);
@@ -651,32 +700,18 @@ const CollabPage = () => {
   }, [search, selectedTech, selectedRole, selectedCollege]);
 
   const openSourceProjects = useMemo(
-    () =>
-      applyFilters(
-        teams.filter((t) => t.type === "OPEN_SOURCE" || t.type === "open_source")
-      ),
-    [teams, applyFilters]
+    () => applyFilters(tabTeams.open_source),
+    [tabTeams.open_source, applyFilters]
   );
 
   const hackathonTeams = useMemo(
-    () =>
-      applyFilters(
-        teams.filter((t) => t.type === "HACKATHON" || t.type === "hackathon")
-      ),
-    [teams, applyFilters]
+    () => applyFilters(tabTeams.hackathon),
+    [tabTeams.hackathon, applyFilters]
   );
 
   const teamProjects = useMemo(
-    () =>
-      applyFilters(
-        teams.filter(
-          (t) =>
-            t.type === "PROJECT" ||
-            t.type === "project" ||
-            (!t.type && t.type !== "OPEN_SOURCE" && t.type !== "HACKATHON")
-        )
-      ),
-    [teams, applyFilters]
+    () => applyFilters(tabTeams.project),
+    [tabTeams.project, applyFilters]
   );
 
   const isAnyFilterActive =
@@ -1275,7 +1310,7 @@ const CollabPage = () => {
       </Card>
 
       {/* Tabs in Exact Order without numbers: 1. Open Source -> 2. Hackathon -> 3. Team Project */}
-      <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
+      <Tabs value={activeCollabTab} onValueChange={(v) => setActiveCollabTab(v as CollabTabKey)} className="space-y-4 sm:space-y-5">
         <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-3 w-full h-auto gap-1.5 shadow-2xs">
           <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Code2 className="h-4 w-4 text-primary shrink-0" />
@@ -1293,8 +1328,8 @@ const CollabPage = () => {
 
         {/* Tab 1: Open-source Projects */}
         <TabsContent value="open_source" className="space-y-4 focus-visible:outline-none">
-          {loading ? (
-            <CollabSkeleton />
+          {(loading || tabLoading.open_source) ? (
+            <CollabListSkeleton />
           ) : (
             <>
               {openSourceProjects.map((project, i) => (
@@ -1489,8 +1524,8 @@ const CollabPage = () => {
 
         {/* Tab 2: Hackathon Teams */}
         <TabsContent value="hackathon" className="space-y-4 focus-visible:outline-none">
-          {loading ? (
-            <CollabSkeleton />
+          {(loading || tabLoading.hackathon) ? (
+            <CollabListSkeleton />
           ) : (
             <>
               {hackathonTeams.map((team, i) => (
@@ -1681,8 +1716,8 @@ const CollabPage = () => {
 
         {/* Tab 3: Team Projects */}
         <TabsContent value="project" className="space-y-4 focus-visible:outline-none">
-          {loading ? (
-            <CollabSkeleton />
+          {(loading || tabLoading.project) ? (
+            <CollabListSkeleton />
           ) : (
             <>
               {teamProjects.map((project, i) => (
@@ -1898,7 +1933,7 @@ const CollabPage = () => {
       </Tabs>
 
       {/* Pagination trigger */}
-      {hasMore && (
+      {tabPagination[activeCollabTab].hasMore && tabPagination[activeCollabTab].loaded && (
         <div ref={loadMoreRef} className="py-8 flex justify-center items-center w-full">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>

@@ -55,7 +55,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import FormattedContent from "@/components/FormattedContent";
-import { ProfileSkeleton, FeedSkeleton, CollabSkeleton } from "@/components/Skeletons";
+import { ProfileSkeleton, FeedSkeleton, CollabListSkeleton } from "@/components/Skeletons";
 import { formatCount } from "@/lib/formatCount";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -115,6 +115,11 @@ const StudentProfilePage = () => {
   const [notFound, setNotFound] = useState(false);
   const [postsLoading, setPostsLoading] = useState(() => !cachedPosts);
   const [teamsLoading, setTeamsLoading] = useState(() => !cachedTeams);
+
+  // On-demand tab tracking
+  type StudentTabKey = "activity" | "collabs" | "mycon";
+  const [activeStudentTab, setActiveStudentTab] = useState<StudentTabKey>("activity");
+  const [studentTabLoaded, setStudentTabLoaded] = useState<Record<string, boolean>>({ activity: false });
   const navigate = useNavigate();
   const { triggerToggle } = useDebouncedToggle(400);
 
@@ -146,17 +151,6 @@ const StudentProfilePage = () => {
             setNotFound(false);
             setStudent(data);
             clientCache.set(`student_profile_${decodedName}`, data, 300_000);
-            getStudentTeams(data.userId)
-              .then((teams) => {
-                if (alive && teams) {
-                  setStudentTeams(teams);
-                  clientCache.set(`student_teams_${decodedName}`, teams, 300_000);
-                }
-              })
-              .catch(() => { })
-              .finally(() => {
-                if (alive) setTeamsLoading(false);
-              });
           }
         }
       })
@@ -171,25 +165,60 @@ const StudentProfilePage = () => {
         if (alive) setLoading(false);
       });
 
-    getStudentPosts(decodedName, 0, 15)
-      .then((res) => {
-        if (alive) {
-          const freshPosts = res.posts || [];
-          setStudentPosts(freshPosts);
-          clientCache.set(`student_posts_${decodedName}`, freshPosts, 300_000);
-          setStudentPostsHasMore(res.hasNext);
-          setStudentPostsPage(res.page);
-        }
-      })
-      .catch(() => { })
-      .finally(() => {
-        if (alive) setPostsLoading(false);
-      });
+    // Reset tab loaded state when navigating to a new student
+    setStudentTabLoaded({ activity: false });
 
     return () => {
       alive = false;
     };
   }, [decodedName]);
+
+  // On-demand tab data fetching
+  useEffect(() => {
+    if (studentTabLoaded[activeStudentTab]) return;
+    let alive = true;
+
+    if (activeStudentTab === "activity") {
+      setPostsLoading(true);
+      getStudentPosts(decodedName, 0, 15)
+        .then((res) => {
+          if (alive) {
+            const freshPosts = res.posts || [];
+            setStudentPosts(freshPosts);
+            clientCache.set(`student_posts_${decodedName}`, freshPosts, 300_000);
+            setStudentPostsHasMore(res.hasNext);
+            setStudentPostsPage(res.page);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) {
+            setPostsLoading(false);
+            setStudentTabLoaded((p) => ({ ...p, activity: true }));
+          }
+        });
+    } else if (activeStudentTab === "collabs" && student?.userId) {
+      setTeamsLoading(true);
+      getStudentTeams(student.userId)
+        .then((teams) => {
+          if (alive && teams) {
+            setStudentTeams(teams);
+            clientCache.set(`student_teams_${decodedName}`, teams, 300_000);
+          }
+        })
+        .catch(() => { })
+        .finally(() => {
+          if (alive) {
+            setTeamsLoading(false);
+            setStudentTabLoaded((p) => ({ ...p, collabs: true }));
+          }
+        });
+    } else {
+      setStudentTabLoaded((p) => ({ ...p, [activeStudentTab]: true }));
+    }
+
+    return () => { alive = false; };
+  }, [activeStudentTab, studentTabLoaded, decodedName, student?.userId]);
 
   const loadMoreStudentPosts = useCallback(() => {
     if (studentPostsLoadingMore || !studentPostsHasMore) return;
@@ -724,7 +753,7 @@ const StudentProfilePage = () => {
       </motion.div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="activity" className="space-y-4 sm:space-y-6">
+      <Tabs value={activeStudentTab} onValueChange={(v) => setActiveStudentTab(v as StudentTabKey)} className="space-y-4 sm:space-y-6">
         <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-3 w-full h-auto gap-1 shadow-2xs">
           <TabsTrigger value="activity" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">Activity</TabsTrigger>
           <TabsTrigger value="collabs" className="py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-lg min-w-0 truncate">Collaboration</TabsTrigger>
@@ -904,7 +933,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 1: Open Source */}
             <TabsContent value="open_source" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                  <CollabSkeleton />
+                  <CollabListSkeleton />
               ) : openSourceCollabs.length > 0 ? (
                 openSourceCollabs.map((project) => (
                   <Card key={project.id} className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
@@ -1028,7 +1057,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 2: Ongoing Teams / Projects */}
             <TabsContent value="ongoing" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                  <CollabSkeleton />
+                  <CollabListSkeleton />
               ) : ongoingCollabs.length > 0 ? (
                 ongoingCollabs.map((team) => {
                   const isStudentLead = Boolean(
@@ -1176,7 +1205,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 3: Completed */}
             <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                  <CollabSkeleton />
+                  <CollabListSkeleton />
               ) : completedCollabs.length > 0 ? (
                 completedCollabs.map((team) => {
                   const isStudentLead = Boolean(

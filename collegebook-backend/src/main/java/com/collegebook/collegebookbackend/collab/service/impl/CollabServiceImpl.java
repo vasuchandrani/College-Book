@@ -154,14 +154,24 @@ public class CollabServiceImpl implements CollabService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<TeamResponseDto> getMyTeamsPaged(UUID userId, TeamType type, int page, int size) {
+    public PageResponse<TeamResponseDto> getMyTeamsPaged(UUID userId, TeamType type, Boolean completed, Boolean excludeOpenSource, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Team> teamPage;
-        if (type != null) {
+        
+        if (type != null && completed != null) {
+            teamPage = teamRepository.findMyTeamsByTypeAndCompletedPaged(userId, type, completed, pageable);
+        } else if (type != null) {
             teamPage = teamRepository.findMyTeamsByTypePaged(userId, type, pageable);
+        } else if (completed != null) {
+            if (Boolean.TRUE.equals(excludeOpenSource)) {
+                teamPage = teamRepository.findMyRegularTeamsByCompletedPaged(userId, completed, pageable);
+            } else {
+                teamPage = teamRepository.findMyTeamsByCompletedPaged(userId, completed, pageable);
+            }
         } else {
             teamPage = teamRepository.findMyTeamsPaged(userId, pageable);
         }
+        
         List<TeamResponseDto> items = teamPage.getContent().stream()
                 .map(t -> mapToTeamDto(t, userId))
                 .collect(Collectors.toList());

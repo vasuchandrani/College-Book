@@ -55,14 +55,6 @@ const PostPage = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
   const isAuthenticated = isAuthTokenValid(token);
 
-  if (!isAuthenticated) {
-    clearAuthSession();
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
-    }
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
   const { triggerToggle } = useDebouncedToggle(400);
 
   const [post, setPost] = useState<FeedPost | null>(null);
@@ -78,6 +70,7 @@ const PostPage = () => {
   const currentUser = JSON.parse(
     localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}'
   );
+
 
   const handleBack = () => {
     if (window.history.length > 2) {
@@ -293,6 +286,14 @@ const PostPage = () => {
       handleAddComment();
     }
   };
+
+  if (!isAuthenticated) {
+    clearAuthSession();
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
+    }
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
 
   if (loading) {
     return <PostDetailSkeleton />;

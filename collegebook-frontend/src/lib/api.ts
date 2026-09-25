@@ -1156,9 +1156,16 @@ export const toggleStarTeam = async (projectId: number | string, signal?: AbortS
 export const getMyTeams = async (
   page = 0,
   size = 15,
-  type?: string
+  type?: string,
+  completed?: boolean,
+  excludeOpenSource?: boolean
 ): Promise<PaginatedCollabResponse> => {
-  const query = type ? `&type=${type}` : "";
+  const queryParts = [];
+  if (type) queryParts.push(`type=${type}`);
+  if (completed !== undefined) queryParts.push(`completed=${completed}`);
+  if (excludeOpenSource) queryParts.push(`excludeOpenSource=true`);
+  
+  const query = queryParts.length > 0 ? `&${queryParts.join("&")}` : "";
   const res = await request<PageResponse<any>>(`/teams/my?page=${page}&size=${size}${query}`);
   return {
     teams: res.items || [],

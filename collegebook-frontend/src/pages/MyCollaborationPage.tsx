@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
@@ -207,96 +207,184 @@ export default function MyCollaborationPage() {
 
   const [unreadRooms, setUnreadRooms] = useState<Set<string>>(new Set());
 
+  // Tab state & pagination
+  type CollabTabKey = "open_source" | "my_requests" | "active_teams" | "completed_teams";
+  const [activeCollabTab, setActiveCollabTab] = useState<CollabTabKey>("open_source");
+  const [tabPagination, setTabPagination] = useState<Record<string, { page: number; hasMore: boolean }>>({
+    open_source: { page: 0, hasMore: true },
+    active_teams: { page: 0, hasMore: true },
+    completed_teams: { page: 0, hasMore: true },
+  });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [tabLoaded, setTabLoaded] = useState<Record<string, boolean>>({});
+  const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({});
+
   const loadData = async () => {
     try {
-      const existing = clientCache.get<any[]>("my_collab_teams");
-      if (!existing) {
+      const existingReqs = clientCache.get<any[]>("my_collab_requests");
+      if (!existingReqs) {
         setLoading(true);
       }
-      const [teamsData, reqsData, incomingData] = await Promise.all([
-        getMyCreatedTeams().catch(() => []),
+      const [reqsData, incomingData, badgesData] = await Promise.all([
         getMyJoinedRequests().catch(() => []),
         getIncomingJoinRequests().catch(() => []),
       ]);
       const freshTeams = (teamsData as any)?.teams || teamsData || [];
       const freshReqs = (reqsData as any)?.requests || reqsData || [];
       const freshIncoming = (incomingData as any)?.requests || incomingData || [];
-      setMyTeams(freshTeams);
+      
       setMyRequests(freshReqs);
       setIncomingRequests(freshIncoming);
-      clientCache.set("my_collab_teams", freshTeams, 300_000);
       clientCache.set("my_collab_requests", freshReqs, 300_000);
-      // Check unread messages for collaboration rooms
-      const unreadMap = new Set<string>();
-      await Promise.all(
-        (freshTeams || []).map(async (t: any) => {
-          if (!t?.id) return;
-          if (typeof t.hasUnreadMessages === "boolean") {
-            if (t.hasUnreadMessages) {
-              unreadMap.add(t.id);
-            }
-            return;
-          }
-          try {
-            const msgs = await getTeamRecentMessages(t.id, 1);
-            if (msgs && msgs.length > 0) {
-              const latest = msgs[msgs.length - 1];
-              const isUnread = checkIsMessageUnread(
-                t.id,
-                latest.createdAt,
-                latest.senderId,
-                user.id || user.userId,
-                latest.senderName,
-                user.name || user.fullName,
-                latest.senderHandle,
-                user.handle
-              );
-              if (isUnread) {
-                unreadMap.add(t.id);
-              }
-            }
-          } catch { }
-        })
-      );
-      setUnreadRooms(unreadMap);
 
-      const totalPending = (freshIncoming || []).filter(
-        (r: any) => String(r.status).toUpperCase() === "PENDING"
-      ).length;
-
-      let activeUnread = 0;
-      let completedUnread = 0;
-      let openSourceUnread = 0;
-
-      (freshTeams || []).forEach((t: any) => {
-        if (unreadMap.has(t.id)) {
-          if (t.type === "OPEN_SOURCE" || t.type === "open_source") {
-            openSourceUnread++;
-          } else if (t.completed || t.isCompleted) {
-            completedUnread++;
-          } else {
-            activeUnread++;
-          }
-        }
-      });
-
-      const grandTotal = totalPending + activeUnread + completedUnread + openSourceUnread;
-      clientCache.set("collab_badge_counts", {
-        totalCount: grandTotal,
-        recruitingCount: totalPending + activeUnread,
-        formedCount: completedUnread,
-        openSourceCount: openSourceUnread,
-        pendingRequestsCount: totalPending,
-      }, 60_000);
-
-      window.dispatchEvent(new CustomEvent("cb_collab_updated", { detail: { count: grandTotal } }));
+      // The badgesData comes from getCollabBadgeCounts() via our API update or caching
+      if (badgesData) {
+        clientCache.set("collab_badge_counts", badgesData, 60_000);
+        window.dispatchEvent(new CustomEvent("cb_collab_updated", { detail: { count: badgesData.totalCount } }));
+      }
+      
     } catch (err: any) {
-      toast.error("Failed to load collaboration data");
+      toast.error("Failed to load requests data");
     } finally {
       setLoading(false);
     }
   };
 
+  const checkUnreadForTeams = useCallback(async (teams: any[]) => {
+    const unreadMap = new Set(unreadRooms);
+    let changed = false;
+    await Promise.all(
+      teams.map(async (t: any) => {
+        if (!t?.id || unreadMap.has(t.id)) return;
+        if (typeof t.hasUnreadMessages === "boolean") {
+          if (t.hasUnreadMessages) {
+            unreadMap.add(t.id);
+            changed = true;
+          }
+          return;
+        }
+        try {
+          const msgs = await getTeamRecentMessages(t.id, 1);
+          if (msgs && msgs.length > 0) {
+            const latest = msgs[msgs.length - 1];
+            const isUnread = checkIsMessageUnread(
+              t.id,
+              latest.createdAt,
+              latest.senderId,
+              user.id || user.userId,
+              latest.senderName,
+              user.name || user.fullName,
+              latest.senderHandle,
+              user.handle
+            );
+            if (isUnread) {
+              unreadMap.add(t.id);
+              changed = true;
+            }
+          }
+        } catch { }
+      })
+    );
+    if (changed) setUnreadRooms(unreadMap);
+  }, [unreadRooms, user.id, user.userId, user.name, user.fullName, user.handle]);
+
+  // On-demand tab data loading
+  useEffect(() => {
+    if (activeCollabTab === "my_requests") return;
+    if (tabLoaded[activeCollabTab] || tabLoading[activeCollabTab]) return;
+
+    let alive = true;
+    setTabLoading(p => ({ ...p, [activeCollabTab]: true }));
+
+    const fetchTab = async () => {
+      try {
+        let typeParam = undefined;
+        let completedParam = undefined;
+        let excludeOpenSourceParam = undefined;
+        
+        if (activeCollabTab === "open_source") {
+          typeParam = "OPEN_SOURCE";
+        } else if (activeCollabTab === "active_teams") {
+          completedParam = false;
+          excludeOpenSourceParam = true;
+        } else if (activeCollabTab === "completed_teams") {
+          completedParam = true;
+          excludeOpenSourceParam = true;
+        }
+
+        const res = await getMyCreatedTeams(0, 15, typeParam, completedParam, excludeOpenSourceParam);
+        if (!alive) return;
+
+        const freshTeams = res.teams || [];
+        setMyTeams(prev => {
+          const map = new Map(prev.map(t => [t.id, t]));
+          freshTeams.forEach(t => map.set(t.id, t));
+          return Array.from(map.values());
+        });
+
+        setTabPagination(p => ({
+          ...p,
+          [activeCollabTab]: { page: res.page, hasMore: res.hasNext }
+        }));
+        
+        checkUnreadForTeams(freshTeams);
+      } catch (err) {
+      } finally {
+        if (alive) {
+          setTabLoading(p => ({ ...p, [activeCollabTab]: false }));
+          setTabLoaded(p => ({ ...p, [activeCollabTab]: true }));
+        }
+      }
+    };
+    fetchTab();
+
+    return () => { alive = false; };
+  }, [activeCollabTab, tabLoaded, tabLoading]);
+
+  const loadMoreTab = useCallback(async () => {
+    if (activeCollabTab === "my_requests") return;
+    const tp = tabPagination[activeCollabTab];
+    if (!tp || !tp.hasMore || loadingMore || tabLoading[activeCollabTab]) return;
+
+    setLoadingMore(true);
+    try {
+      let typeParam = undefined;
+      let completedParam = undefined;
+      let excludeOpenSourceParam = undefined;
+      
+      if (activeCollabTab === "open_source") {
+        typeParam = "OPEN_SOURCE";
+      } else if (activeCollabTab === "active_teams") {
+        completedParam = false;
+        excludeOpenSourceParam = true;
+      } else if (activeCollabTab === "completed_teams") {
+        completedParam = true;
+        excludeOpenSourceParam = true;
+      }
+
+      const nextPage = tp.page + 1;
+      const res = await getMyCreatedTeams(nextPage, 15, typeParam, completedParam, excludeOpenSourceParam);
+      const freshTeams = res.teams || [];
+
+      setMyTeams(prev => {
+        const map = new Map(prev.map(t => [t.id, t]));
+        freshTeams.forEach(t => map.set(t.id, t));
+        return Array.from(map.values());
+      });
+
+      setTabPagination(p => ({
+        ...p,
+        [activeCollabTab]: { page: res.page, hasMore: res.hasNext }
+      }));
+      
+      checkUnreadForTeams(freshTeams);
+    } catch (err) {
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeCollabTab, tabPagination, loadingMore, tabLoading]);
+
+  // Load initial non-team data
   useEffect(() => {
     loadData();
 
@@ -1093,6 +1181,26 @@ export default function MyCollaborationPage() {
               ))}
             </div>
           )}
+          {/* Bottom Sentinel for Intersection Observer */}
+          {tabPagination.open_source?.hasMore && (
+            <div
+              ref={(el) => {
+                if (!el) return;
+                const observer = new IntersectionObserver(
+                  (entries) => {
+                    if (entries[0].isIntersecting) {
+                      loadMoreTab();
+                    }
+                  },
+                  { threshold: 0.1 }
+                );
+                observer.observe(el);
+              }}
+              className="h-10 w-full flex items-center justify-center mt-4"
+            >
+              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+            </div>
+          )}
         </TabsContent>
 
         {/* 2. My Requests */}
@@ -1464,6 +1572,26 @@ export default function MyCollaborationPage() {
               })}
             </div>
           )}
+          {/* Bottom Sentinel for Intersection Observer */}
+          {tabPagination.active_teams?.hasMore && (
+            <div
+              ref={(el) => {
+                if (!el) return;
+                const observer = new IntersectionObserver(
+                  (entries) => {
+                    if (entries[0].isIntersecting) {
+                      loadMoreTab();
+                    }
+                  },
+                  { threshold: 0.1 }
+                );
+                observer.observe(el);
+              }}
+              className="h-10 w-full flex items-center justify-center mt-4"
+            >
+              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+            </div>
+          )}
         </TabsContent>
 
         {/* 4. Formed Teams (Hiring Completed - No button in empty state) */}
@@ -1636,6 +1764,26 @@ export default function MyCollaborationPage() {
                   </Card>
                 </motion.div>
               ))}
+            </div>
+          )}
+          {/* Bottom Sentinel for Intersection Observer */}
+          {tabPagination.completed_teams?.hasMore && (
+            <div
+              ref={(el) => {
+                if (!el) return;
+                const observer = new IntersectionObserver(
+                  (entries) => {
+                    if (entries[0].isIntersecting) {
+                      loadMoreTab();
+                    }
+                  },
+                  { threshold: 0.1 }
+                );
+                observer.observe(el);
+              }}
+              className="h-10 w-full flex items-center justify-center mt-4"
+            >
+              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
             </div>
           )}
         </TabsContent>
