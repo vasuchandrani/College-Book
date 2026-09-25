@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Tag,
 } from "lucide-react";
+import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -577,11 +578,11 @@ const AdminFeedViewPage = () => {
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1">
                           <Heart className="h-3.5 w-3.5 text-rose-500 fill-rose-500/20" />
-                          {post.likes ?? 0} likes
+                          {formatCount(post.likes)} likes
                         </span>
                         <span className="flex items-center gap-1">
                           <MessageCircle className="h-3.5 w-3.5 text-blue-500" />
-                          {post.commentsCount ?? 0} comments
+                          {formatCount(post.commentsCount)} comments
                         </span>
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground">

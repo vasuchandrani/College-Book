@@ -2,10 +2,22 @@ import { useEffect, useState } from "react";
 import logo from "@/assets/logo.png";
 import { hideNativeSplash } from "@/lib/native";
 
+const SPLASH_SHOWN_KEY = "cb_splash_shown";
+
 const AppSplash = () => {
-  const [phase, setPhase] = useState<"loading" | "branding" | "hidden">("loading");
+  // If splash was already shown in this browser session, skip entirely.
+  const alreadyShown = sessionStorage.getItem(SPLASH_SHOWN_KEY) === "1";
+  const [phase, setPhase] = useState<"loading" | "branding" | "hidden">(
+    alreadyShown ? "hidden" : "loading"
+  );
 
   useEffect(() => {
+    // If already hidden, nothing to do.
+    if (alreadyShown) {
+      void hideNativeSplash();
+      return;
+    }
+
     let brandingTimeout: number | undefined;
     let frame: number | undefined;
 
@@ -13,7 +25,10 @@ const AppSplash = () => {
       frame = window.requestAnimationFrame(() => {
         void hideNativeSplash();
         setPhase("branding");
-        brandingTimeout = window.setTimeout(() => setPhase("hidden"), 1500);
+        brandingTimeout = window.setTimeout(() => {
+          sessionStorage.setItem(SPLASH_SHOWN_KEY, "1");
+          setPhase("hidden");
+        }, 1500);
       });
     };
 
@@ -28,7 +43,7 @@ const AppSplash = () => {
       if (frame !== undefined) window.cancelAnimationFrame(frame);
       if (brandingTimeout !== undefined) window.clearTimeout(brandingTimeout);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (phase === "hidden") return null;
 

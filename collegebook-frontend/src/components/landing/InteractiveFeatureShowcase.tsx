@@ -90,24 +90,8 @@ const InteractiveFeatureShowcase = () => {
 
   const handleAddPreviewComment = (postId: string, e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const text = (commentInputs[postId] || "").trim();
-    if (!text) return;
-
-    const newComment: ShowcaseComment = {
-      id: "c_" + Date.now(),
-      author: "You",
-      handle: "you",
-      college: "DDU",
-      body: text,
-      time: "Just now",
-    };
-
-    setCommentsMap((prev) => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment],
-    }));
     setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
-    toast.success("Comment added to preview!");
+    toast.info("Sign up to comment on posts!");
   };
 
   const toggleSave = (id: string) => {
@@ -339,86 +323,26 @@ const InteractiveFeatureShowcase = () => {
                         ))}
                       </div>
 
-                      {/* Post Creator Box */}
-                      <div className="rounded-xl border border-border bg-card p-2.5 shadow-xs space-y-2">
-                        <div className="text-xs text-muted-foreground italic">
-                          Share an idea, fun, or opportunity...
-                        </div>
-
-                        {/* Options & Action Rows */}
-                        <div className="pt-2 border-t border-border/60 space-y-2">
-                          {/* Row 1: Media, Tag, Comments */}
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => toast.info("Attach photos & videos in the full app!")}
-                                className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors"
-                              >
-                                <ImageIcon className="h-3.5 w-3.5 text-primary/80" />
-                                <span>Media</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => toast.info("Add hashtags to categorize your post!")}
-                                className="flex items-center gap-1 hover:text-foreground cursor-pointer transition-colors"
-                              >
-                                <Hash className="h-3.5 w-3.5 text-primary/80" />
-                                <span>Tag</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAllowComments(!allowComments);
-                                  toast.info(!allowComments ? "Comments enabled for new post" : "Comments turned off for new post");
-                                }}
-                                className={`flex items-center gap-1 transition-colors cursor-pointer ${allowComments ? "text-primary font-medium" : "text-muted-foreground line-through opacity-70"
-                                  }`}
-                                title={allowComments ? "Comments: On" : "Comments: Off"}
-                              >
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                <span>Comments: {allowComments ? "On" : "Off"}</span>
-                              </button>
+                      {/* Post Trigger Button */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => toast.info("Sign up to post on CollegeBook!")}
+                          className="w-full p-2.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 shadow-xs transition-all flex items-center justify-between gap-2 text-left cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="h-7 w-7 rounded-full bg-gradient-hero text-primary-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+                              YO
                             </div>
+                            <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                              Share an idea, achievement, or question...
+                            </span>
                           </div>
-
-                          {/* Row 2: Campus/Global Scope Switcher & Post Button */}
-                          <div className="flex items-center justify-between pt-1.5 border-t border-border/40 text-[10px]">
-                            <div className="inline-flex items-center bg-muted/80 p-0.5 rounded-lg border border-border/50">
-                              <button
-                                type="button"
-                                onClick={() => setFeedMode("campus")}
-                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${feedMode === "campus"
-                                    ? "bg-background text-primary shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground"
-                                  }`}
-                              >
-                                <Building2 className="h-3 w-3" />
-                                <span>Campus</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setFeedMode("global")}
-                                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${feedMode === "global"
-                                    ? "bg-background text-primary shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground"
-                                  }`}
-                              >
-                                <Globe className="h-3 w-3" />
-                                <span>Global</span>
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => toast.success("Sign up to publish live posts!")}
-                              className="px-3 py-1 rounded-lg bg-primary text-primary-foreground font-semibold text-[11px] flex items-center gap-1 hover:opacity-90 shadow-xs cursor-pointer transition-all active:scale-95"
-                            >
-                              <Send className="h-3 w-3" />
-                              <span>Post</span>
-                            </button>
+                          <div className="shrink-0 flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-[10px] font-semibold shadow-xs group-hover:opacity-95 transition-opacity">
+                            <Send className="h-3 w-3" />
+                            <span>Post</span>
                           </div>
-                        </div>
+                        </button>
                       </div>
 
                       {/* Post Card 1: Vatsal Chandrani (Founder) */}

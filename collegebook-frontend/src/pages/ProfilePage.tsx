@@ -27,6 +27,7 @@ import {
   Share2,
   UsersRound,
   ExternalLink,
+  ArrowUpRight,
   Eye,
   Code2,
   Rocket,
@@ -79,7 +80,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import FormattedContent from "@/components/FormattedContent";
-import ThemedLoader from "@/components/ThemedLoader";
+import { ProfileSkeleton } from "@/components/Skeletons";
+import { formatCount } from "@/lib/formatCount";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import InlineCommentsSection from "@/components/InlineCommentsSection";
@@ -1526,11 +1528,7 @@ const ProfilePage = () => {
     .toUpperCase();
 
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-16 flex items-center justify-center">
-        <ThemedLoader size="lg" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (
@@ -2558,51 +2556,49 @@ const ProfilePage = () => {
               </h3>
               <div className="space-y-2">
                 {profile.websiteUrl ? (
-                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                  <a
+                    href={
+                      profile.websiteUrl.startsWith("http")
+                        ? profile.websiteUrl
+                        : `https://${profile.websiteUrl}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                         <Globe className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">Portfolio</span>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                        Portfolio
+                      </span>
                     </div>
-                    <a
-                      href={
-                        profile.websiteUrl.startsWith("http")
-                          ? profile.websiteUrl
-                          : `https://${profile.websiteUrl}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                    >
-                      <span className="truncate">{profile.websiteUrl.replace(/^https?:\/\//, "")}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
-                  </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                  </a>
                 ) : null}
 
                 {profile.githubUrl ? (
-                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                  <a
+                    href={
+                      profile.githubUrl.startsWith("http")
+                        ? profile.githubUrl
+                        : `https://github.com/${profile.githubUrl.replace(/^@/, "").replace(/^https?:\/\/github\.com\//, "")}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                         <Github className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">GitHub</span>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                        GitHub
+                      </span>
                     </div>
-                    <a
-                      href={
-                        profile.githubUrl.startsWith("http")
-                          ? profile.githubUrl
-                          : `https://${profile.githubUrl}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                    >
-                      <span className="truncate">{profile.githubUrl.replace(/^https?:\/\//, "")}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
-                  </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                  </a>
                 ) : null}
 
                 {profile.customLinks &&
@@ -2610,23 +2606,23 @@ const ProfilePage = () => {
                     if (!link.label || !link.url) return null;
                     const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
                     return (
-                      <div key={link.id} className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                      <a
+                        key={link.id}
+                        href={fullUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                      >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                             <LinkIcon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">{link.label}</span>
+                          <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                            {link.label}
+                          </span>
                         </div>
-                        <a
-                          href={fullUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                        >
-                          <span className="truncate">{link.url.replace(/^https?:\/\//, "")}</span>
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                      </div>
+                        <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                      </a>
                     );
                   })}
 
@@ -2755,7 +2751,7 @@ const ProfilePage = () => {
                             className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""
                               }`}
                           />
-                          <span>{post.likes || 0}</span>
+                          <span>{formatCount(post.likes)}</span>
                         </Button>
 
                         {post.commentsEnabled !== false && (
@@ -2773,7 +2769,7 @@ const ProfilePage = () => {
                               }`}
                           >
                             <MessageSquare className="h-4 w-4" />
-                            <span>{post.commentsCount || 0}</span>
+                            <span>{formatCount(post.commentsCount)}</span>
                           </Button>
                         )}
 
@@ -3177,7 +3173,7 @@ const ProfilePage = () => {
                             className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""
                               }`}
                           />
-                          <span>{post.likes || 0}</span>
+                          <span>{formatCount(post.likes)}</span>
                         </Button>
 
                         {post.commentsEnabled !== false && (
@@ -3195,7 +3191,7 @@ const ProfilePage = () => {
                               }`}
                           >
                             <MessageSquare className="h-4 w-4" />
-                            <span>{post.commentsCount || 0}</span>
+                            <span>{formatCount(post.commentsCount)}</span>
                           </Button>
                         )}
 

@@ -18,6 +18,7 @@ import {
   Rocket,
   UserPlus,
   ExternalLink,
+  ArrowUpRight,
   Eye,
   CheckCircle2,
   Crown,
@@ -54,7 +55,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import FormattedContent from "@/components/FormattedContent";
-import ThemedLoader from "@/components/ThemedLoader";
+import { ProfileSkeleton, FeedSkeleton, CollabSkeleton } from "@/components/Skeletons";
+import { formatCount } from "@/lib/formatCount";
 import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import InlineCommentsSection from "@/components/InlineCommentsSection";
@@ -411,11 +413,7 @@ const StudentProfilePage = () => {
       : "Student");
 
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-16 flex items-center justify-center">
-        <ThemedLoader size="lg" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (notFound || !student) {
@@ -637,51 +635,49 @@ const StudentProfilePage = () => {
               </h3>
               <div className="space-y-2">
                 {student?.websiteUrl && (
-                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                  <a
+                    href={
+                      student.websiteUrl.startsWith("http")
+                        ? student.websiteUrl
+                        : `https://${student.websiteUrl}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                         <Globe className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">Portfolio</span>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                        Portfolio
+                      </span>
                     </div>
-                    <a
-                      href={
-                        student.websiteUrl.startsWith("http")
-                          ? student.websiteUrl
-                          : `https://${student.websiteUrl}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                    >
-                      <span className="truncate">{student.websiteUrl.replace(/^https?:\/\//, "")}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
-                  </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                  </a>
                 )}
 
                 {student?.githubUrl && (
-                  <div className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                  <a
+                    href={
+                      student.githubUrl.startsWith("http")
+                        ? student.githubUrl
+                        : `https://github.com/${student.githubUrl.replace(/^@/, "").replace(/^https?:\/\/github\.com\//, "")}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                  >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                         <Github className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">GitHub</span>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                        GitHub
+                      </span>
                     </div>
-                    <a
-                      href={
-                        student.githubUrl.startsWith("http")
-                          ? student.githubUrl
-                          : `https://github.com/${student.githubUrl.replace(/^@/, "")}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                    >
-                      <span className="truncate">{student.githubUrl.replace(/^https?:\/\/github\.com\//, "")}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
-                  </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                  </a>
                 )}
 
                 {/* Custom Links */}
@@ -697,23 +693,23 @@ const StudentProfilePage = () => {
                     if (!link.label || !link.url) return null;
                     const fullUrl = link.url.startsWith("http") ? link.url : `https://${link.url}`;
                     return (
-                      <div key={idx} className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 transition-all">
+                      <a
+                        key={idx}
+                        href={fullUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl bg-background hover:bg-muted/40 border border-border/50 hover:border-primary/40 transition-all group"
+                      >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                             <LinkIcon className="h-3.5 w-3.5" />
                           </div>
-                          <span className="text-xs font-semibold text-foreground truncate max-w-[80px] sm:max-w-[100px]">{link.label}</span>
+                          <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                            {link.label}
+                          </span>
                         </div>
-                        <a
-                          href={fullUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-[65%]"
-                        >
-                          <span className="truncate">{link.url.replace(/^https?:\/\//, "")}</span>
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                      </div>
+                        <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shrink-0" />
+                      </a>
                     );
                   });
                 })()}
@@ -739,7 +735,7 @@ const StudentProfilePage = () => {
         <TabsContent value="activity" className="space-y-4">
           {postsLoading ? (
             <div className="py-12 flex justify-center">
-              <ThemedLoader size="md" />
+              <FeedSkeleton count={3} />
             </div>
           ) : studentPosts.length === 0 ? (
             <Card className="p-8 text-center shadow-card">
@@ -829,7 +825,7 @@ const StudentProfilePage = () => {
                               }`}
                           >
                             <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} />{" "}
-                            {post.likes}
+                            {formatCount(post.likes)}
                           </Button>
                           {post.commentsEnabled !== false && (
                             <Button
@@ -846,7 +842,7 @@ const StudentProfilePage = () => {
                                 }`}
                             >
                               <MessageSquare className="h-4 w-4" />
-                              <span>{post.commentsCount || 0}</span>
+                              <span>{formatCount(post.commentsCount)}</span>
                             </Button>
                           )}
                           <Button
@@ -933,9 +929,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 1: Open Source */}
             <TabsContent value="open_source" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                <div className="py-12 flex justify-center">
-                  <ThemedLoader size="md" />
-                </div>
+                  <CollabSkeleton />
               ) : openSourceCollabs.length > 0 ? (
                 openSourceCollabs.map((project) => (
                   <Card key={project.id} className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
@@ -1059,9 +1053,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 2: Ongoing Teams / Projects */}
             <TabsContent value="ongoing" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                <div className="py-12 flex justify-center">
-                  <ThemedLoader size="md" />
-                </div>
+                  <CollabSkeleton />
               ) : ongoingCollabs.length > 0 ? (
                 ongoingCollabs.map((team) => {
                   const isStudentLead = Boolean(
@@ -1209,9 +1201,7 @@ const StudentProfilePage = () => {
             {/* Sub-Tab 3: Completed */}
             <TabsContent value="completed" className="space-y-4 focus-visible:outline-none">
               {teamsLoading ? (
-                <div className="py-12 flex justify-center">
-                  <ThemedLoader size="md" />
-                </div>
+                  <CollabSkeleton />
               ) : completedCollabs.length > 0 ? (
                 completedCollabs.map((team) => {
                   const isStudentLead = Boolean(

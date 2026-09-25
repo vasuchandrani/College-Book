@@ -20,8 +20,9 @@ import ImageCarousel from "@/components/ImageCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import AdCard, { type AdData } from "@/components/AdCard";
 import FormattedContent from "@/components/FormattedContent";
-import ThemedLoader from "@/components/ThemedLoader";
+import { FeedSkeleton } from "@/components/Skeletons";
 import InlineCommentsSection from "@/components/InlineCommentsSection";
+import { formatCount } from "@/lib/formatCount";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { formatSmartDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
@@ -244,11 +245,7 @@ const ExplorePage = () => {
 
   const renderFeed = () => {
     if (loadingInitial) {
-      return (
-        <div className="py-16 flex items-center justify-center">
-          <ThemedLoader size="md" />
-        </div>
-      );
+      return <FeedSkeleton count={4} />;
     }
 
     if (filtered.length === 0) {
@@ -380,7 +377,7 @@ const ExplorePage = () => {
                         post.liked ? "fill-red-500" : ""
                       }`}
                     />{" "}
-                    {post.likes}
+                    {formatCount(post.likes)}
                   </Button>
                   {post.commentsEnabled !== false && (
                     <Button
@@ -398,7 +395,7 @@ const ExplorePage = () => {
                       }`}
                     >
                       <MessageSquare className="h-4 w-4" />
-                      <span>{post.commentsCount || 0}</span>
+                      <span>{formatCount(post.commentsCount)}</span>
                     </Button>
                   )}
                   <Button

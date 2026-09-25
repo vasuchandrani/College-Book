@@ -48,7 +48,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { getCollabTeams, getMyJoinedRequests, createTeam, starProject, sendJoinRequest, lookupStudent } from "@/lib/api";
-import { ThemedLoader } from "@/components/ThemedLoader";
+import { CollabSkeleton } from "@/components/Skeletons";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 
@@ -1242,12 +1242,7 @@ const CollabPage = () => {
         {/* Tab 1: Open-source Projects */}
         <TabsContent value="open_source" className="space-y-4 focus-visible:outline-none">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center space-y-3">
-              <ThemedLoader size="md" />
-              <p className="text-xs text-muted-foreground font-medium animate-pulse">
-                Loading open-source projects...
-              </p>
-            </div>
+            <CollabSkeleton />
           ) : (
             <>
               {openSourceProjects.map((project, i) => (
@@ -1443,12 +1438,7 @@ const CollabPage = () => {
         {/* Tab 2: Hackathon Teams */}
         <TabsContent value="hackathon" className="space-y-4 focus-visible:outline-none">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center space-y-3">
-              <ThemedLoader size="md" />
-              <p className="text-xs text-muted-foreground font-medium animate-pulse">
-                Loading hackathon teams...
-              </p>
-            </div>
+            <CollabSkeleton />
           ) : (
             <>
               {hackathonTeams.map((team, i) => (
@@ -1640,12 +1630,7 @@ const CollabPage = () => {
         {/* Tab 3: Team Projects */}
         <TabsContent value="project" className="space-y-4 focus-visible:outline-none">
           {loading ? (
-            <div className="py-16 flex flex-col items-center justify-center space-y-3">
-              <ThemedLoader size="md" />
-              <p className="text-xs text-muted-foreground font-medium animate-pulse">
-                Loading team projects...
-              </p>
-            </div>
+            <CollabSkeleton />
           ) : (
             <>
               {teamProjects.map((project, i) => (

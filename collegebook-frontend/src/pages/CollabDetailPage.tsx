@@ -53,7 +53,7 @@ import {
 import { markRoomAsRead, checkIsMessageUnread } from "@/lib/chatUnread";
 import type { TeamDiscussion } from "@/types";
 import FormattedContent from "@/components/FormattedContent";
-import ThemedLoader from "@/components/ThemedLoader";
+import { CollabDetailSkeleton, CommentsSkeleton } from "@/components/Skeletons";
 import TeamRoomChatModal from "@/components/TeamRoomChatModal";
 import { TeamRoomChatPanel } from "@/components/TeamRoomChatPanel";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
@@ -359,19 +359,7 @@ export default function CollabDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 pl-0">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
-        </div>
-        <Card className="p-8 shadow-card flex flex-col items-center justify-center min-h-[360px] space-y-3">
-          <ThemedLoader size="lg" />
-          <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading project details...</p>
-        </Card>
-      </div>
-    );
+    return <CollabDetailSkeleton />;
   }
 
   if (!team) {
@@ -865,7 +853,7 @@ export default function CollabDetailPage() {
               className="h-9 px-3.5 rounded-lg shrink-0 gap-1.5 font-medium text-xs shadow-sm bg-gradient-hero text-primary-foreground"
             >
               {submittingDiscussion ? (
-                <ThemedLoader size="sm" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
                   <span>Post</span>
@@ -882,10 +870,7 @@ export default function CollabDetailPage() {
         {/* Discussions List */}
         <div className="space-y-3 pt-2">
           {discussionsLoading ? (
-            <div className="py-8 flex flex-col items-center justify-center gap-2">
-              <ThemedLoader size="sm" />
-              <p className="text-xs text-muted-foreground">Loading discussions...</p>
-            </div>
+            <CommentsSkeleton count={3} />
           ) : discussions.length === 0 ? (
             <div className="py-8 text-center space-y-1.5 bg-muted/20 rounded-xl border border-dashed border-border/60">
               <MessageSquare className="w-8 h-8 text-muted-foreground/60 mx-auto" />

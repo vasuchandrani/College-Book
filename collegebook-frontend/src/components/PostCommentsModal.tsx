@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FormattedContent } from "@/components/FormattedContent";
-import { ThemedLoader } from "@/components/ThemedLoader";
+import { CommentsSkeleton } from "@/components/Skeletons";
 import { getComments, addComment, deleteComment } from "@/lib/api";
 import type { FeedPost, ExplorePost, PostComment } from "@/types";
 import { toast } from "sonner";
@@ -206,10 +206,7 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
         {/* Comments Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4 min-h-[220px] max-h-[400px]">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <ThemedLoader size="md" />
-              <p className="text-xs text-muted-foreground">Loading comments...</p>
-            </div>
+            <CommentsSkeleton count={3} />
           ) : comments.length === 0 ? (
             <div className="py-12 text-center space-y-2">
               <div className="w-12 h-12 mx-auto rounded-full bg-muted flex items-center justify-center text-muted-foreground">

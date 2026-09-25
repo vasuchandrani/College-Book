@@ -271,7 +271,7 @@ const CreatePostPage = () => {
 
       {/* Header with Back Navigation and Title */}
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Button
             type="button"
             variant="ghost"
@@ -283,70 +283,63 @@ const CreatePostPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-heading text-lg sm:text-2xl font-bold tracking-tight">Create Post</h1>
+            <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight">Create Post</h1>
             <p className="text-muted-foreground text-xs sm:text-sm">
-              Share with {collegeDisplay} {isGlobal ? "and beyond" : "campus only"}
+              Publish an update to {collegeDisplay} {isGlobal ? "and global feed" : "campus only"}
             </p>
           </div>
         </div>
-
-        {/* Quick submit button in header */}
-        <Button
-          type="button"
-          onClick={handlePost}
-          disabled={isSubmitDisabled}
-          className="bg-gradient-hero text-primary-foreground font-semibold gap-1.5 shadow-sm hover:opacity-95 text-xs sm:text-sm h-9 px-4 sm:px-5 rounded-full transition-all shrink-0"
-        >
-          {isUploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-          <span>Post</span>
-        </Button>
       </div>
 
       {/* Dedicated Composer Box Card */}
       <Card className="p-4 sm:p-6 shadow-card border-border/80 bg-card/95 backdrop-blur-sm rounded-2xl">
         {/* Author Header */}
-        <div className="flex items-center gap-3 pb-4 mb-3 border-b border-border/60">
-          <Avatar className="h-11 w-11 border border-border">
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-              {user.initials || "YO"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold text-sm sm:text-base text-foreground truncate">
-              {user.name}
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
-              {user.course && (
-                <span className="font-medium text-foreground/80">
-                  {normalizeCourseShort(user.course)}
-                </span>
-              )}
-              {user.course && collegeDisplay && <span>•</span>}
-              <span className="truncate">{collegeDisplay}</span>
+        <div className="flex items-center justify-between gap-3 pb-4 mb-3 border-b border-border/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-10 w-10 sm:h-11 sm:w-11 border border-border shrink-0">
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {user.initials || "YO"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-sm sm:text-base text-foreground truncate">
+                {user.name}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground mt-0.5">
+                {user.course && (
+                  <span className="font-medium text-foreground/80">
+                    {normalizeCourseShort(user.course)}
+                  </span>
+                )}
+                {user.course && collegeDisplay && <span>•</span>}
+                <span className="truncate">{collegeDisplay}</span>
+              </div>
             </div>
           </div>
 
-          {/* Quick Visibility Pill */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-muted/80 text-muted-foreground border border-border/50">
+          {/* Interactive Audience Pill */}
+          <button
+            type="button"
+            onClick={() => setIsGlobal(!isGlobal)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-muted/70 hover:bg-muted text-foreground border border-border/60 hover:border-primary/40 transition-all cursor-pointer shadow-2xs shrink-0 select-none"
+            title={`Posting to ${isGlobal ? "Global Feed (all colleges)" : "Campus Only"}. Click to toggle.`}
+          >
             {isGlobal ? (
               <>
-                <Globe className="h-3 w-3 text-primary" />
-                <span className="hidden sm:inline">Global Feed</span>
-                <span className="sm:hidden">Global</span>
+                <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="hidden xs:inline">Global Feed</span>
+                <span className="xs:hidden">Global</span>
               </>
             ) : (
               <>
-                <School className="h-3 w-3 text-primary" />
-                <span className="hidden sm:inline">Campus Only</span>
-                <span className="sm:hidden">Campus</span>
+                <School className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="hidden xs:inline">Campus Only</span>
+                <span className="xs:hidden">Campus</span>
               </>
             )}
-          </div>
+            <span className="text-[10px] text-muted-foreground ml-0.5">▾</span>
+          </button>
         </div>
 
         {/* Text Input Area */}
@@ -486,103 +479,86 @@ const CreatePostPage = () => {
             </div>
           )}
 
-          {/* Toolbar and Options */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <input
-                ref={mediaInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
-                multiple
-                className="hidden"
-                onChange={handleMediaSelect}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-foreground gap-1.5 px-3 h-8 sm:h-9 text-xs rounded-lg hover:bg-muted"
-                onClick={() => mediaInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                <span>Add Media</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={`gap-1.5 px-3 h-8 sm:h-9 text-xs rounded-lg ${
-                  showTagInput || postTags.length > 0
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : "text-foreground hover:bg-muted"
-                }`}
-                onClick={() => {
-                  setShowTagInput(!showTagInput);
-                  if (!showTagInput) {
-                    setTimeout(() => tagInputRef.current?.focus(), 100);
-                  }
-                }}
-                disabled={isUploading}
-              >
-                <Hash className="h-3.5 w-3.5 text-primary" />
-                <span>Hashtag</span>
-              </Button>
-
-              {/* Global vs Campus selector */}
-              <div className="flex bg-muted p-0.5 rounded-lg border border-border/40">
-                <button
+          {/* Toolbar and Action Buttons */}
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-3">
+            {/* Row 1: Attachment Tools */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
+                  multiple
+                  className="hidden"
+                  onChange={handleMediaSelect}
+                />
+                <Button
                   type="button"
-                  onClick={() => setIsGlobal(true)}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all ${
-                    isGlobal
-                      ? "bg-background text-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 gap-1.5 rounded-xl border-border/70 hover:border-primary/40 hover:bg-muted text-xs font-medium text-foreground transition-all"
+                  onClick={() => mediaInputRef.current?.click()}
+                  disabled={isUploading}
                 >
-                  <Globe className="h-3 w-3" />
-                  <span>Global</span>
-                </button>
-                <button
+                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                  <span>Media</span>
+                </Button>
+
+                <Button
                   type="button"
-                  onClick={() => setIsGlobal(false)}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all ${
-                    !isGlobal
-                      ? "bg-background text-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
+                  variant="outline"
+                  size="sm"
+                  className={`h-9 px-3 gap-1.5 rounded-xl text-xs font-medium transition-all ${
+                    showTagInput || postTags.length > 0
+                      ? "bg-primary/10 text-primary border-primary/40"
+                      : "border-border/70 hover:border-primary/40 hover:bg-muted text-foreground"
                   }`}
+                  onClick={() => {
+                    setShowTagInput(!showTagInput);
+                    if (!showTagInput) {
+                      setTimeout(() => tagInputRef.current?.focus(), 100);
+                    }
+                  }}
+                  disabled={isUploading}
                 >
-                  <School className="h-3 w-3" />
-                  <span>Campus</span>
-                </button>
+                  <Hash className="h-3.5 w-3.5 text-primary" />
+                  <span>Hashtag</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCommentsEnabled(!commentsEnabled)}
+                  className={`h-9 px-3 gap-1.5 rounded-xl text-xs font-medium transition-all ${
+                    commentsEnabled
+                      ? "border-border/70 hover:border-primary/40 hover:bg-muted text-foreground"
+                      : "bg-muted text-muted-foreground border-border/50 line-through opacity-75"
+                  }`}
+                  title={commentsEnabled ? "Comments allowed on post" : "Comments disabled"}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                  <span className="hidden xs:inline">Comments: {commentsEnabled ? "On" : "Off"}</span>
+                  <span className="xs:hidden">{commentsEnabled ? "Comments" : "No Comm."}</span>
+                </Button>
               </div>
 
-              {/* Comments Enabled Toggle */}
-              <button
-                type="button"
-                onClick={() => setCommentsEnabled(!commentsEnabled)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition-all ${
-                  commentsEnabled
-                    ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/15"
-                    : "bg-muted text-muted-foreground border-border/60 hover:text-foreground"
-                }`}
-                title={commentsEnabled ? "Comments allowed on your post" : "Comments turned off"}
-              >
-                <MessageSquare className="h-3 w-3" />
-                <span>{commentsEnabled ? "Comments On" : "Comments Off"}</span>
-              </button>
+              {content.length > 0 && (
+                <span className="text-[11px] text-muted-foreground ml-auto hidden sm:block">
+                  {content.length} characters
+                </span>
+              )}
             </div>
 
-            {/* Bottom Actions: Cancel & Post */}
-            <div className="flex items-center justify-end gap-2 pt-2 sm:pt-0">
+            {/* Row 2: Submit Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/feed")}
                 disabled={isUploading}
-                className="h-9 px-4 text-xs font-medium text-muted-foreground hover:text-foreground"
+                className="h-10 px-4 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl flex-1 sm:flex-initial"
               >
                 Cancel
               </Button>
@@ -591,14 +567,14 @@ const CreatePostPage = () => {
                 size="sm"
                 onClick={handlePost}
                 disabled={isSubmitDisabled}
-                className="bg-gradient-hero text-primary-foreground gap-1.5 h-9 px-5 text-xs sm:text-sm font-semibold rounded-lg shadow-sm hover:opacity-95"
+                className="bg-gradient-hero text-primary-foreground gap-1.5 h-10 px-6 text-xs sm:text-sm font-semibold rounded-xl shadow-xs hover:opacity-95 transition-all flex-1 sm:flex-initial"
               >
                 {isUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                <span>Post</span>
+                <span>Publish Post</span>
               </Button>
             </div>
           </div>

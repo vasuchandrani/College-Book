@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FormattedContent } from "@/components/FormattedContent";
-import { ThemedLoader } from "@/components/ThemedLoader";
+import { CommentsSkeleton } from "@/components/Skeletons";
 import { getComments, addComment, deleteComment } from "@/lib/api";
 import { formatSmartDate } from "@/lib/dateUtils";
 import type { FeedPost, ExplorePost, PostComment } from "@/types";
@@ -186,10 +186,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
         {/* Scrollable Comment Stream */}
         <div className="max-h-[280px] sm:max-h-[340px] overflow-y-auto space-y-2.5 pr-1 scrollbar-thin">
           {loading ? (
-            <div className="py-6 flex flex-col items-center justify-center gap-2">
-              <ThemedLoader size="sm" />
-              <p className="text-[11px] text-muted-foreground">Loading comments...</p>
-            </div>
+            <CommentsSkeleton count={3} />
           ) : comments.length === 0 ? (
             <div className="py-6 text-center space-y-1 bg-background/50 rounded-xl border border-dashed border-border/50">
               <p className="text-xs font-medium text-foreground">No comments yet</p>

@@ -65,7 +65,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { FormattedContent } from "@/components/FormattedContent";
-import ThemedLoader from "@/components/ThemedLoader";
+import { MyCollabSkeleton } from "@/components/Skeletons";
 import TeamRoomChatModal from "@/components/TeamRoomChatModal";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import {
@@ -836,14 +836,7 @@ export default function MyCollaborationPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto p-6 min-h-[60vh] flex flex-col items-center justify-center">
-        <ThemedLoader size="md" />
-        <p className="text-sm text-muted-foreground mt-4 animate-pulse">
-          Loading your collaborations...
-        </p>
-      </div>
-    );
+    return <MyCollabSkeleton />;
   }
 
   return (
