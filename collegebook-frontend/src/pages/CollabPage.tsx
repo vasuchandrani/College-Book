@@ -149,23 +149,38 @@ const CollabPage = () => {
 
   const user = JSON.parse(localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}');
 
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
   useEffect(() => {
     let alive = true;
-    const existingTeams = clientCache.get<any[]>("collab_teams");
-    if (!existingTeams) {
+    const existingTeams = clientCache.get<{teams: any[], hasNext: boolean}>("collab_teams_cache");
+    if (existingTeams && existingTeams.teams.length > 0) {
+      setTeams(existingTeams.teams);
+      setHasMore(existingTeams.hasNext);
+    } else {
       setLoading(true);
     }
+    
     Promise.all([
-      getCollabTeams().catch(() => []),
+      getCollabTeams(0, 15).catch(() => ({ teams: [], hasNext: false })),
       getMyJoinedRequests().catch(() => []),
     ])
       .then(([teamsData, reqsData]) => {
         if (alive) {
-          const freshTeams = (teamsData as any)?.teams || teamsData || [];
+          const freshTeams = (teamsData as any)?.teams || [];
+          const nextVal = (teamsData as any)?.hasNext || false;
           const freshReqs = (reqsData as any)?.requests || reqsData || [];
+          
           setTeams(freshTeams);
+          setHasMore(nextVal);
+          setPage(0);
           setMyRequests(freshReqs);
-          clientCache.set("collab_teams", freshTeams, 300_000);
+          
+          clientCache.set("collab_teams_cache", { teams: freshTeams, hasNext: nextVal }, 300_000);
           clientCache.set("collab_my_requests", freshReqs, 300_000);
         }
       })
@@ -179,6 +194,43 @@ const CollabPage = () => {
       alive = false;
     };
   }, []);
+
+  const loadMoreTeams = useCallback(() => {
+    if (!hasMore || loadingMore || loading) return;
+    setLoadingMore(true);
+    getCollabTeams(page + 1, 15)
+      .then((res) => {
+        const freshTeams = res.teams || [];
+        const nextVal = res.hasNext || false;
+        setTeams((prev) => {
+          const newTeams = [...prev, ...freshTeams];
+          clientCache.set("collab_teams_cache", { teams: newTeams, hasNext: nextVal }, 300_000);
+          return newTeams;
+        });
+        setHasMore(nextVal);
+        setPage((p) => p + 1);
+      })
+      .catch(() => toast.error("Failed to load more projects"))
+      .finally(() => setLoadingMore(false));
+  }, [hasMore, loadingMore, loading, page]);
+
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore) return;
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreTeams();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+    return () => {
+      if (observerRef.current) observerRef.current.disconnect();
+    };
+  }, [hasMore, loadingMore, loading, loadMoreTeams]);
 
   const handleToggleStar = (teamId: string | number) => {
     const team = teams.find((t) => t.id === teamId);
@@ -1844,6 +1896,13 @@ const CollabPage = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Pagination trigger */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="py-8 flex justify-center items-center w-full">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
 
       {/* Join Request Dialog */}
       <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
