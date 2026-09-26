@@ -211,7 +211,7 @@ export async function request<T>(
           isGuest = true;
         }
       }
-    } catch {}
+    } catch { }
 
     if (isGuest) {
       const isAllowedAuth =
@@ -437,7 +437,7 @@ export const logout = async (): Promise<void> => {
     await request<void>("/auth/logout", {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
   localStorage.removeItem("cb_token");
   localStorage.removeItem("cb_refresh_token");
@@ -526,12 +526,12 @@ export const normalizeCollegeShort = (
 
   // Remove location like ", Nadiad"
   const beforeComma = collegeName.split(",")[0].trim();
-  
+
   // Exclude common joining words
   const excludeWords = new Set(["of", "and", "in", "the", "for", "at"]);
-  
+
   const words = beforeComma.split(/\s+/).filter(w => w.length > 0 && !excludeWords.has(w.toLowerCase()));
-  
+
   if (words.length > 1) {
     return words.map(w => w[0].toUpperCase()).join("");
   }
@@ -641,11 +641,11 @@ export const getTrendingTags = async (): Promise<string[]> => {
   return await request<string[]>("/tags/trending");
 };
 
-export const getTopHashtags = async (): Promise<{tag: string, count: number}[]> => {
+export const getTopHashtags = async (): Promise<{ tag: string, count: number }[]> => {
   try {
     const data = await request<any>("/tags/trending?limit=100");
     if (Array.isArray(data)) {
-      return data.map((t: any) => 
+      return data.map((t: any) =>
         typeof t === 'string' ? { tag: t, count: 0 } : { tag: t.tag || t.name || t, count: t.count || 0 }
       );
     }
@@ -1164,7 +1164,7 @@ export const getMyTeams = async (
   if (type) queryParts.push(`type=${type}`);
   if (completed !== undefined) queryParts.push(`completed=${completed}`);
   if (excludeOpenSource) queryParts.push(`excludeOpenSource=true`);
-  
+
   const query = queryParts.length > 0 ? `&${queryParts.join("&")}` : "";
   const res = await request<PageResponse<any>>(`/teams/my?page=${page}&size=${size}${query}`);
   return {
@@ -1269,7 +1269,7 @@ export const getCollabBadgeCounts = async (forceRefresh = false): Promise<Collab
       let user: any = {};
       try {
         user = JSON.parse(localStorage.getItem("cb_user") || "{}");
-      } catch {}
+      } catch { }
 
       let recruitingUnread = 0;
       let formedUnread = 0;
@@ -1303,7 +1303,7 @@ export const getCollabBadgeCounts = async (forceRefresh = false): Promise<Collab
                   }
                 }
               }
-            } catch {}
+            } catch { }
           })
         );
       }
@@ -2655,8 +2655,8 @@ export const adminDeletePost = async (id: string): Promise<void> => {
 
 export const adminLogin = async (
   credentials: Record<string, any>
-): Promise<{ accessToken: string; user?: any; [key: string]: any }> => {
-  const res = await request<{ accessToken: string; user?: any; [key: string]: any }>("/auth/admin-login", {
+): Promise<{ accessToken: string; user?: any;[key: string]: any }> => {
+  const res = await request<{ accessToken: string; user?: any;[key: string]: any }>("/auth/admin-login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });

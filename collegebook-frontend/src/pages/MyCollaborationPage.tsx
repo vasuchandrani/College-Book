@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
@@ -82,6 +82,7 @@ import {
   markHiringComplete,
   toggleStarTeam,
   getTeamRecentMessages,
+  getCollabBadgeCounts,
 } from "@/lib/api";
 import { markRoomAsRead, checkIsMessageUnread } from "@/lib/chatUnread";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
@@ -131,6 +132,34 @@ interface MemberEntry {
   role: string;
   avatarUrl?: string;
   collegeName?: string;
+}
+
+/** Reusable sentinel that properly manages IntersectionObserver lifecycle */
+function PaginationSentinel({ onIntersect, loading }: { onIntersect: () => void; loading: boolean }) {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const callbackRef = useRef(onIntersect);
+  callbackRef.current = onIntersect;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          callbackRef.current();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={sentinelRef} className="h-10 w-full flex items-center justify-center mt-4">
+      {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+    </div>
+  );
 }
 
 export default function MyCollaborationPage() {
@@ -212,12 +241,13 @@ export default function MyCollaborationPage() {
   const [activeCollabTab, setActiveCollabTab] = useState<CollabTabKey>("open_source");
   const [tabPagination, setTabPagination] = useState<Record<string, { page: number; hasMore: boolean }>>({
     open_source: { page: 0, hasMore: true },
+    my_requests: { page: 0, hasMore: true },
     active_teams: { page: 0, hasMore: true },
     completed_teams: { page: 0, hasMore: true },
   });
   const [loadingMore, setLoadingMore] = useState(false);
-  const [tabLoaded, setTabLoaded] = useState<Record<string, boolean>>({});
-  const [tabLoading, setTabLoading] = useState<Record<string, boolean>>({});
+  const tabLoadedRef = useRef<Record<string, boolean>>({});
+  const tabLoadingRef = useRef<Record<string, boolean>>({});
 
   const loadData = async () => {
     try {
@@ -225,24 +255,34 @@ export default function MyCollaborationPage() {
       if (!existingReqs) {
         setLoading(true);
       }
-      const [reqsData, incomingData, badgesData] = await Promise.all([
-        getMyJoinedRequests().catch(() => []),
-        getIncomingJoinRequests().catch(() => []),
+      const [reqsData, incomingData] = await Promise.all([
+        getMyJoinedRequests().catch(() => ({ requests: [], page: 0, size: 15, totalItems: 0, totalPages: 0, hasNext: false })),
+        getIncomingJoinRequests().catch(() => ({ requests: [], page: 0, size: 15, totalItems: 0, totalPages: 0, hasNext: false })),
       ]);
-      const freshTeams = (teamsData as any)?.teams || teamsData || [];
-      const freshReqs = (reqsData as any)?.requests || reqsData || [];
-      const freshIncoming = (incomingData as any)?.requests || incomingData || [];
-      
+      const freshReqs = (reqsData as any)?.requests || [];
+      const freshIncoming = (incomingData as any)?.requests || [];
+
       setMyRequests(freshReqs);
       setIncomingRequests(freshIncoming);
       clientCache.set("my_collab_requests", freshReqs, 300_000);
 
-      // The badgesData comes from getCollabBadgeCounts() via our API update or caching
-      if (badgesData) {
-        clientCache.set("collab_badge_counts", badgesData, 60_000);
-        window.dispatchEvent(new CustomEvent("cb_collab_updated", { detail: { count: badgesData.totalCount } }));
+      // Update my_requests pagination from the paginated response
+      if (reqsData && typeof (reqsData as any).hasNext === "boolean") {
+        setTabPagination(p => ({
+          ...p,
+          my_requests: { page: (reqsData as any).page ?? 0, hasMore: (reqsData as any).hasNext }
+        }));
       }
-      
+
+      // Fetch badge counts separately
+      try {
+        const badgesData = await getCollabBadgeCounts();
+        if (badgesData) {
+          clientCache.set("collab_badge_counts", badgesData, 60_000);
+          window.dispatchEvent(new CustomEvent("cb_collab_updated", { detail: { count: badgesData.totalCount } }));
+        }
+      } catch {}
+
     } catch (err: any) {
       toast.error("Failed to load requests data");
     } finally {
@@ -250,7 +290,7 @@ export default function MyCollaborationPage() {
     }
   };
 
-  const checkUnreadForTeams = useCallback(async (teams: any[]) => {
+  const checkUnreadForTeams = async (teams: any[]) => {
     const unreadMap = new Set(unreadRooms);
     let changed = false;
     await Promise.all(
@@ -286,22 +326,22 @@ export default function MyCollaborationPage() {
       })
     );
     if (changed) setUnreadRooms(unreadMap);
-  }, [unreadRooms, user.id, user.userId, user.name, user.fullName, user.handle]);
+  };
 
   // On-demand tab data loading
   useEffect(() => {
     if (activeCollabTab === "my_requests") return;
-    if (tabLoaded[activeCollabTab] || tabLoading[activeCollabTab]) return;
+    if (tabLoadedRef.current[activeCollabTab] || tabLoadingRef.current[activeCollabTab]) return;
+
+    tabLoadingRef.current = { ...tabLoadingRef.current, [activeCollabTab]: true };
 
     let alive = true;
-    setTabLoading(p => ({ ...p, [activeCollabTab]: true }));
-
     const fetchTab = async () => {
       try {
         let typeParam = undefined;
         let completedParam = undefined;
         let excludeOpenSourceParam = undefined;
-        
+
         if (activeCollabTab === "open_source") {
           typeParam = "OPEN_SOURCE";
         } else if (activeCollabTab === "active_teams") {
@@ -326,32 +366,58 @@ export default function MyCollaborationPage() {
           ...p,
           [activeCollabTab]: { page: res.page, hasMore: res.hasNext }
         }));
-        
+
         checkUnreadForTeams(freshTeams);
       } catch (err) {
+        console.error(`[MyCollab] Failed to load tab "${activeCollabTab}":`, err);
       } finally {
         if (alive) {
-          setTabLoading(p => ({ ...p, [activeCollabTab]: false }));
-          setTabLoaded(p => ({ ...p, [activeCollabTab]: true }));
+          tabLoadingRef.current = { ...tabLoadingRef.current, [activeCollabTab]: false };
+          tabLoadedRef.current = { ...tabLoadedRef.current, [activeCollabTab]: true };
         }
       }
     };
     fetchTab();
 
-    return () => { alive = false; };
-  }, [activeCollabTab, tabLoaded, tabLoading]);
+    return () => { 
+      alive = false; 
+      tabLoadingRef.current = { ...tabLoadingRef.current, [activeCollabTab]: false };
+    };
+  }, [activeCollabTab]);
 
   const loadMoreTab = useCallback(async () => {
-    if (activeCollabTab === "my_requests") return;
     const tp = tabPagination[activeCollabTab];
-    if (!tp || !tp.hasMore || loadingMore || tabLoading[activeCollabTab]) return;
+    if (!tp || !tp.hasMore || loadingMore || tabLoadingRef.current[activeCollabTab]) return;
+
+    // Handle my_requests pagination separately
+    if (activeCollabTab === "my_requests") {
+      setLoadingMore(true);
+      try {
+        const nextPage = tp.page + 1;
+        const res = await getMyJoinedRequests(nextPage, 15);
+        const freshReqs = res?.requests || [];
+        setMyRequests(prev => {
+          const map = new Map(prev.map(r => [r.id, r]));
+          freshReqs.forEach(r => map.set(r.id, r));
+          return Array.from(map.values());
+        });
+        setTabPagination(p => ({
+          ...p,
+          my_requests: { page: res.page, hasMore: res.hasNext }
+        }));
+      } catch (err) {
+      } finally {
+        setLoadingMore(false);
+      }
+      return;
+    }
 
     setLoadingMore(true);
     try {
       let typeParam = undefined;
       let completedParam = undefined;
       let excludeOpenSourceParam = undefined;
-      
+
       if (activeCollabTab === "open_source") {
         typeParam = "OPEN_SOURCE";
       } else if (activeCollabTab === "active_teams") {
@@ -376,13 +442,13 @@ export default function MyCollaborationPage() {
         ...p,
         [activeCollabTab]: { page: res.page, hasMore: res.hasNext }
       }));
-      
+
       checkUnreadForTeams(freshTeams);
     } catch (err) {
     } finally {
       setLoadingMore(false);
     }
-  }, [activeCollabTab, tabPagination, loadingMore, tabLoading]);
+  }, [activeCollabTab, tabPagination, loadingMore]);
 
   // Load initial non-team data
   useEffect(() => {
@@ -960,7 +1026,7 @@ export default function MyCollaborationPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="open_source" className="space-y-4 sm:space-y-5">
+      <Tabs value={activeCollabTab} onValueChange={(v) => setActiveCollabTab(v as CollabTabKey)} className="space-y-4 sm:space-y-5">
         <TabsList className="bg-muted/80 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full h-auto gap-1.5 shadow-2xs">
           <TabsTrigger value="open_source" className="gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 text-xs sm:text-xs md:text-sm font-semibold rounded-lg min-w-0">
             <Code2 className="h-4 w-4 text-primary shrink-0" />
@@ -1183,23 +1249,7 @@ export default function MyCollaborationPage() {
           )}
           {/* Bottom Sentinel for Intersection Observer */}
           {tabPagination.open_source?.hasMore && (
-            <div
-              ref={(el) => {
-                if (!el) return;
-                const observer = new IntersectionObserver(
-                  (entries) => {
-                    if (entries[0].isIntersecting) {
-                      loadMoreTab();
-                    }
-                  },
-                  { threshold: 0.1 }
-                );
-                observer.observe(el);
-              }}
-              className="h-10 w-full flex items-center justify-center mt-4"
-            >
-              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-            </div>
+            <PaginationSentinel onIntersect={loadMoreTab} loading={loadingMore} />
           )}
         </TabsContent>
 
@@ -1304,6 +1354,10 @@ export default function MyCollaborationPage() {
                 );
               })}
             </div>
+          )}
+          {/* Bottom Sentinel for my_requests pagination */}
+          {tabPagination.my_requests?.hasMore && (
+            <PaginationSentinel onIntersect={loadMoreTab} loading={loadingMore} />
           )}
         </TabsContent>
 
@@ -1574,23 +1628,7 @@ export default function MyCollaborationPage() {
           )}
           {/* Bottom Sentinel for Intersection Observer */}
           {tabPagination.active_teams?.hasMore && (
-            <div
-              ref={(el) => {
-                if (!el) return;
-                const observer = new IntersectionObserver(
-                  (entries) => {
-                    if (entries[0].isIntersecting) {
-                      loadMoreTab();
-                    }
-                  },
-                  { threshold: 0.1 }
-                );
-                observer.observe(el);
-              }}
-              className="h-10 w-full flex items-center justify-center mt-4"
-            >
-              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-            </div>
+            <PaginationSentinel onIntersect={loadMoreTab} loading={loadingMore} />
           )}
         </TabsContent>
 
@@ -1768,23 +1806,7 @@ export default function MyCollaborationPage() {
           )}
           {/* Bottom Sentinel for Intersection Observer */}
           {tabPagination.completed_teams?.hasMore && (
-            <div
-              ref={(el) => {
-                if (!el) return;
-                const observer = new IntersectionObserver(
-                  (entries) => {
-                    if (entries[0].isIntersecting) {
-                      loadMoreTab();
-                    }
-                  },
-                  { threshold: 0.1 }
-                );
-                observer.observe(el);
-              }}
-              className="h-10 w-full flex items-center justify-center mt-4"
-            >
-              {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
-            </div>
+            <PaginationSentinel onIntersect={loadMoreTab} loading={loadingMore} />
           )}
         </TabsContent>
       </Tabs>
