@@ -31,8 +31,8 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.completed = :completed ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsByCompletedPaged(@Param("userId") UUID userId, @Param("completed") boolean completed, Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.completed = :completed AND t.type <> com.collegebook.collegebookbackend.collab.entity.TeamType.OPEN_SOURCE ORDER BY t.createdAt DESC")
-    Page<Team> findMyRegularTeamsByCompletedPaged(@Param("userId") UUID userId, @Param("completed") boolean completed, Pageable pageable);
+    @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.completed = :completed AND t.type <> :excludeType ORDER BY t.createdAt DESC")
+    Page<Team> findMyRegularTeamsByCompletedPaged(@Param("userId") UUID userId, @Param("completed") boolean completed, @Param("excludeType") TeamType excludeType, Pageable pageable);
 
     @Query("SELECT DISTINCT t FROM Team t JOIN TeamMember tm ON tm.team.id = t.id WHERE tm.user.id = :userId AND t.type = :type ORDER BY t.createdAt DESC")
     Page<Team> findMyTeamsByTypePaged(@Param("userId") UUID userId, @Param("type") TeamType type, Pageable pageable);

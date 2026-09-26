@@ -32,6 +32,9 @@ interface PageResponse<T> {
   totalItems: number;
   totalPages: number;
   hasNext: boolean;
+  content?: T[];
+  number?: number;
+  totalElements?: number;
 }
 
 export class ApiError extends Error {
@@ -307,14 +310,24 @@ export async function request<T>(
       }
     }
 
-    if (res.status === 401 || (res.status === 403 && !path.startsWith("/admin") && !path.startsWith("admin"))) {
+    // Only intercept 401 for session expiry. 403 means forbidden (e.g. demo mode restriction, not part of team, etc)
+    // and should NOT log the user out.
+    if (res.status === 401) {
       if (typeof window !== "undefined") {
-        clearAuthSession();
-        const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
         const currentPath = window.location.pathname;
-        if (!publicPaths.includes(currentPath)) {
-          sessionStorage.setItem("cb_redirect_url", currentPath + window.location.search);
-          window.location.replace("/login");
+        if (currentPath.startsWith("/manage-admin")) {
+          // If on admin dashboard, don't clear student session, just redirect to admin login if it was an admin API
+          if (path.startsWith("/admin") || path.startsWith("admin")) {
+            sessionStorage.removeItem("cb_admin_token");
+            window.location.replace("/manage-admin");
+          }
+        } else {
+          clearAuthSession();
+          const publicPaths = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+          if (!publicPaths.includes(currentPath)) {
+            sessionStorage.setItem("cb_redirect_url", currentPath + window.location.search);
+            window.location.replace("/login");
+          }
         }
       }
     }
@@ -597,7 +610,7 @@ export const getStudentPosts = async (
   const res = await request<PageResponse<any>>(
     `/students/${encodeURIComponent(slug)}/posts?${params.toString()}`
   );
-  const posts = (res.items || []).map((post) => {
+  const posts = (res.content || res.items || []).map((post) => {
     const videoMedia = (post.media || []).find((m: any) => m.mediaType === "VIDEO");
     return {
       id: post.id,
@@ -625,11 +638,11 @@ export const getStudentPosts = async (
 
   return {
     posts,
-    page: res.page ?? page,
+    page: res.number ?? res.page ?? page,
     size: res.size ?? size,
-    totalItems: res.totalItems ?? posts.length,
+    totalItems: res.totalElements ?? res.totalItems ?? posts.length,
     totalPages: res.totalPages ?? 1,
-    hasNext: res.hasNext ?? (posts.length === size),
+    hasNext: res.number !== undefined && res.totalPages !== undefined ? res.number < res.totalPages - 1 : res.hasNext ?? (posts.length === size),
   };
 };
 

@@ -65,13 +65,13 @@ export interface ExplorePost {
 
 export interface AdData {
   id: string;
-  brand: string;
+  brand?: string;
   title: string;
-  description: string;
-  images: string[];
-  ctaText: string;
-  ctaLink: string;
-  commentsEnabled: boolean;
+  description?: string;
+  images?: string[];
+  ctaText?: string;
+  ctaLink?: string;
+  commentsEnabled?: boolean;
   discount?: string;
 }
 

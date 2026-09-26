@@ -150,46 +150,52 @@ const FeedPage = () => {
 
   // Like / Save toggling (optimistic, debounced)
   const toggleLike = (postId: string | number) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }
-          : p
-      )
-    );
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const currentLiked = !!post.liked;
+
     triggerToggle(
       String(postId) + "-like",
-      () => apiLikePost(postId),
-      (err) => {
+      currentLiked,
+      (newLiked) => {
         setPosts((prev) =>
           prev.map((p) =>
             p.id === postId
-              ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) }
+              ? {
+                  ...p,
+                  liked: newLiked,
+                  likes: newLiked
+                    ? p.liked
+                      ? p.likes
+                      : p.likes + 1
+                    : p.liked
+                    ? Math.max(0, p.likes - 1)
+                    : p.likes,
+                }
               : p
           )
         );
-        toast.error(err.message || "Failed to update like");
-      }
+      },
+      (signal) => apiLikePost(postId, signal)
     );
   };
 
   const toggleSave = (postId: string | number) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId ? { ...p, saved: !p.saved } : p
-      )
-    );
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const currentSaved = !!post.saved;
+
     triggerToggle(
       String(postId) + "-save",
-      () => apiSavePost(postId),
-      (err) => {
+      currentSaved,
+      (newSaved) => {
         setPosts((prev) =>
           prev.map((p) =>
-            p.id === postId ? { ...p, saved: !p.saved } : p
+            p.id === postId ? { ...p, saved: newSaved } : p
           )
         );
-        toast.error(err.message || "Failed to update save");
-      }
+      },
+      (signal) => apiSavePost(postId, signal)
     );
   };
 

@@ -344,7 +344,7 @@ const AdminDashboard = () => {
       let uploadedUrl = "";
       try {
         const urlResponse = await uploadImageFile(adImageFile);
-        uploadedUrl = urlResponse;
+        uploadedUrl = urlResponse.publicUrl || urlResponse.url || "";
       } catch (err: any) {
         toast.error("Failed to upload image. Please try again.");
         setAdCreating(false);

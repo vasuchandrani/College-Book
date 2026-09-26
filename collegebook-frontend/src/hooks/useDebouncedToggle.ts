@@ -33,9 +33,14 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
   const triggerToggle = useCallback(
     (
       id: string | number,
+      currentValue: boolean,
+      optimisticUpdate: (newValue: boolean) => void,
       apiCall: (signal?: AbortSignal) => Promise<unknown>,
       onError?: (err: Error) => void
     ) => {
+      const newValue = !currentValue;
+      optimisticUpdate(newValue);
+
       const key = id;
       const existing = pendingMapRef.current.get(key);
 
@@ -56,6 +61,7 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
         } catch (err: any) {
           if (err?.name !== "AbortError" && !controller.signal.aborted) {
             console.error("Debounced toggle sync error:", err);
+            optimisticUpdate(currentValue); // Rollback on error
             if (onError) onError(err);
           }
         } finally {
@@ -66,7 +72,7 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
       pendingMapRef.current.set(key, {
         timer,
         abortController: controller,
-        finalTargetState: true, // Placeholder to satisfy the interface
+        finalTargetState: newValue,
       });
     },
     [debounceDelayMs]

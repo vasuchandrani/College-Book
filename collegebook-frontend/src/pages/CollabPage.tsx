@@ -290,8 +290,9 @@ const CollabPage = () => {
       teamId,
       currentStarred,
       (newStarred) => {
-        setTeams((prev) =>
-          prev.map((t) =>
+        setTabTeams((p) => ({
+          ...p,
+          [activeCollabTab]: p[activeCollabTab].map((t) =>
             t.id === teamId
               ? {
                 ...t,
@@ -306,7 +307,7 @@ const CollabPage = () => {
               }
               : t
           )
-        );
+        }));
       },
       (signal) => starProject(teamId, signal)
     );
@@ -496,7 +497,10 @@ const CollabPage = () => {
         maxMembers: maxM,
       });
 
-      setTeams([newTeam, ...teams]);
+      setTabTeams((p) => ({
+        ...p,
+        [createType as "open_source" | "hackathon" | "project"]: [newTeam, ...(p[createType as "open_source" | "hackathon" | "project"] || [])],
+      }));
       toast.success(
         createType === "open_source"
           ? "Open-source project published!"

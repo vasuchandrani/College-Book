@@ -48,8 +48,13 @@ const AdminPostPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
-  const isAuthenticated = isAuthTokenValid(token);
+  const adminToken = typeof window !== "undefined" ? sessionStorage.getItem("cb_admin_token") : null;
+
+  useEffect(() => {
+    if (!adminToken) {
+      navigate("/manage-admin", { replace: true });
+    }
+  }, [adminToken, navigate]);
 
   const { triggerToggle } = useDebouncedToggle(400);
 
@@ -117,11 +122,7 @@ const AdminPostPage = () => {
       .catch((err) => {
         if (isMounted) {
           if (err?.status === 401 || err?.status === 403) {
-            clearAuthSession();
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
-            }
-            navigate("/login", { replace: true, state: { from: location } });
+            setError("Cannot access post. Your student token may have expired.");
             return;
           }
           setError(err?.message || "Post not found or has been removed.");
@@ -244,14 +245,6 @@ const AdminPostPage = () => {
       handleAddComment();
     }
   };
-
-  if (!isAuthenticated) {
-    clearAuthSession();
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("cb_redirect_url", location.pathname + location.search);
-    }
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
 
   if (loading) {
     return <PostDetailSkeleton />;

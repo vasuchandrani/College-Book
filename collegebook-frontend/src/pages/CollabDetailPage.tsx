@@ -123,39 +123,12 @@ export default function CollabDetailPage() {
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-    if (currentTab === "chat") {
-      markRoomAsRead(id);
-      setHasUnreadChat(false);
-      return;
-    }
-    getTeamRecentMessages(id, 1)
-      .then((msgs) => {
-        if (msgs && msgs.length > 0) {
-          const latest = msgs[msgs.length - 1];
-          setHasUnreadChat(
-            checkIsMessageUnread(
-              id,
-              latest.createdAt,
-              latest.senderId,
-              user.id || user.userId,
-              latest.senderName,
-              user.name || user.fullName,
-              latest.senderHandle,
-              user.handle
-            )
-          );
-        }
-      })
-      .catch(() => {});
-  }, [id, user.id, currentTab]);
-
-  useEffect(() => {
     if (id && currentTab === "chat") {
       markRoomAsRead(id);
       setHasUnreadChat(false);
     }
   }, [id, currentTab]);
+
 
   useEffect(() => {
     const handleRoomRead = (e: any) => {
@@ -358,6 +331,36 @@ export default function CollabDetailPage() {
     }
   };
 
+  const canAccessRoomChat = !isOpenSource && Boolean(isLead || isMember || team?.canEdit || team?.canComplete);
+
+  useEffect(() => {
+    if (!id || !canAccessRoomChat) return;
+    if (currentTab === "chat") {
+      markRoomAsRead(id);
+      setHasUnreadChat(false);
+      return;
+    }
+    getTeamRecentMessages(id, 1)
+      .then((msgs) => {
+        if (msgs && msgs.length > 0) {
+          const latest = msgs[msgs.length - 1];
+          setHasUnreadChat(
+            checkIsMessageUnread(
+              id,
+              latest.createdAt,
+              latest.senderId,
+              user.id || user.userId,
+              latest.senderName,
+              user.name || user.fullName,
+              latest.senderHandle,
+              user.handle
+            )
+          );
+        }
+      })
+      .catch(() => {});
+  }, [id, user.id, currentTab, canAccessRoomChat]);
+
   if (loading) {
     return <CollabDetailSkeleton />;
   }
@@ -386,7 +389,7 @@ export default function CollabDetailPage() {
     new Set([...(team.requiredExpertise || []), ...(team.skills || [])])
   );
 
-  const canAccessRoomChat = !isOpenSource && Boolean(isLead || isMember || team.canEdit || team.canComplete);
+
 
   const handleOpenRoomChat = () => {
     const next = new URLSearchParams(searchParams);

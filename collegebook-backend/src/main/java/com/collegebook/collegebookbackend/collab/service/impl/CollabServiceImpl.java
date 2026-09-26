@@ -164,7 +164,7 @@ public class CollabServiceImpl implements CollabService {
             teamPage = teamRepository.findMyTeamsByTypePaged(userId, type, pageable);
         } else if (completed != null) {
             if (Boolean.TRUE.equals(excludeOpenSource)) {
-                teamPage = teamRepository.findMyRegularTeamsByCompletedPaged(userId, completed, pageable);
+                teamPage = teamRepository.findMyRegularTeamsByCompletedPaged(userId, completed, TeamType.OPEN_SOURCE, pageable);
             } else {
                 teamPage = teamRepository.findMyTeamsByCompletedPaged(userId, completed, pageable);
             }
