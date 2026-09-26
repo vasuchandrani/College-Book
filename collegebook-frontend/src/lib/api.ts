@@ -2678,3 +2678,93 @@ export const adminLogout = (): void => {
   localStorage.removeItem("cb_admin_token");
   localStorage.removeItem("cb_admin_user");
 };
+
+// ---------------------------------------------------------------------------
+// Admin Data Management (Colleges, Courses, Branches)
+// ---------------------------------------------------------------------------
+
+export interface CollegeItem {
+  id?: string;
+  name: string;
+  shortName: string;
+  slug: string;
+  city: string;
+  state: string;
+  logoUrl?: string;
+  emailDomains: string[];
+}
+
+export interface CourseItem {
+  id?: string;
+  collegeId: string;
+  name: string;
+  shortName: string;
+  durationYears: number;
+}
+
+export interface BranchItem {
+  id?: string;
+  courseId: string;
+  name: string;
+  shortName: string;
+}
+
+export const adminCreateCollege = async (payload: Partial<CollegeItem>): Promise<CollegeItem> => {
+  return await request<CollegeItem>("/admin/colleges", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminUpdateCollege = async (id: string, payload: Partial<CollegeItem>): Promise<CollegeItem> => {
+  return await request<CollegeItem>(`/admin/colleges/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminDeleteCollege = async (id: string): Promise<void> => {
+  return await request<void>(`/admin/colleges/${id}`, {
+    method: "DELETE",
+  });
+};
+
+export const adminCreateCourse = async (payload: Partial<CourseItem>): Promise<CourseItem> => {
+  return await request<CourseItem>("/admin/courses", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminUpdateCourse = async (id: string, payload: Partial<CourseItem>): Promise<CourseItem> => {
+  return await request<CourseItem>(`/admin/courses/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminDeleteCourse = async (id: string): Promise<void> => {
+  return await request<void>(`/admin/courses/${id}`, {
+    method: "DELETE",
+  });
+};
+
+export const adminCreateBranch = async (payload: Partial<BranchItem>): Promise<BranchItem> => {
+  return await request<BranchItem>("/admin/branches", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminUpdateBranch = async (id: string, payload: Partial<BranchItem>): Promise<BranchItem> => {
+  return await request<BranchItem>(`/admin/branches/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+};
+
+export const adminDeleteBranch = async (id: string): Promise<void> => {
+  return await request<void>(`/admin/branches/${id}`, {
+    method: "DELETE",
+  });
+};

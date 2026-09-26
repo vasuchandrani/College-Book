@@ -46,6 +46,7 @@ import {
   type PostComment,
 } from "@/lib/api";
 import { formatSmartDate } from "@/lib/dateUtils";
+import { clientCache } from "@/lib/clientCache";
 
 const PostPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,18 +84,38 @@ const PostPage = () => {
   useEffect(() => {
     if (!id) return;
     let isMounted = true;
-    setLoading(true);
+    const cacheKey = `post_detail_${id}`;
+    const commentsCacheKey = `post_comments_${id}`;
+
+    const cachedPost = clientCache.get<FeedPost>(cacheKey);
+    const cachedComments = clientCache.get<PostComment[]>(commentsCacheKey);
+
+    if (cachedPost) {
+      setPost(cachedPost);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    
+    if (cachedComments) {
+      setComments(cachedComments);
+    }
+    
     setError(null);
 
     getPostById(id)
       .then((data) => {
         if (isMounted) {
           setPost(data);
+          clientCache.set(cacheKey, data, 120_000); // Cache for 2 mins
           // Fetch comments
-          setCommentsLoading(true);
+          if (!cachedComments) setCommentsLoading(true);
           getComments(data.id)
             .then((c) => {
-              if (isMounted) setComments(c?.comments || []);
+              if (isMounted) {
+                setComments(c?.comments || []);
+                clientCache.set(commentsCacheKey, c?.comments || [], 120_000);
+              }
             })
             .catch(() => {})
             .finally(() => {

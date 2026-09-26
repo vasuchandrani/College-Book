@@ -3,6 +3,9 @@ package com.collegebook.collegebookbackend.admin.controller;
 import com.collegebook.collegebookbackend.ad.dto.AdResponseDto;
 import com.collegebook.collegebookbackend.admin.dto.CreateAdRequest;
 import com.collegebook.collegebookbackend.admin.service.AdminService;
+import com.collegebook.collegebookbackend.college.dto.BranchDto;
+import com.collegebook.collegebookbackend.college.dto.CollegeDto;
+import com.collegebook.collegebookbackend.college.dto.CourseDto;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.post.dto.PostResponseDto;
 import jakarta.validation.Valid;
@@ -88,6 +91,63 @@ public class AdminController {
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable("id") UUID postId) {
         adminService.deletePostByAdmin(postId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ----------------------------------------------------
+    // Colleges CRUD
+    // ----------------------------------------------------
+    @PostMapping("/colleges")
+    public ResponseEntity<CollegeDto> createCollege(@Valid @RequestBody CollegeDto dto) {
+        return ResponseEntity.ok(adminService.createCollege(dto));
+    }
+
+    @PutMapping("/colleges/{id}")
+    public ResponseEntity<CollegeDto> updateCollege(@PathVariable("id") UUID id, @Valid @RequestBody CollegeDto dto) {
+        return ResponseEntity.ok(adminService.updateCollege(id, dto));
+    }
+
+    @DeleteMapping("/colleges/{id}")
+    public ResponseEntity<Void> deleteCollege(@PathVariable("id") UUID id) {
+        adminService.deleteCollege(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ----------------------------------------------------
+    // Courses CRUD
+    // ----------------------------------------------------
+    @PostMapping("/courses")
+    public ResponseEntity<CourseDto> createCourse(@Valid @RequestBody CourseDto dto) {
+        return ResponseEntity.ok(adminService.createCourse(dto));
+    }
+
+    @PutMapping("/courses/{id}")
+    public ResponseEntity<CourseDto> updateCourse(@PathVariable("id") UUID id, @Valid @RequestBody CourseDto dto) {
+        return ResponseEntity.ok(adminService.updateCourse(id, dto));
+    }
+
+    @DeleteMapping("/courses/{id}")
+    public ResponseEntity<Void> deleteCourse(@PathVariable("id") UUID id) {
+        adminService.deleteCourse(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ----------------------------------------------------
+    // Branches CRUD
+    // ----------------------------------------------------
+    @PostMapping("/branches")
+    public ResponseEntity<BranchDto> createBranch(@Valid @RequestBody BranchDto dto) {
+        return ResponseEntity.ok(adminService.createBranch(dto));
+    }
+
+    @PutMapping("/branches/{id}")
+    public ResponseEntity<BranchDto> updateBranch(@PathVariable("id") UUID id, @Valid @RequestBody BranchDto dto) {
+        return ResponseEntity.ok(adminService.updateBranch(id, dto));
+    }
+
+    @DeleteMapping("/branches/{id}")
+    public ResponseEntity<Void> deleteBranch(@PathVariable("id") UUID id) {
+        adminService.deleteBranch(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -9,21 +9,21 @@ interface ImageCarouselProps {
   maxHeight?: string;
 }
 
-const ImageCarousel = ({ images, className, maxHeight = "max-h-80" }: ImageCarouselProps) => {
+const ImageCarousel = ({ images, className, maxHeight = "max-h-[650px]" }: ImageCarouselProps) => {
   const [current, setCurrent] = useState(0);
 
   if (images.length === 0) return null;
   if (images.length === 1) {
     return (
-      <div className={cn("rounded-lg overflow-hidden", className)}>
-        <img src={images[0]} alt="Post" className={cn("w-full h-auto object-cover rounded-lg", maxHeight)} />
+      <div className={cn("rounded-xl overflow-hidden flex items-center justify-center bg-black/5 dark:bg-black/20", className)}>
+        <img src={images[0]} alt="Post" className={cn("w-full h-auto object-contain", maxHeight)} />
       </div>
     );
   }
 
   return (
-    <div className={cn("relative rounded-lg overflow-hidden group", className)}>
-      <img src={images[current]} alt={`Slide ${current + 1}`} className={cn("w-full h-auto object-cover rounded-lg transition-opacity", maxHeight)} />
+    <div className={cn("relative rounded-xl overflow-hidden flex items-center justify-center bg-black/5 dark:bg-black/20 group", className)}>
+      <img src={images[current]} alt={`Slide ${current + 1}`} className={cn("w-full h-auto object-contain transition-opacity", maxHeight)} />
 
       {/* Navigation arrows */}
       {current > 0 && (

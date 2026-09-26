@@ -222,25 +222,54 @@ export const CollabDetailSkeleton = () => (
 
 /* ─── My Collaboration Page Skeleton ─── */
 export const MyCollabSkeleton = () => (
-  <div className="max-w-4xl mx-auto space-y-4 p-3 sm:p-4 md:p-6">
-    <Skeleton className="h-7 w-52" />
-    <div className="flex gap-2">
-      <Skeleton className="h-9 w-28 rounded-md" />
-      <Skeleton className="h-9 w-28 rounded-md" />
-    </div>
-    {[1, 2].map((i) => (
-      <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-card space-y-3">
-        <Skeleton className="h-5 w-48" />
-        <div className="space-y-2">
-          <Skeleton className="h-3.5 w-full" />
-          <Skeleton className="h-3.5 w-4/5" />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-6 w-16 rounded-full" />
-          <Skeleton className="h-6 w-20 rounded-full" />
-        </div>
+  <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20 animate-in fade-in duration-300">
+    {/* Page Header */}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border/60 pb-4 sm:pb-5">
+      <div className="space-y-2">
+        <Skeleton className="h-7 sm:h-8 w-48 sm:w-64" />
+        <Skeleton className="h-4 w-60 sm:w-80" />
       </div>
-    ))}
+      <div className="flex items-center gap-2 shrink-0">
+        <Skeleton className="h-9 w-32 rounded-md" />
+        <Skeleton className="h-9 w-24 rounded-md" />
+      </div>
+    </div>
+
+    {/* Tabs Skeleton */}
+    <div className="bg-muted/50 p-1.5 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full gap-1.5 shadow-2xs">
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+    </div>
+
+    {/* Cards Grid */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-start gap-2">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-5 w-16 rounded-full shrink-0" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-4/5" />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Skeleton className="h-6 w-20 rounded-md" />
+            <Skeleton className="h-6 w-16 rounded-md" />
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t border-border/60 mt-2">
+            <div className="flex -space-x-2">
+              <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
+              <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
+              <Skeleton className="h-7 w-7 rounded-full border-2 border-background" />
+            </div>
+            <Skeleton className="h-8 w-24 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 

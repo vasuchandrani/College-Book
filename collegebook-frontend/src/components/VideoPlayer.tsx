@@ -207,7 +207,7 @@ export const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className={cn("relative rounded-xl overflow-hidden bg-black aspect-video group select-none shadow-sm", className)}
+      className={cn("relative rounded-xl overflow-hidden bg-black flex items-center justify-center w-full max-h-[650px] group select-none shadow-sm", className)}
       onClick={togglePlayPause}
     >
       <video
@@ -219,7 +219,7 @@ export const VideoPlayer = ({
         playsInline
         loop
         preload="metadata"
-        className="w-full h-full object-contain bg-black cursor-pointer"
+        className="w-full h-auto max-h-[650px] object-contain bg-black cursor-pointer"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onDurationChange={handleLoadedMetadata}

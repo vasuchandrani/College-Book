@@ -14,6 +14,7 @@ import {
   Loader2,
   AlertTriangle,
   Tag,
+  ArrowUpRight,
 } from "lucide-react";
 import { formatCount } from "@/lib/formatCount";
 import { Button } from "@/components/ui/button";
@@ -528,15 +529,26 @@ const AdminFeedViewPage = () => {
                         </div>
                       </div>
 
-                      {/* Admin Moderation Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPostToDelete(post)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 h-8 text-xs border border-destructive/20"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" /> Delete Post
-                      </Button>
+                      {/* Admin Controls */}
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/post/${post.id}`)}
+                          className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-all"
+                          title="Open post"
+                          aria-label="Open post detail"
+                        >
+                          <ArrowUpRight className="h-5 w-5" />
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPostToDelete(post)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 h-8 text-xs border border-destructive/20"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Delete Post
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Post Content */}

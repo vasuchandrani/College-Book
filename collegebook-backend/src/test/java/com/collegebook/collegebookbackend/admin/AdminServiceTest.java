@@ -59,6 +59,15 @@ public class AdminServiceTest {
     @Mock
     private SocialInteractionService socialInteractionService;
 
+    @Mock
+    private com.collegebook.collegebookbackend.college.repository.CollegeRepository collegeRepository;
+
+    @Mock
+    private com.collegebook.collegebookbackend.college.repository.CourseRepository courseRepository;
+
+    @Mock
+    private com.collegebook.collegebookbackend.college.repository.BranchRepository branchRepository;
+
     private AdminServiceImpl adminService;
 
     @BeforeEach
@@ -70,7 +79,10 @@ public class AdminServiceTest {
                 adRepository,
                 postService,
                 mediaService,
-                socialInteractionService
+                socialInteractionService,
+                collegeRepository,
+                courseRepository,
+                branchRepository
         );
     }
 

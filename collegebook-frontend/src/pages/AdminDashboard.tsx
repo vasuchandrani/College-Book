@@ -40,9 +40,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import ImageCarousel from "@/components/ImageCarousel";
+import AdminDataManagement from "@/components/admin/AdminDataManagement";
 import {
   getAdminStats,
   adminCreateAd,
@@ -632,8 +634,17 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Ad Performance Overview */}
-        <Card className="p-5 shadow-card mb-8">
+        <Tabs defaultValue="ads" className="w-full">
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="grid grid-cols-2 w-[400px]">
+              <TabsTrigger value="ads">Ads Management</TabsTrigger>
+              <TabsTrigger value="data">Colleges & Data</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="ads" className="space-y-8">
+            {/* Ad Performance Overview */}
+            <Card className="p-5 shadow-card">
           <h2 className="font-semibold mb-4 text-sm">Ad Performance Overview</h2>
           <div className="grid grid-cols-3 gap-6 text-center">
             <div>
@@ -926,6 +937,12 @@ const AdminDashboard = () => {
             })}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="data">
+            <AdminDataManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

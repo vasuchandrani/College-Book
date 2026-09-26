@@ -13,6 +13,15 @@ import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.post.dto.PostResponseDto;
 import com.collegebook.collegebookbackend.post.entity.Post;
 import com.collegebook.collegebookbackend.post.repository.PostRepository;
+import com.collegebook.collegebookbackend.college.dto.BranchDto;
+import com.collegebook.collegebookbackend.college.dto.CollegeDto;
+import com.collegebook.collegebookbackend.college.dto.CourseDto;
+import com.collegebook.collegebookbackend.college.entity.Branch;
+import com.collegebook.collegebookbackend.college.entity.College;
+import com.collegebook.collegebookbackend.college.entity.Course;
+import com.collegebook.collegebookbackend.college.repository.BranchRepository;
+import com.collegebook.collegebookbackend.college.repository.CollegeRepository;
+import com.collegebook.collegebookbackend.college.repository.CourseRepository;
 import com.collegebook.collegebookbackend.post.service.PostService;
 import com.collegebook.collegebookbackend.social.SocialInteractionService;
 import com.collegebook.collegebookbackend.storage.service.MediaService;
@@ -37,6 +46,9 @@ public class AdminServiceImpl implements AdminService {
     private final PostService postService;
     private final MediaService mediaService;
     private final SocialInteractionService socialInteractionService;
+    private final CollegeRepository collegeRepository;
+    private final CourseRepository courseRepository;
+    private final BranchRepository branchRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -223,6 +235,164 @@ public class AdminServiceImpl implements AdminService {
         dto.setImpressions(0);
         dto.setClicks(0);
         dto.setRevenue(0);
+        return dto;
+    }
+
+    // ----------------------------------------------------
+    // Colleges CRUD
+    // ----------------------------------------------------
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public CollegeDto createCollege(CollegeDto dto) {
+        College college = College.builder()
+                .name(dto.getName())
+                .shortName(dto.getShortName())
+                .slug(dto.getSlug())
+                .city(dto.getCity())
+                .state(dto.getState())
+                .logoUrl(dto.getLogoUrl())
+                .emailDomains(dto.getEmailDomains() != null ? dto.getEmailDomains() : List.of())
+                .build();
+        return toCollegeDto(collegeRepository.save(college));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public CollegeDto updateCollege(UUID id, CollegeDto dto) {
+        College college = collegeRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "College not found"));
+        college.setName(dto.getName());
+        college.setShortName(dto.getShortName());
+        college.setSlug(dto.getSlug());
+        college.setCity(dto.getCity());
+        college.setState(dto.getState());
+        college.setLogoUrl(dto.getLogoUrl());
+        if (dto.getEmailDomains() != null) {
+            college.setEmailDomains(dto.getEmailDomains());
+        }
+        return toCollegeDto(collegeRepository.save(college));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public void deleteCollege(UUID id) {
+        collegeRepository.deleteById(id);
+    }
+
+    // ----------------------------------------------------
+    // Courses CRUD
+    // ----------------------------------------------------
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public CourseDto createCourse(CourseDto dto) {
+        College college = collegeRepository.findById(dto.getCollegeId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "College not found"));
+        Course course = Course.builder()
+                .college(college)
+                .name(dto.getName())
+                .shortName(dto.getShortName())
+                .durationYears((short) dto.getDurationYears())
+                .build();
+        return toCourseDto(courseRepository.save(course));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public CourseDto updateCourse(UUID id, CourseDto dto) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Course not found"));
+        if (dto.getCollegeId() != null && !dto.getCollegeId().equals(course.getCollege().getId())) {
+            College college = collegeRepository.findById(dto.getCollegeId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "College not found"));
+            course.setCollege(college);
+        }
+        course.setName(dto.getName());
+        course.setShortName(dto.getShortName());
+        course.setDurationYears((short) dto.getDurationYears());
+        return toCourseDto(courseRepository.save(course));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public void deleteCourse(UUID id) {
+        courseRepository.deleteById(id);
+    }
+
+    // ----------------------------------------------------
+    // Branches CRUD
+    // ----------------------------------------------------
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public BranchDto createBranch(BranchDto dto) {
+        Course course = courseRepository.findById(dto.getCourseId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Course not found"));
+        Branch branch = Branch.builder()
+                .course(course)
+                .name(dto.getName())
+                .shortName(dto.getShortName())
+                .build();
+        return toBranchDto(branchRepository.save(branch));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public BranchDto updateBranch(UUID id, BranchDto dto) {
+        Branch branch = branchRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Branch not found"));
+        if (dto.getCourseId() != null && !dto.getCourseId().equals(branch.getCourse().getId())) {
+            Course course = courseRepository.findById(dto.getCourseId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Course not found"));
+            branch.setCourse(course);
+        }
+        branch.setName(dto.getName());
+        branch.setShortName(dto.getShortName());
+        return toBranchDto(branchRepository.save(branch));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"colleges", "courses", "branches"}, allEntries = true)
+    public void deleteBranch(UUID id) {
+        branchRepository.deleteById(id);
+    }
+
+    private CollegeDto toCollegeDto(College c) {
+        CollegeDto dto = new CollegeDto();
+        dto.setId(c.getId());
+        dto.setName(c.getName());
+        dto.setShortName(c.getShortName());
+        dto.setSlug(c.getSlug());
+        dto.setCity(c.getCity());
+        dto.setState(c.getState());
+        dto.setLogoUrl(c.getLogoUrl());
+        dto.setEmailDomains(c.getEmailDomains());
+        return dto;
+    }
+
+    private CourseDto toCourseDto(Course c) {
+        CourseDto dto = new CourseDto();
+        dto.setId(c.getId());
+        dto.setCollegeId(c.getCollege().getId());
+        dto.setName(c.getName());
+        dto.setShortName(c.getShortName());
+        dto.setDurationYears((int) c.getDurationYears());
+        return dto;
+    }
+
+    private BranchDto toBranchDto(Branch d) {
+        BranchDto dto = new BranchDto();
+        dto.setId(d.getId());
+        dto.setCourseId(d.getCourse().getId());
+        dto.setName(d.getName());
+        dto.setShortName(d.getShortName());
         return dto;
     }
 }
