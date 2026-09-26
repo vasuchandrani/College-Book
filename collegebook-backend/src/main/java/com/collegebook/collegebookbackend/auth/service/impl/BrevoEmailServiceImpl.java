@@ -79,7 +79,7 @@ public class BrevoEmailServiceImpl implements EmailService {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
             restTemplate.postForEntity(url, request, String.class);
-            log.info("Sent email successfully to {}", toEmail);
+            log.info("Sent email successfully via BREVO to {}", toEmail);
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
             log.error("Brevo API returned status {} for {}: {}", e.getStatusCode(), toEmail, e.getResponseBodyAsString());
             if (e.getStatusCode().value() == 402 || e.getStatusCode().value() == 429) {

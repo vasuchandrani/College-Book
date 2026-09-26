@@ -95,6 +95,7 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
       initials: currentUser.initials || "YO",
       collegeName: currentUser.collegeName,
       collegeShortName: currentUser.collegeShortName,
+      course: currentUser.course,
       body: trimmedBody,
       time: "Just now",
       createdAt: new Date().toISOString(),

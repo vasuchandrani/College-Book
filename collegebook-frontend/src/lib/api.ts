@@ -2716,6 +2716,10 @@ export const adminCreateCollege = async (payload: Partial<CollegeItem>): Promise
   });
 };
 
+export const adminGetColleges = async (): Promise<CollegeItem[]> => {
+  return await request<CollegeItem[]>("/colleges");
+};
+
 export const adminUpdateCollege = async (id: string, payload: Partial<CollegeItem>): Promise<CollegeItem> => {
   return await request<CollegeItem>(`/admin/colleges/${id}`, {
     method: "PUT",

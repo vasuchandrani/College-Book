@@ -19,6 +19,7 @@ import {
   adminUpdateCollege,
   adminDeleteCollege,
   adminCreateCourse,
+  adminGetColleges,
   adminUpdateCourse,
   adminDeleteCourse,
   adminCreateBranch,
@@ -82,7 +83,7 @@ export default function AdminDataManagement() {
   const loadColleges = async () => {
     setLoading(true);
     try {
-      const data: any = await getColleges();
+      const data: CollegeItem[] = await adminGetColleges();
       setColleges(data);
     } catch (err: any) {
       toast.error(err.message || "Failed to load colleges");
@@ -233,11 +234,14 @@ export default function AdminDataManagement() {
     }
   };
 
-  const filteredColleges = colleges.filter((c) =>
-    c.name.toLowerCase().includes(searchCollege.toLowerCase()) ||
-    c.shortName.toLowerCase().includes(searchCollege.toLowerCase()) ||
-    c.slug.toLowerCase().includes(searchCollege.toLowerCase())
-  );
+  const filteredColleges = colleges.filter((c) => {
+    const search = searchCollege.toLowerCase();
+    return (
+      (c.name && c.name.toLowerCase().includes(search)) ||
+      (c.shortName && c.shortName.toLowerCase().includes(search)) ||
+      (c.slug && c.slug.toLowerCase().includes(search))
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -269,23 +273,23 @@ export default function AdminDataManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Name *</label>
-                    <Input value={editingCollege.name} onChange={e => setEditingCollege({ ...editingCollege, name: e.target.value })} placeholder="e.g. Dharmsinh Desai University" />
+                    <Input value={editingCollege.name || ""} onChange={e => setEditingCollege({ ...editingCollege, name: e.target.value })} placeholder="e.g. Dharmsinh Desai University" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Short Name *</label>
-                    <Input value={editingCollege.shortName} onChange={e => setEditingCollege({ ...editingCollege, shortName: e.target.value })} placeholder="e.g. DDU" />
+                    <Input value={editingCollege.shortName || ""} onChange={e => setEditingCollege({ ...editingCollege, shortName: e.target.value })} placeholder="e.g. DDU" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Slug *</label>
-                    <Input value={editingCollege.slug} onChange={e => setEditingCollege({ ...editingCollege, slug: e.target.value })} placeholder="e.g. ddu-nadiad" />
+                    <Input value={editingCollege.slug || ""} onChange={e => setEditingCollege({ ...editingCollege, slug: e.target.value })} placeholder="e.g. ddu-nadiad" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">City *</label>
-                    <Input value={editingCollege.city} onChange={e => setEditingCollege({ ...editingCollege, city: e.target.value })} placeholder="e.g. Nadiad" />
+                    <Input value={editingCollege.city || ""} onChange={e => setEditingCollege({ ...editingCollege, city: e.target.value })} placeholder="e.g. Nadiad" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">State *</label>
-                    <Input value={editingCollege.state} onChange={e => setEditingCollege({ ...editingCollege, state: e.target.value })} placeholder="e.g. Gujarat" />
+                    <Input value={editingCollege.state || ""} onChange={e => setEditingCollege({ ...editingCollege, state: e.target.value })} placeholder="e.g. Gujarat" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Logo URL</label>
@@ -340,7 +344,7 @@ export default function AdminDataManagement() {
                       filteredColleges.map((col) => (
                         <tr key={col.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium flex items-center gap-2">
-                            {col.logoUrl ? <img src={col.logoUrl} className="h-6 w-6 rounded-md object-contain" /> : <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{col.shortName.charAt(0)}</div>}
+                            {col.logoUrl ? <img src={col.logoUrl} className="h-6 w-6 rounded-md object-contain" /> : <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{(col.shortName || col.name || "C").charAt(0)}</div>}
                             {col.name}
                           </td>
                           <td className="px-4 py-3"><Badge variant="outline">{col.shortName}</Badge></td>
@@ -352,7 +356,7 @@ export default function AdminDataManagement() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" onClick={() => setEditingCollege(col)}><Pencil className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" onClick={() => setEditingCollege({ ...col })}><Pencil className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setItemToDelete({ type: "college", id: col.id! })}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
                           </td>
@@ -399,11 +403,11 @@ export default function AdminDataManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Course Name *</label>
-                    <Input value={editingCourse.name} onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })} placeholder="e.g. Bachelor of Technology" />
+                    <Input value={editingCourse.name || ""} onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })} placeholder="e.g. Bachelor of Technology" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Short Name *</label>
-                    <Input value={editingCourse.shortName} onChange={e => setEditingCourse({ ...editingCourse, shortName: e.target.value })} placeholder="e.g. B.Tech" />
+                    <Input value={editingCourse.shortName || ""} onChange={e => setEditingCourse({ ...editingCourse, shortName: e.target.value })} placeholder="e.g. B.Tech" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Duration (Years) *</label>
@@ -455,7 +459,7 @@ export default function AdminDataManagement() {
                           <td className="px-4 py-3 text-xs">{course.durationYears} Years</td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => setEditingCourse(course)}><Pencil className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => setEditingCourse({ ...course })}><Pencil className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setItemToDelete({ type: "course", id: course.id! })}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
                           </td>
@@ -507,11 +511,11 @@ export default function AdminDataManagement() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Branch Name *</label>
-                    <Input value={editingBranch.name} onChange={e => setEditingBranch({ ...editingBranch, name: e.target.value })} placeholder="e.g. Computer Engineering" />
+                    <Input value={editingBranch.name || ""} onChange={e => setEditingBranch({ ...editingBranch, name: e.target.value })} placeholder="e.g. Computer Engineering" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium">Short Name *</label>
-                    <Input value={editingBranch.shortName} onChange={e => setEditingBranch({ ...editingBranch, shortName: e.target.value })} placeholder="e.g. CE" />
+                    <Input value={editingBranch.shortName || ""} onChange={e => setEditingBranch({ ...editingBranch, shortName: e.target.value })} placeholder="e.g. CE" />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <label className="text-xs font-medium">Parent Course *</label>
@@ -557,7 +561,7 @@ export default function AdminDataManagement() {
                           <td className="px-4 py-3"><Badge variant="outline">{branch.shortName}</Badge></td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => setEditingBranch(branch)}><Pencil className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-500/10" onClick={() => setEditingBranch({ ...branch })}><Pencil className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setItemToDelete({ type: "branch", id: branch.id! })}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
                           </td>

@@ -57,6 +57,7 @@ import {
   adminLogout,
   type AdminStatsResponse,
   type AdData,
+  uploadImageFile,
 } from "@/lib/api";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 import { toast } from "sonner";
@@ -120,12 +121,12 @@ const AdminDashboard = () => {
     brand: "",
     title: "",
     description: "",
-    imageUrls: "",
     ctaText: "Shop Now",
     ctaLink: "",
     commentsEnabled: true,
     discount: "",
   });
+  const [adImageFile, setAdImageFile] = useState<File | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [adCreating, setAdCreating] = useState(false);
   const [bulkToggling, setBulkToggling] = useState(false);
@@ -327,21 +328,9 @@ const AdminDashboard = () => {
   };
 
   const createAd = async () => {
-    const rawImages = newAd.imageUrls
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    if (!newAd.brand.trim() || !newAd.title.trim() || rawImages.length === 0) {
-      toast.error("Please fill in Brand, Title, and at least one image URL");
+    if (!newAd.brand.trim() || !newAd.title.trim() || !adImageFile) {
+      toast.error("Please fill in Brand, Title, and select an image.");
       return;
-    }
-
-    for (let i = 0; i < rawImages.length; i++) {
-      if (!isValidHttpUrl(rawImages[i])) {
-        toast.error(`Image URL #${i + 1} is not a valid web URL`);
-        return;
-      }
     }
 
     if (newAd.ctaLink.trim() && !isValidHttpUrl(newAd.ctaLink.trim())) {
@@ -349,16 +338,25 @@ const AdminDashboard = () => {
       return;
     }
 
-    const images = rawImages.map(normalizeUrl);
-
     try {
       setAdCreating(true);
+      
+      let uploadedUrl = "";
+      try {
+        const urlResponse = await uploadImageFile(adImageFile);
+        uploadedUrl = urlResponse;
+      } catch (err: any) {
+        toast.error("Failed to upload image. Please try again.");
+        setAdCreating(false);
+        return;
+      }
+      
       const created = await adminCreateAd({
         brand: newAd.brand.trim(),
         title: newAd.title.trim(),
         description: newAd.description.trim(),
-        imageUrl: images[0],
-        imageUrls: images,
+        imageUrl: uploadedUrl,
+        imageUrls: [uploadedUrl],
         ctaText: newAd.ctaText.trim() || "Shop Now",
         ctaLink: newAd.ctaLink.trim() ? normalizeUrl(newAd.ctaLink.trim()) : "#",
         destinationUrl: newAd.ctaLink.trim() ? normalizeUrl(newAd.ctaLink.trim()) : "#",
@@ -372,8 +370,8 @@ const AdminDashboard = () => {
         brand: created?.brand || newAd.brand,
         title: created?.title || newAd.title,
         description: created?.description || newAd.description,
-        imageUrl: images[0],
-        images: created?.images?.length ? created.images : images,
+        imageUrl: uploadedUrl,
+        images: created?.images?.length ? created.images : [uploadedUrl],
         ctaText: created?.ctaText || "Shop Now",
         ctaLink: created?.ctaLink || "#",
         active: true,
@@ -397,12 +395,12 @@ const AdminDashboard = () => {
         brand: "",
         title: "",
         description: "",
-        imageUrls: "",
         ctaText: "Shop Now",
         ctaLink: "",
         commentsEnabled: true,
         discount: "",
       });
+      setAdImageFile(null);
       setDialogOpen(false);
       toast.success("Ad campaign created successfully");
     } catch (e: any) {
@@ -742,13 +740,23 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Image URLs (one per line)</Label>
-                    <Textarea
-                      placeholder={"https://example.com/img1.jpg\nhttps://example.com/img2.jpg"}
-                      value={newAd.imageUrls}
-                      onChange={(e) => setNewAd({ ...newAd, imageUrls: e.target.value })}
-                      rows={3}
-                    />
+                    <Label>Ad Image</Label>
+                    <div className="relative">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="cursor-pointer file:cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setAdImageFile(file);
+                        }}
+                      />
+                      {adImageFile && (
+                        <p className="text-xs text-muted-foreground mt-1 text-primary">
+                          Selected: {adImageFile.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">

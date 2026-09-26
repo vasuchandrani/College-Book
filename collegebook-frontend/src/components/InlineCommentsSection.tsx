@@ -86,6 +86,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
       initials: currentUser.initials || "YO",
       collegeName: currentUser.collegeName,
       collegeShortName: currentUser.collegeShortName,
+      course: currentUser.course,
       body: trimmedBody,
       time: "Just now",
       createdAt: new Date().toISOString(),
@@ -210,7 +211,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
                   (currentUser.handle &&
                     comment.authorHandle &&
                     currentUser.handle.replace(/^@/, "").toLowerCase() ===
-                      comment.authorHandle.replace(/^@/, "").toLowerCase()) ||
+                    comment.authorHandle.replace(/^@/, "").toLowerCase()) ||
                   (currentUser.name &&
                     comment.author &&
                     currentUser.name === comment.author));
@@ -308,7 +309,7 @@ export const InlineCommentsSection: React.FC<InlineCommentsSectionProps> = ({
                         {formatSmartDate(comment.createdAt || comment.time)}
                       </span>
                     </div>
-                  </div>v>
+                  </div>
                 </div>
               );
             })

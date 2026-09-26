@@ -23,6 +23,7 @@ public class CommentResponseDto {
     private String initials;
     private String collegeName;
     private String collegeShortName;
+    private String course;
     private String body;
     private String time;
     private Instant createdAt;

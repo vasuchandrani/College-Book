@@ -584,6 +584,15 @@ public class PostServiceImpl implements PostService {
         dto.setInitials(profileOpt.map(Profile::getInitials).orElse("U"));
         dto.setCollegeName(comment.getAuthor().getCollege() != null ? comment.getAuthor().getCollege().getName() : null);
         dto.setCollegeShortName(comment.getAuthor().getCollege() != null ? comment.getAuthor().getCollege().getShortName() : null);
+        
+        String courseName = "Student";
+        if (profileOpt.isPresent() && profileOpt.get().getCourse() != null) {
+            String course = profileOpt.get().getCourse().getName();
+            String branch = profileOpt.get().getBranch() != null ? profileOpt.get().getBranch().getName() : null;
+            courseName = formatCourseBranchShort(course, branch);
+        }
+        dto.setCourse(courseName);
+        
         dto.setBody(comment.getContent());
         dto.setTime(formatRelativeTime(comment.getCreatedAt()));
         dto.setCreatedAt(comment.getCreatedAt());

@@ -533,7 +533,7 @@ const AdminFeedViewPage = () => {
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => navigate(`/post/${post.id}`)}
+                          onClick={() => navigate(`/manage-admin/post/${post.id}`)}
                           className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-all"
                           title="Open post"
                           aria-label="Open post detail"

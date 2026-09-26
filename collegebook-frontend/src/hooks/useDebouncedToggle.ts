@@ -33,20 +33,13 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
   const triggerToggle = useCallback(
     (
       id: string | number,
-      currentState: boolean,
-      updateOptimisticState: (newActive: boolean) => void,
-      apiCall: (signal?: AbortSignal) => Promise<unknown>
+      apiCall: (signal?: AbortSignal) => Promise<unknown>,
+      onError?: (err: Error) => void
     ) => {
       const key = id;
       const existing = pendingMapRef.current.get(key);
 
-      // Determine next state from previous pending state or initial state
-      const nextActive = existing ? !existing.finalTargetState : !currentState;
-
-      // 1. Instant 0ms optimistic UI feedback
-      updateOptimisticState(nextActive);
-
-      // 2. Cancel existing timer and abort prior in-flight request
+      // Cancel existing timer and abort prior in-flight request
       if (existing) {
         clearTimeout(existing.timer);
         if (existing.abortController) {
@@ -56,15 +49,14 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
 
       const controller = new AbortController();
 
-      // 3. Set trailing debounce timer (default 400ms)
+      // Set trailing debounce timer
       const timer = setTimeout(async () => {
         try {
           await apiCall(controller.signal);
         } catch (err: any) {
           if (err?.name !== "AbortError" && !controller.signal.aborted) {
             console.error("Debounced toggle sync error:", err);
-            // Revert optimistic update on hard error
-            updateOptimisticState(!nextActive);
+            if (onError) onError(err);
           }
         } finally {
           pendingMapRef.current.delete(key);
@@ -74,7 +66,7 @@ export function useDebouncedToggle(debounceDelayMs: number = 400) {
       pendingMapRef.current.set(key, {
         timer,
         abortController: controller,
-        finalTargetState: nextActive,
+        finalTargetState: true, // Placeholder to satisfy the interface
       });
     },
     [debounceDelayMs]

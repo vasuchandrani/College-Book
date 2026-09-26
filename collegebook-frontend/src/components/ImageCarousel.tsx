@@ -9,7 +9,7 @@ interface ImageCarouselProps {
   maxHeight?: string;
 }
 
-const ImageCarousel = ({ images, className, maxHeight = "max-h-[650px]" }: ImageCarouselProps) => {
+const ImageCarousel = ({ images, className, maxHeight = "max-h-[450px]" }: ImageCarouselProps) => {
   const [current, setCurrent] = useState(0);
 
   if (images.length === 0) return null;
