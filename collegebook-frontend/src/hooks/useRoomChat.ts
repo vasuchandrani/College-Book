@@ -79,7 +79,9 @@ export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
     // Determine standard native WebSocket URL
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    const wsUrl = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.startsWith("http")
+    const wsUrl = import.meta.env.VITE_WS_URL
+      ? import.meta.env.VITE_WS_URL
+      : import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.startsWith("http")
       ? import.meta.env.VITE_API_BASE_URL.replace(/^http/, "ws").replace(/\/api\/v1$/, "") + "/ws/chat"
       : `${protocol}//${host}/ws/chat`;
 

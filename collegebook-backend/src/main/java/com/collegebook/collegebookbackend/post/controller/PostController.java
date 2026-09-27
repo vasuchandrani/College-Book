@@ -10,6 +10,7 @@ import com.collegebook.collegebookbackend.post.dto.PostResponseDto;
 import com.collegebook.collegebookbackend.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -96,7 +97,10 @@ public class PostController {
     public ResponseEntity<PostResponseDto> createPost(
             @CurrentUser UserPrincipal currentUser,
             @Valid @RequestBody CreatePostRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : UUID.randomUUID();
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(postService.createPost(userId, request));
     }
 
@@ -114,7 +118,10 @@ public class PostController {
     public ResponseEntity<Map<String, Object>> toggleLike(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID postId) {
-        UUID userId = currentUser != null ? currentUser.getId() : UUID.randomUUID();
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(postService.toggleLike(userId, postId));
     }
 
@@ -122,7 +129,10 @@ public class PostController {
     public ResponseEntity<Map<String, Object>> toggleSave(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID postId) {
-        UUID userId = currentUser != null ? currentUser.getId() : UUID.randomUUID();
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(postService.toggleSave(userId, postId));
     }
 
@@ -139,7 +149,10 @@ public class PostController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID postId,
             @Valid @RequestBody CreateCommentRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : UUID.randomUUID();
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(postService.addComment(userId, postId, request));
     }
 

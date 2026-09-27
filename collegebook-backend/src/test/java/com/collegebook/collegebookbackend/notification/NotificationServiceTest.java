@@ -25,12 +25,18 @@ public class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+    
+    @Mock
+    private com.collegebook.collegebookbackend.notification.repository.PushSubscriptionRepository pushSubscriptionRepository;
+    
+    @Mock
+    private com.collegebook.collegebookbackend.auth.repository.UserRepository userRepository;
 
     private NotificationServiceImpl notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationServiceImpl(notificationRepository);
+        notificationService = new NotificationServiceImpl(notificationRepository, pushSubscriptionRepository, userRepository);
     }
 
     @Test

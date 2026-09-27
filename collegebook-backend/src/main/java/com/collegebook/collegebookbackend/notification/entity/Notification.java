@@ -48,7 +48,7 @@ public class Notification {
 
     @Column(name = "is_read", nullable = false)
     @Builder.Default
-    private boolean isRead = false;
+    @com.fasterxml.jackson.annotation.JsonProperty("isRead")private boolean isRead = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

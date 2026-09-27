@@ -3,6 +3,7 @@ package com.collegebook.collegebookbackend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableAsync
 public class CollegebookBackendApplication {
 
     public static void main(String[] args) {

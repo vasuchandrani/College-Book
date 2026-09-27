@@ -66,6 +66,7 @@ public class PostServiceImpl implements PostService {
     private final PostMediaRepository postMediaRepository;
     private final MediaService mediaService;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
+    private final com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
 
     @Lazy
     @Autowired
@@ -329,6 +330,21 @@ public class PostServiceImpl implements PostService {
             savedPost.setMedia(postMediaList);
         }
 
+        // Notify all college students about the new post
+        String message = savedPost.getAuthorName() + " posted a post to campus about: ";
+        if (hasContent) {
+            message += request.getContent().trim().substring(0, Math.min(20, request.getContent().trim().length())) + "...";
+        } else {
+            message += "an attached media file";
+        }
+        notificationService.notifyCollegeStudents(
+                savedPost.getCollege(),
+                message,
+                "NEW_POST",
+                savedPost.getId().toString(),
+                author.getId()
+        );
+
         return mapToDto(savedPost, userId);
     }
 
@@ -350,7 +366,21 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Map<String, Object> toggleLike(UUID userId, UUID postId) {
-        return socialInteractionService.togglePostLike(userId, postId);
+        Map<String, Object> result = socialInteractionService.togglePostLike(userId, postId);
+        if (Boolean.TRUE.equals(result.get("liked"))) {
+            Post post = postRepository.findById(postId).orElse(null);
+            if (post != null && !post.getAuthor().getId().equals(userId)) {
+                Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
+                String likerName = profileOpt.map(Profile::getFullName).orElse("Someone");
+                notificationService.createNotification(
+                        post.getAuthor(),
+                        "POST_LIKE",
+                        "New Like",
+                        likerName + " liked your post"
+                );
+            }
+        }
+        return result;
     }
 
     @Override
@@ -395,6 +425,22 @@ public class PostServiceImpl implements PostService {
 
         post.setCommentsCount(post.getCommentsCount() + 1);
         postRepository.save(post);
+
+        // Notify post author if someone else comments
+        if (!post.getAuthor().getId().equals(userId)) {
+            String commentPreview = request.getBody().trim();
+            if (commentPreview.length() > 20) {
+                commentPreview = commentPreview.substring(0, 20) + "...";
+            }
+            Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
+            String commenterName = profileOpt.map(Profile::getFullName).orElse(author.getEmail());
+            notificationService.createNotification(
+                    post.getAuthor(),
+                    "NEW_COMMENT",
+                    "New Comment",
+                    commenterName + " commented on your post: " + commentPreview
+            );
+        }
 
         return mapCommentToDto(saved);
     }

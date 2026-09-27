@@ -33,5 +33,5 @@ public class ProfileHeaderDto {
     private Integer currentYear;
     private String defaultBio;
     private String avatarUrl;
-    private boolean isPublic;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPublic")private boolean isPublic;
 }

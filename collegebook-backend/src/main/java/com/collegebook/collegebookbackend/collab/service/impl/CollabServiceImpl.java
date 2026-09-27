@@ -63,7 +63,7 @@ public class CollabServiceImpl implements CollabService {
     private final TeamDiscussionRepository teamDiscussionRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
-    private final com.collegebook.collegebookbackend.notification.repository.NotificationRepository notificationRepository;
+    private final com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
     private final com.collegebook.collegebookbackend.collab.repository.TeamChatReadRepository teamChatReadRepository;
     private final com.collegebook.collegebookbackend.chat.repository.ChatMessageRepository chatMessageRepository;
@@ -366,6 +366,20 @@ public class CollabServiceImpl implements CollabService {
             savedTeam = teamRepository.save(savedTeam);
         }
 
+        // Notify college students about new team recruitment
+        String projectName = savedTeam.getTitle();
+        if (projectName.length() > 20) {
+            projectName = projectName.substring(0, 20) + "...";
+        }
+        String message = savedTeam.getOwnerName() + " posted a team project '" + projectName + "' to collab hub";
+        notificationService.notifyCollegeStudents(
+                savedTeam.getCollege(),
+                message,
+                "NEW_TEAM",
+                savedTeam.getId().toString(),
+                owner.getId()
+        );
+
         return mapToTeamDto(savedTeam, userId);
     }
 
@@ -457,19 +471,16 @@ public class CollabServiceImpl implements CollabService {
 
         // Create notification for team owner
         try {
-            if (notificationRepository != null && team.getOwner() != null && !team.getOwner().getId().equals(userId)) {
+            if (notificationService != null && team.getOwner() != null && !team.getOwner().getId().equals(userId)) {
                 String applicantName = profileRepository.findByUserId(userId)
                         .map(Profile::getFullName)
                         .orElse(applicant.getEmail());
-                com.collegebook.collegebookbackend.notification.entity.Notification notif =
-                        com.collegebook.collegebookbackend.notification.entity.Notification.builder()
-                                .user(team.getOwner())
-                                .type("JOIN_REQUEST")
-                                .title("New Join Request")
-                                .message(applicantName + " requested to join \"" + team.getTitle() + "\" as " + (request.getRole() != null ? request.getRole() : "Member"))
-                                .isRead(false)
-                                .build();
-                notificationRepository.save(notif);
+                notificationService.createNotification(
+                        team.getOwner(),
+                        "JOIN_REQUEST",
+                        "New Join Request",
+                        applicantName + " requested to join \"" + team.getTitle() + "\" as " + (request.getRole() != null ? request.getRole() : "Member")
+                );
             }
         } catch (Exception e) {
             // Non-critical notification logging
@@ -509,16 +520,13 @@ public class CollabServiceImpl implements CollabService {
 
             // Create notification for applicant
             try {
-                if (notificationRepository != null && joinReq.getApplicant() != null) {
-                    com.collegebook.collegebookbackend.notification.entity.Notification notif =
-                            com.collegebook.collegebookbackend.notification.entity.Notification.builder()
-                                    .user(joinReq.getApplicant())
-                                    .type("REQUEST_ACCEPTED")
-                                    .title("Join Request Accepted!")
-                                    .message("Your request to join \"" + team.getTitle() + "\" was accepted. You are now a team member!")
-                                    .isRead(false)
-                                    .build();
-                    notificationRepository.save(notif);
+                if (notificationService != null && joinReq.getApplicant() != null) {
+                    notificationService.createNotification(
+                            joinReq.getApplicant(),
+                            "REQUEST_ACCEPTED",
+                            "Join Request Accepted!",
+                            "Your request to join \"" + team.getTitle() + "\" was accepted. You are now a team member!"
+                    );
                 }
             } catch (Exception e) {
                 // Non-critical notification logging
@@ -537,16 +545,13 @@ public class CollabServiceImpl implements CollabService {
 
             // Create notification for applicant
             try {
-                if (notificationRepository != null && joinReq.getApplicant() != null) {
-                    com.collegebook.collegebookbackend.notification.entity.Notification notif =
-                            com.collegebook.collegebookbackend.notification.entity.Notification.builder()
-                                    .user(joinReq.getApplicant())
-                                    .type("REQUEST_REJECTED")
-                                    .title("Join Request Update")
-                                    .message("Your request to join \"" + team.getTitle() + "\" was not accepted.")
-                                    .isRead(false)
-                                    .build();
-                    notificationRepository.save(notif);
+                if (notificationService != null && joinReq.getApplicant() != null) {
+                    notificationService.createNotification(
+                            joinReq.getApplicant(),
+                            "REQUEST_REJECTED",
+                            "Join Request Update",
+                            "Your request to join \"" + team.getTitle() + "\" was not accepted."
+                    );
                 }
             } catch (Exception e) {
                 // Non-critical notification logging

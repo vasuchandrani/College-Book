@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { resetPassword, formatApiError } from "@/lib/api";
+import { SEO } from "@/components/SEO";
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
@@ -58,6 +59,7 @@ const ResetPasswordPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <SEO title="Reset Password" description="Create a new password for your CollegeBook account." />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">

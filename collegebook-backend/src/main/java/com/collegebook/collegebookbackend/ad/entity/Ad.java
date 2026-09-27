@@ -59,6 +59,7 @@ public class Ad {
     private boolean commentsEnabled = true;
 
     @Column(name = "is_active", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonProperty("isActive")
     private boolean isActive = true;
 
     @Column(name = "starts_at")

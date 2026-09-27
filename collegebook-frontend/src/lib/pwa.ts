@@ -14,7 +14,6 @@ const notify = () => listeners.forEach((listener) => listener());
 
 export const registerPwa = (): void => {
   if (
-    import.meta.env.PROD &&
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
     !isNative()

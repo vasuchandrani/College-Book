@@ -90,7 +90,7 @@ public class Post {
 
     @Column(name = "is_global", nullable = false)
     @Builder.Default
-    private boolean isGlobal = true;
+    @com.fasterxml.jackson.annotation.JsonProperty("isGlobal")private boolean isGlobal = true;
 
     @Column(name = "comments_enabled", nullable = false)
     @Builder.Default

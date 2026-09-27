@@ -43,7 +43,7 @@ public class PostResponseDto {
     private List<String> tags = new ArrayList<>();
 
     private Instant createdAt;
-    private boolean isGlobal;
+    @com.fasterxml.jackson.annotation.JsonProperty("isGlobal")private boolean isGlobal;
 
     @Builder.Default
     private boolean commentsEnabled = true;

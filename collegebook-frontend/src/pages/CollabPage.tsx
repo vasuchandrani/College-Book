@@ -47,7 +47,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { getCollabTeams, getMyJoinedRequests, createTeam, starProject, sendJoinRequest, lookupStudent } from "@/lib/api";
+import { getCollabTeams, getMyJoinedRequests, createTeam, toggleStarTeam, sendJoinRequest, lookupStudent } from "@/lib/api";
 import { CollabListSkeleton } from "@/components/Skeletons";
 import { useDebouncedToggle } from "@/hooks/useDebouncedToggle";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
@@ -309,7 +309,7 @@ const CollabPage = () => {
           )
         }));
       },
-      (signal) => starProject(teamId, signal)
+      (signal) => toggleStarTeam(teamId, signal)
     );
   };
 

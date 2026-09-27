@@ -3,16 +3,16 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { Outlet, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
-import { isAuthTokenValid, clearAuthSession } from "@/lib/api";
+import { isAuthTokenValid, clearAuthSession, logout } from "@/lib/api";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    clearAuthSession();
-    navigate("/");
+  const handleLogout = async () => {
+    await logout();
   };
 
   // If student is not authenticated or token expired/removed, redirect to login page
@@ -41,6 +41,7 @@ const AppLayout = () => {
             </a>
 
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <Link
                 to="/mycon"
                 className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-full transition-all text-xs font-semibold ${

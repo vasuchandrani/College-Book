@@ -40,5 +40,5 @@ public class ProfileDto {
     private String memoryBookEmail;
     private String customLinks;
     private String contactDetails;
-    private boolean isPublic;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPublic")private boolean isPublic;
 }

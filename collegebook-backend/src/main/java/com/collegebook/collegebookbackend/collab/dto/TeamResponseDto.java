@@ -38,7 +38,7 @@ public class TeamResponseDto {
 
     private int maxMembers;
     private int currentMembersCount;
-    private boolean isCompleted;
+    @com.fasterxml.jackson.annotation.JsonProperty("isCompleted")private boolean isCompleted;
     private int starsCount;
     private boolean starred;
     private boolean hasUnreadMessages;

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,5 +40,26 @@ public class NotificationController {
         UUID userId = currentUser != null ? currentUser.getId() : null;
         notificationService.markAsRead(userId, notificationId);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getUnreadCount(@CurrentUser UserPrincipal currentUser) {
+        if (currentUser == null) return ResponseEntity.ok(0L);
+        return ResponseEntity.ok(notificationService.getUnreadCount(currentUser.getId()));
+    }
+
+    @PostMapping("/subscribe")
+    public ResponseEntity<Void> subscribe(@CurrentUser UserPrincipal currentUser, @org.springframework.web.bind.annotation.RequestBody com.collegebook.collegebookbackend.notification.dto.PushSubscriptionDto dto) {
+        if (currentUser != null) {
+            notificationService.subscribeToPushNotifications(currentUser.getId(), dto);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/unsubscribe")
+    public ResponseEntity<Void> unsubscribe(@CurrentUser UserPrincipal currentUser, @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> payload) {
+        if (currentUser != null && payload.containsKey("endpoint")) {
+            notificationService.unsubscribeFromPushNotifications(currentUser.getId(), payload.get("endpoint"));
+        }
+        return ResponseEntity.ok().build();
     }
 }

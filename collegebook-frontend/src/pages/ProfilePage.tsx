@@ -99,9 +99,8 @@ import {
   getMyTeams,
   getMyOpenSourceProjects,
   updateTeam,
-  starProject,
+  toggleStarTeam,
   getStarredProjects,
-  unstarProject,
   getMyJoinRequests,
   getMyIncomingRequests,
   getTeamJoinRequests,
@@ -1106,7 +1105,7 @@ const ProfilePage = () => {
           toast.success("Removed from Starred");
         }
       },
-      (signal) => starProject(projectId, signal)
+      (signal) => toggleStarTeam(projectId, signal)
     );
   };
 
@@ -1538,7 +1537,7 @@ const ProfilePage = () => {
           )
         );
       },
-      (signal) => starProject(teamId, signal)
+      (signal) => toggleStarTeam(teamId, signal)
     );
   };
 

@@ -66,7 +66,7 @@ import {
   getStudentBySlug,
   getStudentPosts,
   getStudentTeams,
-  starProject,
+  toggleStarTeam,
   sendJoinRequest,
   likePost as apiLikePost,
   savePost as apiSavePost,
@@ -331,7 +331,7 @@ const StudentProfilePage = () => {
           )
         );
       },
-      (signal) => starProject(teamId, signal)
+      (signal) => toggleStarTeam(teamId, signal)
     );
   };
 

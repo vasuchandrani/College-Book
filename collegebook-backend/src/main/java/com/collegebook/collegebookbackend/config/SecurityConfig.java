@@ -28,20 +28,17 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final GuestReadOnlyFilter guestReadOnlyFilter;
     private final com.collegebook.collegebookbackend.config.ratelimit.RateLimitFilter rateLimitFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5000,http://localhost:5173,http://localhost:8080,http://localhost:8081,https://collegebook.live,https://www.collegebook.live,https://*.collegebook.live,https://collegebook.vercel.app,https://*.vercel.app}")
+    @Value("${app.cors.allowed-origins:http://localhost:5000,http://10.134.126.152:5000,https://collegebook.live,https://www.collegebook.live,http://localhost:8080}")
     private String allowedOrigins;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
-            GuestReadOnlyFilter guestReadOnlyFilter,
             @org.springframework.beans.factory.annotation.Autowired(required = false)
             com.collegebook.collegebookbackend.config.ratelimit.RateLimitFilter rateLimitFilter
     ) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.guestReadOnlyFilter = guestReadOnlyFilter;
         this.rateLimitFilter = rateLimitFilter;
     }
 
@@ -50,6 +47,11 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https: wss:")
+                        )
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -72,7 +74,6 @@ public class SecurityConfig {
             http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         }
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        http.addFilterAfter(guestReadOnlyFilter, JwtAuthFilter.class);
 
         return http.build();
     }

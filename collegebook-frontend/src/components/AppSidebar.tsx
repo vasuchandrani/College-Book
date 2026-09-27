@@ -14,7 +14,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getCollabBadgeCount, isAuthTokenValid, clearAuthSession } from "@/lib/api";
+import { getCollabBadgeCount, isAuthTokenValid, logout } from "@/lib/api";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const mainNav = [
   { title: "Campus Feed", url: "/feed", icon: Newspaper },
@@ -64,22 +65,22 @@ export function AppSidebar() {
     };
   }, []);
 
-  const handleLogout = () => {
-    clearAuthSession();
-    navigate("/");
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
     <Sidebar collapsible="icon" className="hidden md:flex">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
+          <SidebarGroupLabel className="flex justify-between items-center w-full mt-2">
             <a href="/" className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-md bg-gradient-hero flex items-center justify-center shrink-0">
                 <BookOpen className="h-4 w-4 text-primary-foreground" />
               </div>
               {!collapsed && <span className="font-heading text-base font-bold text-foreground">CollegeBook</span>}
             </a>
+            {!collapsed && <NotificationBell />}
           </SidebarGroupLabel>
 
           <SidebarGroupContent className="mt-4">

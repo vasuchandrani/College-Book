@@ -15,6 +15,10 @@ export const clientCache = {
   get<T>(key: string): T | null {
     const entry = memoryStore.get(key);
     if (!entry) return null;
+    if (Date.now() - entry.timestamp >= entry.ttlMs) {
+      memoryStore.delete(key);
+      return null;
+    }
     return entry.data as T;
   },
 

@@ -42,7 +42,7 @@ import { formatSmartDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import {
   getTeamById,
-  starProject,
+  toggleStarTeam,
   sendJoinRequest,
   getMyJoinedRequests,
   getTeamDiscussions,
@@ -230,7 +230,7 @@ export default function CollabDetailPage() {
             : prev
         );
       },
-      (signal) => starProject(team.id, signal)
+      (signal) => toggleStarTeam(team.id, signal)
     );
   };
 

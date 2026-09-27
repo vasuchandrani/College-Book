@@ -46,7 +46,8 @@ public class CollabController {
             @RequestParam(value = "type", required = false) TeamType type,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         UUID collegeId = currentUser != null ? currentUser.getCollegeId() : null;
         return ResponseEntity.ok(collabService.getTeams(userId, collegeId, type, page, size));
     }
@@ -59,19 +60,22 @@ public class CollabController {
             @RequestParam(value = "excludeOpenSource", required = false) Boolean excludeOpenSource,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getMyTeamsPaged(userId, type, completed, excludeOpenSource, page, size));
     }
 
     @GetMapping("/teams/my/open-source")
     public ResponseEntity<List<TeamResponseDto>> getMyOpenSourceProjects(@CurrentUser UserPrincipal currentUser) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getMyTeams(userId, TeamType.OPEN_SOURCE));
     }
 
     @GetMapping("/teams/my/badge-count")
     public ResponseEntity<com.collegebook.collegebookbackend.collab.dto.CollabBadgeCountDto> getCollabBadgeCount(@CurrentUser UserPrincipal currentUser) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getCollabBadgeCount(userId));
     }
 
@@ -79,7 +83,8 @@ public class CollabController {
     public ResponseEntity<Void> markRoomAsRead(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         if (userId != null) {
             collabService.markRoomAsRead(teamId, userId);
         }
@@ -88,7 +93,8 @@ public class CollabController {
 
     @GetMapping("/teams/starred")
     public ResponseEntity<List<TeamResponseDto>> getStarredTeams(@CurrentUser UserPrincipal currentUser) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getStarredTeams(userId));
     }
 
@@ -96,7 +102,8 @@ public class CollabController {
     public ResponseEntity<List<TeamResponseDto>> getTeamsByUserId(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("userId") UUID userId) {
-        UUID requesterId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID requesterId = currentUser.getId();
         return ResponseEntity.ok(collabService.getTeamsByUserId(requesterId, userId));
     }
 
@@ -104,7 +111,8 @@ public class CollabController {
     public ResponseEntity<TeamResponseDto> getTeamById(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getTeamById(userId, teamId));
     }
 
@@ -112,7 +120,8 @@ public class CollabController {
     public ResponseEntity<List<JoinRequestResponseDto>> getTeamJoinRequests(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getTeamJoinRequests(userId, teamId));
     }
 
@@ -121,7 +130,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getMyIncomingRequestsPaged(userId, page, size));
     }
 
@@ -130,7 +140,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "15") int size) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.getMyJoinRequestsPaged(userId, page, size));
     }
 
@@ -139,7 +150,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID requestId,
             @Valid @RequestBody UpdateJoinRequestDto request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.updateJoinRequest(userId, requestId, request));
     }
 
@@ -147,7 +159,8 @@ public class CollabController {
     public ResponseEntity<Map<String, String>> deleteJoinRequest(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID requestId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         collabService.deleteJoinRequest(userId, requestId);
         return ResponseEntity.ok(Map.of("message", "Join request withdrawn successfully"));
     }
@@ -156,7 +169,8 @@ public class CollabController {
     public ResponseEntity<TeamResponseDto> createTeam(
             @CurrentUser UserPrincipal currentUser,
             @Valid @RequestBody CreateTeamRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.createTeam(userId, request));
     }
 
@@ -165,7 +179,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @Valid @RequestBody UpdateTeamRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.updateTeam(userId, teamId, request));
     }
 
@@ -173,7 +188,8 @@ public class CollabController {
     public ResponseEntity<Map<String, String>> deleteTeam(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         collabService.deleteTeam(userId, teamId);
         return ResponseEntity.ok(Map.of("message", "Team/project deleted successfully"));
     }
@@ -183,7 +199,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @Valid @RequestBody AddMemberRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.addMember(userId, teamId, request.getHandle()));
     }
 
@@ -192,7 +209,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @PathVariable("userId") UUID memberUserId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.removeMember(userId, teamId, memberUserId));
     }
 
@@ -201,7 +219,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @Valid @RequestBody SendJoinRequestDto request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.sendJoinRequest(userId, teamId, request));
     }
 
@@ -210,7 +229,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID requestId,
             @Valid @RequestBody RespondJoinRequestDto request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.respondJoinRequest(userId, requestId, request));
     }
 
@@ -218,7 +238,8 @@ public class CollabController {
     public ResponseEntity<Map<String, Object>> toggleStar(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.toggleStar(userId, teamId));
     }
 
@@ -226,7 +247,8 @@ public class CollabController {
     public ResponseEntity<TeamResponseDto> markComplete(
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.markComplete(userId, teamId));
     }
 
@@ -243,7 +265,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @Valid @RequestBody CreateDiscussionRequest request) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         return ResponseEntity.ok(collabService.addDiscussion(userId, teamId, request));
     }
 
@@ -252,7 +275,8 @@ public class CollabController {
             @CurrentUser UserPrincipal currentUser,
             @PathVariable("id") UUID teamId,
             @PathVariable("discussionId") UUID discussionId) {
-        UUID userId = currentUser != null ? currentUser.getId() : null;
+        if (currentUser == null) { return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build(); }
+        UUID userId = currentUser.getId();
         collabService.deleteDiscussion(userId, teamId, discussionId);
         return ResponseEntity.ok(Map.of("message", "Discussion comment deleted successfully"));
     }

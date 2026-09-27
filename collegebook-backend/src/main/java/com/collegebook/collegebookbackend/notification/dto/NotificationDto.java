@@ -18,6 +18,6 @@ public class NotificationDto {
     private String type;
     private String title;
     private String message;
-    private boolean isRead;
+    @com.fasterxml.jackson.annotation.JsonProperty("isRead")private boolean isRead;
     private Instant createdAt;
 }

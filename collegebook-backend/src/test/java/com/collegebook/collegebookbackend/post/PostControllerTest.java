@@ -8,6 +8,7 @@ import com.collegebook.collegebookbackend.post.dto.PostResponseDto;
 import com.collegebook.collegebookbackend.post.service.PostService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -42,6 +43,14 @@ public class PostControllerTest {
 
     @MockBean
     private JwtService jwtService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        com.collegebook.collegebookbackend.auth.UserPrincipal principal = new com.collegebook.collegebookbackend.auth.UserPrincipal(
+                UUID.randomUUID(), UUID.randomUUID(), "", "", java.util.List.of("STUDENT"));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+    }
 
     @Test
     void testGetFeed() throws Exception {

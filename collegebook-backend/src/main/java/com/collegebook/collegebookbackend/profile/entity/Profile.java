@@ -101,7 +101,7 @@ public class Profile {
 
     @Column(name = "is_public", nullable = false)
     @Builder.Default
-    private boolean isPublic = true;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPublic")private boolean isPublic = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

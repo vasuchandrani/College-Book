@@ -69,10 +69,17 @@ export interface AdData {
   title: string;
   description?: string;
   images?: string[];
+  imageUrl?: string;
   ctaText?: string;
   ctaLink?: string;
   commentsEnabled?: boolean;
+  allowComments?: boolean;
   discount?: string;
+  active?: boolean;
+  impressions?: number;
+  clicks?: number;
+  revenue?: number;
+  likes?: number;
 }
 
 export interface PostComment {

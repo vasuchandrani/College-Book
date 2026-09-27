@@ -60,8 +60,8 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:}
-  access-token-expiration-minutes: 15
-  refresh-token-expiration-days: 30
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  refresh-expiration-days: 30
 
 email:
   active-provider: ${EMAIL_ACTIVE_PROVIDER:BREVO}
@@ -134,3 +134,9 @@ management:
   health:
     mail:
       enabled: false
+
+webpush:
+  vapid:
+    public-key: ${VAPID_PUBLIC_KEY:}
+    private-key: ${VAPID_PRIVATE_KEY:}
+    subject: ${VAPID_SUBJECT:mailto:admin@collegebook.com}

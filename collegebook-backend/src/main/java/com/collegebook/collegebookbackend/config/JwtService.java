@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +22,13 @@ public class JwtService {
     private long jwtExpirationMs;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(jwtSecret);
+        } catch (IllegalArgumentException e) {
+            // Fallback for non-base64 secrets (for backwards compatibility)
+            keyBytes = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

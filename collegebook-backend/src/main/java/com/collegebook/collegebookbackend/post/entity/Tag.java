@@ -36,7 +36,7 @@ public class Tag {
     private int usageCount = 0;
 
     @Column(name = "is_tech", nullable = false)
-    private boolean isTech = false;
+    @com.fasterxml.jackson.annotation.JsonProperty("isTech")private boolean isTech = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

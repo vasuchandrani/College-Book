@@ -16,6 +16,7 @@ import com.collegebook.collegebookbackend.post.repository.PostSaveRepository;
 import com.collegebook.collegebookbackend.post.repository.TagRepository;
 import com.collegebook.collegebookbackend.post.service.impl.PostServiceImpl;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.storage.dto.MediaKeyDto;
 import com.collegebook.collegebookbackend.storage.service.MediaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +66,8 @@ public class PostServiceTest {
     private MediaService mediaService;
     @Mock
     private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
+    @Mock
+    private com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
 
     private PostServiceImpl postService;
 
@@ -80,7 +83,8 @@ public class PostServiceTest {
                 profileRepository,
                 postMediaRepository,
                 mediaService,
-                socialInteractionService
+                socialInteractionService,
+                notificationService
         );
     }
 
@@ -102,6 +106,13 @@ public class PostServiceTest {
                 .build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(author));
+        
+        Profile profile = new Profile();
+        profile.setUser(author);
+        profile.setFullName("Test User");
+        profile.setCourse(new com.collegebook.collegebookbackend.college.entity.Course());
+        profile.setBranch(new com.collegebook.collegebookbackend.college.entity.Branch());
+        when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
         when(postRepository.save(any(Post.class))).thenAnswer(i -> {
             Post p = i.getArgument(0);
             p.setId(UUID.randomUUID());
@@ -125,6 +136,13 @@ public class PostServiceTest {
         author.setCollege(college);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(author));
+        
+        Profile profile = new Profile();
+        profile.setUser(author);
+        profile.setFullName("Test User");
+        profile.setCourse(new com.collegebook.collegebookbackend.college.entity.Course());
+        profile.setBranch(new com.collegebook.collegebookbackend.college.entity.Branch());
+        when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
         when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
             Post p = invocation.getArgument(0);
             p.setId(UUID.randomUUID());
@@ -160,6 +178,13 @@ public class PostServiceTest {
         author.setCollege(college);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(author));
+        
+        Profile profile = new Profile();
+        profile.setUser(author);
+        profile.setFullName("Test User");
+        profile.setCourse(new com.collegebook.collegebookbackend.college.entity.Course());
+        profile.setBranch(new com.collegebook.collegebookbackend.college.entity.Branch());
+        when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
         when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
             Post p = invocation.getArgument(0);
             p.setId(UUID.randomUUID());
@@ -292,6 +317,7 @@ public class PostServiceTest {
 
         Post post = new Post();
         post.setId(postId);
+        post.setAuthor(author);
         post.setCommentsEnabled(true);
         post.setCommentsCount(0);
 
