@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { getUnreadNotificationCount } from "@/lib/api";
 import {
@@ -15,6 +15,19 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const push = usePushNotifications();
+  const [isLoadingPush, setIsLoadingPush] = useState(false);
+
+  const handleSubscribe = async () => {
+    setIsLoadingPush(true);
+    await push.subscribe();
+    setIsLoadingPush(false);
+  };
+
+  const handleUnsubscribe = async () => {
+    setIsLoadingPush(true);
+    await push.unsubscribe();
+    setIsLoadingPush(false);
+  };
 
   useEffect(() => {
     getUnreadNotificationCount().then((res) => {
@@ -55,14 +68,14 @@ export function NotificationBell() {
           {push.isSupported && (
             <>
               {!push.isSubscribed && (push.permission === "default" || push.permission === "granted") && (
-                <Button variant="outline" size="sm" onClick={() => push.subscribe()} className="h-7 text-xs">
-                  <BellRing className="w-3 h-3 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleSubscribe} disabled={isLoadingPush} className="h-7 text-xs">
+                  {isLoadingPush ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <BellRing className="w-3 h-3 mr-1" />}
                   Enable Push
                 </Button>
               )}
               {push.isSubscribed && (
-                <Button variant="outline" size="sm" onClick={() => push.unsubscribe()} className="h-7 text-xs text-destructive hover:text-destructive">
-                  <BellOff className="w-3 h-3 mr-1" />
+                <Button variant="outline" size="sm" onClick={handleUnsubscribe} disabled={isLoadingPush} className="h-7 text-xs text-destructive hover:text-destructive">
+                  {isLoadingPush ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <BellOff className="w-3 h-3 mr-1" />}
                   Disable
                 </Button>
               )}

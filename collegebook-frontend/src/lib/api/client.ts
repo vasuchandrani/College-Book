@@ -332,7 +332,10 @@ export async function request<T>(
     throw new ApiError(message, res.status, code, field, timestamp, reqPath);
   }
 
-  return (res.status === 204 ? (undefined as T) : await res.json()) as T;
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 // ---------------------------------------------------------------------------
