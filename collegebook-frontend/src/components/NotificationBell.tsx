@@ -54,7 +54,7 @@ export function NotificationBell() {
           <span>Notifications</span>
           {push.isSupported && (
             <>
-              {push.permission === "default" && (
+              {!push.isSubscribed && (push.permission === "default" || push.permission === "granted") && (
                 <Button variant="outline" size="sm" onClick={() => push.subscribe()} className="h-7 text-xs">
                   <BellRing className="w-3 h-3 mr-1" />
                   Enable Push
