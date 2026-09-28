@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     command: >
       postgres -c shared_buffers=256MB
-               -c work_mem=8MB
+               -c work_mem=4MB
                -c max_connections=50
                -c maintenance_work_mem=64MB
                -c checkpoint_completion_target=0.9
@@ -24,6 +24,22 @@ services:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collegebook_user} -d ${POSTGRES_DB:-collegebook}" ]
       interval: 5s
       timeout: 5s
+      retries: 5
+    networks:
+      - collegebook-network
+
+  # 2. Redis Cache Container
+  redis:
+    image: redis:7-alpine
+    container_name: collegebook-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 250mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379" # Accessible only from localhost/EC2 internally
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
       retries: 5
     networks:
       - collegebook-network
@@ -38,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -45,6 +63,11 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-collegebook}?stringtype=unspecified
       DB_USER: ${POSTGRES_USER:-collegebook_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-CollegeBookSecure2026!}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_SSL: "false"
+      REDIS_URL: ""
+      REDIS_PASS: ""
       SPRING_PROFILES_ACTIVE: prod
       PORT: 8080
       # Optimized JVM memory tuning for t3.small (2GB RAM)
