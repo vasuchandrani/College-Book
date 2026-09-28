@@ -42,6 +42,8 @@ import {
   MessageSquare,
   User,
   Undo2,
+  BellRing,
+  BellOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -129,6 +131,7 @@ import {
 } from "@/lib/api";
 import { isValidHttpUrl, normalizeUrl } from "@/lib/urlUtils";
 import { clientCache } from "@/lib/clientCache";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export interface CustomLink {
   id?: string;
@@ -185,6 +188,9 @@ const ProfilePage = () => {
   // Settings State: Password Change
   const [passwordStep, setPasswordStep] = useState<"request" | "verify">("request");
   const [sendingPasswordOtp, setSendingPasswordOtp] = useState(false);
+  
+  const push = usePushNotifications();
+  const [isLoadingPush, setIsLoadingPush] = useState(false);
   const [passwordOtp, setPasswordOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -2393,7 +2399,60 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Section 4: Log Out Option */}
+            {/* Section 4: Push Notifications */}
+            <div className="space-y-3 p-4 rounded-xl border border-border/60 bg-muted/15">
+              <div className="flex items-center gap-2">
+                <BellRing className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Push Notifications</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Stay updated with campus posts, team recruitment, and discussions. You can enable or disable push notifications on this device.
+              </p>
+              
+              <div className="flex items-center gap-2 pt-1">
+                {push.isSupported ? (
+                  <>
+                    {!push.isSubscribed ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          setIsLoadingPush(true);
+                          await push.subscribe();
+                          setIsLoadingPush(false);
+                        }}
+                        disabled={isLoadingPush}
+                        className="gap-2 text-xs h-9 rounded-lg border-primary/30 text-primary hover:bg-primary/5 hover:text-primary"
+                      >
+                        {isLoadingPush ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+                        Enable Notifications
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={async () => {
+                          setIsLoadingPush(true);
+                          await push.unsubscribe();
+                          setIsLoadingPush(false);
+                        }}
+                        disabled={isLoadingPush}
+                        className="gap-2 text-xs h-9 rounded-lg"
+                      >
+                        {isLoadingPush ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellOff className="h-3.5 w-3.5" />}
+                        Disable Notifications
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-destructive font-medium">Push Notifications are not supported or blocked by your browser.</span>
+                )}
+              </div>
+            </div>
+
+            {/* Section 5: Log Out Option */}
             <div className="pt-2 border-t border-border/50 flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-semibold text-foreground">Sign Out</h4>

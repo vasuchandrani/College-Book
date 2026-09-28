@@ -24,6 +24,7 @@ const DownloadAppButton = () => {
   const [installing, setInstalling] = useState(false);
   const [installProgress, setInstallProgress] = useState(0);
   const { available, installed } = usePwaInstall();
+  const isInstalled = installed || isNative();
 
   useEffect(() => {
     if (!open) {
@@ -31,6 +32,10 @@ const DownloadAppButton = () => {
       setInstallProgress(0);
     }
   }, [open]);
+
+  if (isInstalled) {
+    return null;
+  }
 
   const handleOpen = () => {
     setPlatform(detectVisitorPlatform());

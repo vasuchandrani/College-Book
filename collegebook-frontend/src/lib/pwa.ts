@@ -27,10 +27,12 @@ export const registerPwa = (): void => {
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
       deferredInstallPrompt = event as BeforeInstallPromptEvent;
+      localStorage.removeItem("cb_pwa_installed");
       notify();
     });
     window.addEventListener("appinstalled", () => {
       deferredInstallPrompt = null;
+      localStorage.setItem("cb_pwa_installed", "true");
       notify();
     });
   }
@@ -38,10 +40,17 @@ export const registerPwa = (): void => {
 
 export const canInstallPwa = (): boolean => Boolean(deferredInstallPrompt);
 
-export const isStandalonePwa = (): boolean =>
-  typeof window !== "undefined" &&
-  (window.matchMedia("(display-mode: standalone)").matches ||
-    Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+export const isStandalonePwa = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+  
+  if (isStandalone) {
+    localStorage.setItem("cb_pwa_installed", "true");
+  }
+  
+  return isStandalone || localStorage.getItem("cb_pwa_installed") === "true";
+};
 
 export const promptPwaInstall = async (): Promise<"accepted" | "dismissed" | "unavailable"> => {
   if (!deferredInstallPrompt) return "unavailable";

@@ -5,6 +5,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { Outlet, Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { isAuthTokenValid, clearAuthSession, logout } from "@/lib/api";
 import { NotificationBell } from "@/components/NotificationBell";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useEffect } from "react";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
@@ -14,6 +16,19 @@ const AppLayout = () => {
   const handleLogout = async () => {
     await logout();
   };
+
+  const push = usePushNotifications();
+
+  useEffect(() => {
+    const hasPrompted = localStorage.getItem("cb_push_prompted");
+    if (!hasPrompted && push.isSupported && push.permission === "default") {
+      setTimeout(() => {
+        push.subscribe().finally(() => {
+          localStorage.setItem("cb_push_prompted", "true");
+        });
+      }, 2000);
+    }
+  }, [push.isSupported, push.permission]);
 
   // If student is not authenticated or token expired/removed, redirect to login page
   if (!isAuthTokenValid(token)) {

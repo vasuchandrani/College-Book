@@ -23,12 +23,6 @@ export function NotificationBell() {
     setIsLoadingPush(false);
   };
 
-  const handleUnsubscribe = async () => {
-    setIsLoadingPush(true);
-    await push.unsubscribe();
-    setIsLoadingPush(false);
-  };
-
   useEffect(() => {
     getUnreadNotificationCount().then((res) => {
       setUnread(res.unreadCount || 0);
@@ -67,16 +61,10 @@ export function NotificationBell() {
           <span>Notifications</span>
           {push.isSupported && (
             <>
-              {!push.isSubscribed && (push.permission === "default" || push.permission === "granted") && (
+              {!push.isSubscribed && (
                 <Button variant="outline" size="sm" onClick={handleSubscribe} disabled={isLoadingPush} className="h-7 text-xs">
                   {isLoadingPush ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <BellRing className="w-3 h-3 mr-1" />}
                   Enable Push
-                </Button>
-              )}
-              {push.isSubscribed && (
-                <Button variant="outline" size="sm" onClick={handleUnsubscribe} disabled={isLoadingPush} className="h-7 text-xs text-destructive hover:text-destructive">
-                  {isLoadingPush ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <BellOff className="w-3 h-3 mr-1" />}
-                  Disable
                 </Button>
               )}
             </>
