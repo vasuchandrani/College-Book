@@ -66,8 +66,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_SSL: "false"
-      REDIS_URL: ""
-      REDIS_PASS: ""
       SPRING_PROFILES_ACTIVE: prod
       PORT: 8080
       # Optimized JVM memory tuning for t3.small (2GB RAM)
