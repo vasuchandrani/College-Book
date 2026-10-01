@@ -46,6 +46,7 @@ import {
   sendJoinRequest,
   getMyJoinedRequests,
   getTeamDiscussions,
+  getPagedTeamDiscussions,
   addTeamDiscussion,
   deleteTeamDiscussion,
   getTeamRecentMessages,
@@ -82,6 +83,11 @@ export default function CollabDetailPage() {
   // Project Discussions
   const [discussions, setDiscussions] = useState<TeamDiscussion[]>([]);
   const [discussionsLoading, setDiscussionsLoading] = useState(false);
+  const [discussionPage, setDiscussionPage] = useState(0);
+  const [hasMoreDiscussions, setHasMoreDiscussions] = useState(true);
+  const [loadingMoreDiscussions, setLoadingMoreDiscussions] = useState(false);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  
   const [submittingDiscussion, setSubmittingDiscussion] = useState(false);
   const [discussionBody, setDiscussionBody] = useState("");
 
@@ -96,13 +102,20 @@ export default function CollabDetailPage() {
     Promise.all([
       getTeamById(id).catch(() => null),
       getMyJoinedRequests().catch(() => []),
-      getTeamDiscussions(id).catch(() => []),
+      getPagedTeamDiscussions(id, 0, 50).catch(() => null),
     ])
       .then(([teamData, reqsData, discussionsData]) => {
         if (alive) {
           setTeam(teamData);
           setMyRequests((reqsData as any)?.requests || reqsData || []);
-          setDiscussions(discussionsData || []);
+          if (discussionsData) {
+            const items = discussionsData.content || discussionsData.items || [];
+            setDiscussions(items);
+            setHasMoreDiscussions(Boolean(discussionsData.hasNext));
+          } else {
+            setDiscussions([]);
+            setHasMoreDiscussions(false);
+          }
         }
       })
       .catch((e) => {
@@ -139,6 +152,43 @@ export default function CollabDetailPage() {
     window.addEventListener("cb_room_read", handleRoomRead);
     return () => window.removeEventListener("cb_room_read", handleRoomRead);
   }, [id]);
+
+  const loadMoreDiscussions = useCallback(async () => {
+    if (!id || loadingMoreDiscussions || !hasMoreDiscussions) return;
+    setLoadingMoreDiscussions(true);
+    try {
+      const nextPage = discussionPage + 1;
+      const res = await getPagedTeamDiscussions(id, nextPage, 50);
+      setDiscussions((prev) => {
+        const existingIds = new Set(prev.map((d) => d.id));
+        const items = res.content || res.items || [];
+        const newUnique = items.filter((d) => !existingIds.has(d.id));
+        return [...prev, ...newUnique];
+      });
+      setDiscussionPage(nextPage);
+      setHasMoreDiscussions(Boolean(res.hasNext));
+    } catch (err: any) {
+      toast.error("Failed to load older discussions");
+    } finally {
+      setLoadingMoreDiscussions(false);
+    }
+  }, [id, discussionPage, hasMoreDiscussions, loadingMoreDiscussions]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreDiscussions && !loadingMoreDiscussions) {
+          loadMoreDiscussions();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreSentinelRef.current) {
+      observer.observe(loadMoreSentinelRef.current);
+    }
+    return () => observer.disconnect();
+  }, [hasMoreDiscussions, loadingMoreDiscussions, loadMoreDiscussions]);
 
   const handleAddDiscussion = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -956,6 +1006,13 @@ export default function CollabDetailPage() {
                 </div>
               );
             })
+          )}
+          
+          {/* Infinite Scroll Sentinel */}
+          {hasMoreDiscussions && !discussionsLoading && (
+            <div ref={loadMoreSentinelRef} className="h-4 w-full flex justify-center py-4 mt-2">
+              {loadingMoreDiscussions && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+            </div>
           )}
         </div>
       </Card>

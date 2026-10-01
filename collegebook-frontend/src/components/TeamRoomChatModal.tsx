@@ -70,24 +70,56 @@ export default function TeamRoomChatModal({
     loading,
     activeUsers,
     typingUserNames,
-    connectionStatus,
     sendMessage,
     sendTyping,
     deleteMessage,
+    hasMore,
+    loadingMore,
+    loadMoreMessages,
   } = useRoomChat({
     teamId: team?.id,
     enabled: open,
   });
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const previousScrollHeight = useRef<number>(0);
+
+  // Intersection Observer for Reverse Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading && open) {
+          if (messagesContainerRef.current) {
+            previousScrollHeight.current = messagesContainerRef.current.scrollHeight;
+          }
+          loadMoreMessages();
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" }
+    );
+
+    if (topSentinelRef.current) {
+      observer.observe(topSentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, open, loadMoreMessages]);
+
+  // Maintain scroll position when new older messages are prepended
+  useEffect(() => {
+    if (loadingMore === false && previousScrollHeight.current > 0 && messagesContainerRef.current) {
+      const newScrollHeight = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight.current;
+      previousScrollHeight.current = 0; // Reset
+    }
+  }, [messages.length, loadingMore]);
 
   // Auto-scroll to bottom on new messages, mark room read & auto-focus input
   useEffect(() => {
-    if (open) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-      if (team?.id) {
-        markRoomAsRead(team.id);
-      }
+    if (open && team?.id) {
+      markRoomAsRead(team.id);
       const timer = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
         inputRef.current?.focus();
       }, 60);
       return () => clearTimeout(timer);
@@ -95,8 +127,12 @@ export default function TeamRoomChatModal({
   }, [open, team?.id]);
 
   useEffect(() => {
-    if (open) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (open && previousScrollHeight.current === 0 && messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      if (isNearBottom || scrollHeight < clientHeight * 2) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
   }, [messages.length, open, typingUserNames]);
 
@@ -200,7 +236,7 @@ export default function TeamRoomChatModal({
         </div>
 
         {/* 2. Message History Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-background/50">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-background/50">
           {loading && messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -215,7 +251,15 @@ export default function TeamRoomChatModal({
               </p>
             </div>
           ) : (
-            messages.map((msg, idx) => {
+            <>
+              {/* Sentinel for Infinite Scroll */}
+              <div ref={topSentinelRef} className="h-1 w-full" />
+              {loadingMore && (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/60" />
+                </div>
+              )}
+              {messages.map((msg, idx) => {
               const isMine = Boolean(
                 (msg.senderId && currentUserId && String(msg.senderId).toLowerCase() === String(currentUserId).toLowerCase()) ||
                 (msg.senderName && (currentUser.name || currentUser.fullName) && (
@@ -376,7 +420,8 @@ export default function TeamRoomChatModal({
                   </div>
                 </motion.div>
               );
-            })
+            })}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>

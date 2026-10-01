@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Client } from "@stomp/stompjs";
 import {
   getTeamChatMessages,
+  getPagedTeamChatMessages,
   sendTeamChatMessage,
   deleteTeamChatMessage,
   getRoomChatMembers,
@@ -20,6 +21,9 @@ export interface UseRoomChatOptions {
 export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
   const [messages, setMessages] = useState<TeamChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [activeUsers, setActiveUsers] = useState<ChatUser[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [connectionStatus, setConnectionStatus] = useState<"CONNECTING" | "CONNECTED" | "DISCONNECTED">("DISCONNECTED");
@@ -43,12 +47,20 @@ export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
   const fetchInitialData = useCallback(async () => {
     if (!teamId || !enabled) return;
     setLoading(true);
+    setPage(0);
     try {
-      const [messagesData, membersData] = await Promise.all([
-        getTeamChatMessages(teamId, 50).catch(() => []),
+      const [pagedResponse, membersData] = await Promise.all([
+        getPagedTeamChatMessages(teamId, 0, 50).catch(() => null),
         getRoomChatMembers(teamId).catch(() => []),
       ]);
-      setMessages(messagesData || []);
+      if (pagedResponse) {
+        const items = pagedResponse.content || pagedResponse.items || [];
+        setMessages(items);
+        setHasMore(Boolean(pagedResponse.hasNext));
+      } else {
+        setMessages([]);
+        setHasMore(false);
+      }
       setActiveUsers(membersData || []);
     } catch (e: any) {
       toast.error(e.message || "Failed to load chat history");
@@ -56,6 +68,32 @@ export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
       setLoading(false);
     }
   }, [teamId, enabled]);
+
+  // 1b. Load older messages (Pagination)
+  const loadMoreMessages = useCallback(async () => {
+    if (!teamId || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getPagedTeamChatMessages(teamId, nextPage, 50);
+      
+      // Prepend older messages to the top
+      setMessages((prev) => {
+        // Filter out duplicates just in case
+        const existingIds = new Set(prev.map(m => m.id));
+        const items = res.content || res.items || [];
+        const newUnique = items.filter(m => !existingIds.has(m.id));
+        return [...newUnique, ...prev];
+      });
+      
+      setPage(nextPage);
+      setHasMore(Boolean(res.hasNext));
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load older messages");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [teamId, page, hasMore, loadingMore]);
 
   // 2. Initialize Real-Time STOMP WebSocket Connection
   useEffect(() => {
@@ -311,6 +349,9 @@ export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
   return {
     messages,
     loading,
+    page,
+    hasMore,
+    loadingMore,
     activeUsers,
     typingUserNames: Array.from(typingUsers.values()),
     connectionStatus,
@@ -318,5 +359,6 @@ export function useRoomChat({ teamId, enabled = true }: UseRoomChatOptions) {
     sendTyping,
     deleteMessage,
     refreshMessages: fetchInitialData,
+    loadMoreMessages,
   };
 }

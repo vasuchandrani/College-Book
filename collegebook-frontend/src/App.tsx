@@ -28,6 +28,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage.tsx"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard.tsx"));
 const AdminFeedViewPage = lazy(() => import("./pages/AdminFeedViewPage.tsx"));
 const AdminPostPage = lazy(() => import("./pages/AdminPostPage.tsx"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage.tsx"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/mycon" element={<MyConPage />} />
               <Route path="/student/:name" element={<StudentProfilePage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

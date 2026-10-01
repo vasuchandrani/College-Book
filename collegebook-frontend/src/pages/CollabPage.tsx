@@ -1343,11 +1343,10 @@ const CollabPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.3) }}
                 >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80 hover:border-primary/40">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-3">
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
                         {/* Header */}
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Link
                             to={`/collab/${project.id}`}
                             className="font-bold text-base text-foreground tracking-tight hover:text-primary hover:underline transition-colors"
@@ -1360,7 +1359,7 @@ const CollabPage = () => {
                         </div>
 
                         {/* Description (2 lines clamp + ellipsis) */}
-                        <p className="text-sm text-foreground/85 leading-relaxed line-clamp-2 text-ellipsis">
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
                           {project.description || "Open source project open for campus contributions."}
                         </p>
 
@@ -1375,20 +1374,20 @@ const CollabPage = () => {
                               }
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline bg-primary/5 hover:bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 transition-colors"
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-md border border-primary/20 max-w-full"
                             >
-                              <Github className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[280px]">
+                              <Github className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate max-w-[220px] sm:max-w-[360px]">
                                 {project.githubLink.replace(/^https?:\/\//, "")}
                               </span>
-                              <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" />
+                              <ExternalLink className="h-3 w-3 ml-0.5 opacity-70 shrink-0" />
                             </a>
                           </div>
                         )}
 
                         {/* Creator / Lead & College */}
                         <div className="flex flex-wrap items-center gap-3 pt-1">
-                          <div className="flex items-center gap-1.5 text-xs bg-muted/60 px-2 py-1 rounded-md border border-border/40">
+                          <div className="flex items-center gap-1.5 text-xs bg-muted/40 px-2.5 py-1 rounded-full border border-border/50">
                             <Avatar className="h-4 w-4">
                               <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                 {(project.ownerName || "L").slice(0, 2).toUpperCase()}
@@ -1417,7 +1416,7 @@ const CollabPage = () => {
                             (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
                               <div className="space-y-1">
                                 <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                  <Users className="h-3 w-3" /> Looking for roles:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {(project.requiredRoles || project.requiredExpertise || []).map(
@@ -1457,7 +1456,7 @@ const CollabPage = () => {
                       </div>
 
                       {/* Right Actions: View Details, Star & Contribute */}
-                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/50 w-full mt-1">
                         <Button
                           asChild
                           size="sm"
@@ -1480,7 +1479,7 @@ const CollabPage = () => {
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground px-2.5 py-1.5 rounded-lg shadow-sm hover:opacity-90 transition-opacity w-auto h-8"
                           >
-                            <Github className="h-3.5 w-3.5" /> Contribute
+                            <Github className="h-3.5 w-3.5 shrink-0" /> Contribute
                           </a>
                         )}
 
@@ -1497,7 +1496,6 @@ const CollabPage = () => {
                           <span className="font-semibold">{project.starsCount || 0}</span>
                         </Button>
                       </div>
-                    </div>
                   </Card>
                 </motion.div>
               ))}
@@ -1539,10 +1537,9 @@ const CollabPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.3) }}
                 >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80 hover:border-primary/40">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Link
                             to={`/collab/${team.id}`}
                             className="font-bold text-base text-foreground tracking-tight hover:text-primary hover:underline transition-colors"
@@ -1558,13 +1555,13 @@ const CollabPage = () => {
                         </div>
 
                         {/* Description (2 lines clamp) */}
-                        <p className="text-sm text-foreground/85 leading-relaxed line-clamp-2 text-ellipsis">
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
                           {team.description || "Hackathon team assembling for competition."}
                         </p>
 
                         {/* Team Lead & College */}
                         <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-1.5 text-xs bg-muted/60 px-2 py-1 rounded-md border border-border/40">
+                          <div className="flex items-center gap-1.5 text-xs bg-muted/40 px-2.5 py-1 rounded-full border border-border/50">
                             <Avatar className="h-4 w-4">
                               <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                 {(team.ownerName || "L").slice(0, 2).toUpperCase()}
@@ -1593,7 +1590,7 @@ const CollabPage = () => {
                             (team.requiredExpertise && team.requiredExpertise.length > 0)) && (
                               <div className="space-y-1">
                                 <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                  <Users className="h-3 w-3" /> Looking for roles:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {(team.requiredRoles || team.requiredExpertise || []).map(
@@ -1633,7 +1630,7 @@ const CollabPage = () => {
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}
-                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/50 w-full mt-1">
                         <Button
                           asChild
                           size="sm"
@@ -1685,11 +1682,10 @@ const CollabPage = () => {
                             : "text-muted-foreground"
                             }`}
                         >
-                          <Star className={`h-4 w-4 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
+                          <Star className={`h-3.5 w-3.5 ${team.starred ? "fill-amber-500 text-amber-500" : ""}`} />
                           <span className="font-semibold">{team.starsCount || 0}</span>
                         </Button>
                       </div>
-                    </div>
                   </Card>
                 </motion.div>
               ))}
@@ -1731,10 +1727,9 @@ const CollabPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.05, 0.3) }}
                 >
-                  <Card className="p-5 shadow-card hover:shadow-elevated transition-all border-border/80 hover:border-primary/40">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
+                  <Card className="p-4 sm:p-5 shadow-card hover:shadow-elevated transition-shadow">
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <Link
                             to={`/collab/${project.id}`}
                             className="font-bold text-base text-foreground tracking-tight hover:text-primary hover:underline transition-colors"
@@ -1755,7 +1750,7 @@ const CollabPage = () => {
                         </div>
 
                         {/* Description (2 lines clamp) */}
-                        <p className="text-sm text-foreground/85 leading-relaxed line-clamp-2 text-ellipsis">
+                        <p className="text-sm text-muted-foreground line-clamp-2 text-ellipsis">
                           {project.description || "Building a student project collaboration."}
                         </p>
 
@@ -1771,8 +1766,8 @@ const CollabPage = () => {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                             >
-                              <Github className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[280px]">
+                              <Github className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate max-w-[220px] sm:max-w-[360px]">
                                 {project.githubLink.replace(/^https?:\/\//, "")}
                               </span>
                             </a>
@@ -1781,7 +1776,7 @@ const CollabPage = () => {
 
                         {/* Team Lead & College */}
                         <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-1.5 text-xs bg-muted/60 px-2 py-1 rounded-md border border-border/40">
+                          <div className="flex items-center gap-1.5 text-xs bg-muted/40 px-2.5 py-1 rounded-full border border-border/50">
                             <Avatar className="h-4 w-4">
                               <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                 {(project.ownerName || "L").slice(0, 2).toUpperCase()}
@@ -1810,7 +1805,7 @@ const CollabPage = () => {
                             (project.requiredExpertise && project.requiredExpertise.length > 0)) && (
                               <div className="space-y-1">
                                 <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-                                  <Briefcase className="h-3 w-3" /> Looking for roles:
+                                  <Users className="h-3 w-3" /> Looking for roles:
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {(project.requiredRoles || project.requiredExpertise || []).map(
@@ -1850,7 +1845,7 @@ const CollabPage = () => {
                       </div>
 
                       {/* Actions: View Details, Request to Join, Star */}
-                      <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 sm:pt-0 w-full sm:w-auto justify-start sm:justify-end sm:flex-col sm:items-end">
+                      <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-border/50 w-full mt-1">
                         <Button
                           asChild
                           size="sm"
@@ -1906,7 +1901,6 @@ const CollabPage = () => {
                           <span className="font-semibold">{project.starsCount || 0}</span>
                         </Button>
                       </div>
-                    </div>
                   </Card>
                 </motion.div>
               ))}

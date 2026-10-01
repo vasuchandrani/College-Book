@@ -34,6 +34,29 @@ export const getTeamDiscussions = async (
   }));
 };
 
+export const getPagedTeamDiscussions = async (
+  teamId: string,
+  page = 0,
+  size = 50
+): Promise<PageResponse<TeamDiscussion>> => {
+  const res = await request<PageResponse<any>>(`/teams/${teamId}/discussions?page=${page}&size=${size}`);
+  const items = (res.content || res.items || []).map((d: any) => ({
+    id: d.id,
+    teamId: d.teamId || teamId,
+    authorId: d.authorId,
+    authorName: d.authorName,
+    authorHandle: d.authorHandle,
+    avatarUrl: d.avatarUrl,
+    initials: d.initials || "U",
+    collegeName: d.collegeName,
+    collegeShortName: d.collegeShortName,
+    body: d.body,
+    time: d.time || "Just now",
+    createdAt: d.createdAt,
+  }));
+  return { ...res, content: items, items };
+};
+
 export const addTeamDiscussion = async (
   teamId: string,
   body: string

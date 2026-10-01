@@ -59,16 +59,52 @@ export function TeamRoomChatPanel({
   const {
     messages,
     loading,
+    hasMore,
+    loadingMore,
     activeUsers,
     typingUserNames,
     connectionStatus,
     sendMessage,
     deleteMessage,
     sendTyping,
+    loadMoreMessages,
   } = useRoomChat({
     teamId: team.id,
     enabled: true,
   });
+
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const previousScrollHeight = useRef<number>(0);
+
+  // Intersection Observer for Reverse Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          if (messagesContainerRef.current) {
+            previousScrollHeight.current = messagesContainerRef.current.scrollHeight;
+          }
+          loadMoreMessages();
+        }
+      },
+      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" }
+    );
+
+    if (topSentinelRef.current) {
+      observer.observe(topSentinelRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, loadMoreMessages]);
+
+  // Maintain scroll position when new older messages are prepended
+  useEffect(() => {
+    if (loadingMore === false && previousScrollHeight.current > 0 && messagesContainerRef.current) {
+      const newScrollHeight = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight.current;
+      previousScrollHeight.current = 0; // Reset
+    }
+  }, [messages.length, loadingMore]);
 
   const getStoredUser = () => {
     try {
@@ -131,7 +167,14 @@ export function TeamRoomChatPanel({
   }, [team?.id]);
 
   useEffect(() => {
-    scrollToBottom(true);
+    if (messagesContainerRef.current && previousScrollHeight.current === 0) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      // Also scroll if it's the very first load (scrollTop is 0 and scrollHeight is small)
+      if (isNearBottom || scrollHeight < clientHeight * 2) {
+        scrollToBottom(true);
+      }
+    }
     if (team?.id) {
       markRoomAsRead(team.id);
     }
@@ -248,6 +291,16 @@ export function TeamRoomChatPanel({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Sentinel for Infinite Scroll */}
+            <div ref={topSentinelRef} className="h-1 w-full" />
+            
+            {loadingMore && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/60" />
+              </div>
+            )}
+            
+            {/* Group messages by Date if needed, currently flat */}
             {messages.map((msg, idx) => {
               const isMe = checkIsMe(msg);
 
