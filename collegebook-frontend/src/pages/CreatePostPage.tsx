@@ -348,6 +348,7 @@ const CreatePostPage = () => {
             placeholder="Share an idea, achievement, or opportunity... What's on your mind?"
             value={content}
             onChange={(e) => setContent(e.target.value.replace(/\n{3,}/g, "\n\n"))}
+            maxLength={5000}
             className="min-h-[140px] sm:min-h-[180px] border-none shadow-none resize-none p-2 bg-transparent rounded-md focus-visible:ring-0 text-sm sm:text-base placeholder:text-muted-foreground/70 leading-relaxed"
             disabled={isUploading}
             autoFocus
@@ -544,8 +545,8 @@ const CreatePostPage = () => {
               </div>
 
               {content.length > 0 && (
-                <span className="text-[11px] text-muted-foreground ml-auto hidden sm:block">
-                  {content.length} characters
+                <span className={`text-[11px] ml-auto hidden sm:block ${content.length > 4900 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                  {content.length} / 5000 characters
                 </span>
               )}
             </div>

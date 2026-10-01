@@ -813,7 +813,7 @@ const StudentProfilePage = () => {
                     {/* Bottom Section: Full Width Body, Media, Actions */}
                     <div className="w-full">
                       {/* Multiline, clickable content */}
-                      <FormattedContent content={post.content} className="mt-1" />
+                      <FormattedContent content={post.content} className="mt-1" truncateLength={1000} readMoreLink={`/post/${post.id}`} />
 
                       {/* Images */}
                       {post.images && post.images.length > 0 && (

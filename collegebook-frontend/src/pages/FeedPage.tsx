@@ -310,7 +310,7 @@ const FeedPage = () => {
 
             {/* Body, Media, Actions */}
             <div className="w-full">
-              <FormattedContent content={post.content} className="mt-1" />
+              <FormattedContent content={post.content} className="mt-1" truncateLength={1000} readMoreLink={`/post/${post.id}`} />
 
               {/* Images */}
               {post.images && post.images.length > 0 && (

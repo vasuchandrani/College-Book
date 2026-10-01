@@ -99,7 +99,7 @@ export function ProfilePostsTab({
               {/* Bottom Section: Full Width Body, Media, Actions */}
               <div className="w-full">
                 {/* Multiline clickable post content */}
-                <FormattedContent content={post.content} className="mt-1" />
+                <FormattedContent content={post.content} className="mt-1" truncateLength={1000} readMoreLink={`/post/${post.id}`} />
 
                 {/* Post Images */}
                 {post.images && post.images.length > 0 && (

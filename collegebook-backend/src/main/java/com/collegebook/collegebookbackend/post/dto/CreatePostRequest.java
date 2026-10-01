@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class CreatePostRequest {
 
-    @Size(max = 2000, message = "Post content cannot exceed 2000 characters")
+    @Size(max = 5000, message = "Post content cannot exceed 5000 characters")
     private String content;
 
     /**

@@ -5,19 +5,37 @@ interface FormattedContentProps {
   content: string;
   className?: string;
   maxEnters?: number;
+  truncateLength?: number;
+  readMoreLink?: string;
 }
 
 export const FormattedContent: React.FC<FormattedContentProps> = ({
   content,
   className = "",
   maxEnters = 2,
+  truncateLength,
+  readMoreLink,
 }) => {
   if (!content) return null;
 
-  // 1. Normalize carriage returns
   let normalized = content.replace(/\r\n/g, "\n");
+  let isTruncated = false;
 
-  // 2. Collapse enters beyond maxEnters
+  if (truncateLength && normalized.length > truncateLength) {
+    const truncatedStr = normalized.substring(0, truncateLength);
+    const lastSpace = truncatedStr.lastIndexOf(" ");
+    const lastNewline = truncatedStr.lastIndexOf("\n");
+    const lastBreak = Math.max(lastSpace, lastNewline);
+    
+    if (lastBreak > truncateLength * 0.8) {
+      normalized = truncatedStr.substring(0, lastBreak) + "...";
+    } else {
+      normalized = truncatedStr + "...";
+    }
+    isTruncated = true;
+  }
+
+  // Collapse enters beyond maxEnters
   if (maxEnters === 1) {
     normalized = normalized.replace(/\n{2,}/g, "\n");
   } else if (maxEnters === 2) {
@@ -77,6 +95,15 @@ export const FormattedContent: React.FC<FormattedContentProps> = ({
 
         return <span key={index}>{part}</span>;
       })}
+      {isTruncated && readMoreLink && (
+        <Link
+          to={readMoreLink}
+          className="ml-1 text-primary hover:underline font-semibold whitespace-nowrap"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Read more
+        </Link>
+      )}
     </div>
   );
 };

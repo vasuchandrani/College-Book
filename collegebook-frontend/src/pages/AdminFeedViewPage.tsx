@@ -553,7 +553,7 @@ const AdminFeedViewPage = () => {
 
                     {/* Post Content */}
                     {post.content && (
-                      <FormattedContent content={post.content} className="mt-3" />
+                      <FormattedContent content={post.content} className="mt-3" truncateLength={1000} readMoreLink={`/post/${post.id}`} />
                     )}
 
                     {/* Images / Carousel */}
