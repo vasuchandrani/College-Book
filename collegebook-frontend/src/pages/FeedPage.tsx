@@ -130,16 +130,22 @@ const FeedPage = () => {
       ([entry]) => {
         if (entry.isIntersecting) {
           setLoadingMore(true);
-          fetchPage(pageRef.current).then((res) => {
-            setPosts((prev) => {
-              const ids = new Set(prev.map((p) => p.id));
-              const unique = res.posts.filter((p: FeedPost) => !ids.has(p.id));
-              return [...prev, ...unique];
+          fetchPage(pageRef.current)
+            .then((res) => {
+              setPosts((prev) => {
+                const ids = new Set(prev.map((p) => p.id));
+                const unique = res.posts.filter((p: FeedPost) => !ids.has(p.id));
+                return [...prev, ...unique];
+              });
+              setHasMore(res.hasNext);
+              pageRef.current += 1;
+            })
+            .catch(() => {
+              setHasMore(false);
+            })
+            .finally(() => {
+              setLoadingMore(false);
             });
-            setHasMore(res.hasNext);
-            pageRef.current += 1;
-            setLoadingMore(false);
-          });
         }
       },
       { rootMargin: "200px" }

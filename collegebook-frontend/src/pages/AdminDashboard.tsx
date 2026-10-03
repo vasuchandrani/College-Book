@@ -378,8 +378,6 @@ const AdminDashboard = () => {
         commentsEnabled: created?.commentsEnabled ?? true,
         allowComments: created?.commentsEnabled ?? true,
         discount: created?.discount || "",
-        likes: 0,
-        commentsCount: 0,
         impressions: 0,
         clicks: 0,
         revenue: 0,

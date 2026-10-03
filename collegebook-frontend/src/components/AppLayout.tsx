@@ -1,4 +1,4 @@
-import { BookOpen, BadgeCheck, LogOut } from "lucide-react";
+import { BookOpen, BadgeCheck, LogOut, Loader2 } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
@@ -6,7 +6,7 @@ import { Outlet, Navigate, useLocation, Link, useNavigate } from "react-router-d
 import { isAuthTokenValid, clearAuthSession, logout } from "@/lib/api";
 import { NotificationBell } from "@/components/NotificationBell";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 const AppLayout = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("cb_token") : null;
@@ -81,7 +81,13 @@ const AppLayout = () => {
             </div>
           </header>
           <main className="flex-1 min-w-0 pb-16 md:pb-0">
-            <Outlet />
+            <Suspense fallback={
+              <div className="flex h-[50vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
       </div>

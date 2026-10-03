@@ -76,6 +76,7 @@ export default function TeamRoomChatModal({
     hasMore,
     loadingMore,
     loadMoreMessages,
+    connectionStatus,
   } = useRoomChat({
     teamId: team?.id,
     enabled: open,

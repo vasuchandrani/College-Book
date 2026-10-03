@@ -96,11 +96,11 @@ const PostPage = () => {
     } else {
       setLoading(true);
     }
-    
+
     if (cachedComments) {
       setComments(cachedComments);
     }
-    
+
     setError(null);
 
     getPostById(id)
@@ -117,7 +117,7 @@ const PostPage = () => {
                 clientCache.set(commentsCacheKey, c?.comments || [], 120_000);
               }
             })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => {
               if (isMounted) setCommentsLoading(false);
             });
@@ -156,16 +156,16 @@ const PostPage = () => {
         setPost((prev) =>
           prev
             ? {
-                ...prev,
-                liked: newLiked,
-                likes: newLiked
-                  ? prev.liked
-                    ? prev.likes
-                    : prev.likes + 1
-                  : prev.liked
+              ...prev,
+              liked: newLiked,
+              likes: newLiked
+                ? prev.liked
+                  ? prev.likes
+                  : prev.likes + 1
+                : prev.liked
                   ? Math.max(0, prev.likes - 1)
                   : prev.likes,
-              }
+            }
             : null
         );
       },
@@ -184,9 +184,9 @@ const PostPage = () => {
         setPost((prev) =>
           prev
             ? {
-                ...prev,
-                saved: newSaved,
-              }
+              ...prev,
+              saved: newSaved,
+            }
             : null
         );
       },
@@ -228,9 +228,9 @@ const PostPage = () => {
     setPost((prev) =>
       prev
         ? {
-            ...prev,
-            commentsCount: (prev.commentsCount || comments.length) + 1,
-          }
+          ...prev,
+          commentsCount: (prev.commentsCount || comments.length) + 1,
+        }
         : null
     );
 
@@ -255,9 +255,9 @@ const PostPage = () => {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
-            }
+            ...prev,
+            commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
+          }
           : null
       );
       toast.error(err.message || "Failed to add comment");
@@ -276,9 +276,9 @@ const PostPage = () => {
     setPost((prev) =>
       prev
         ? {
-            ...prev,
-            commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
-          }
+          ...prev,
+          commentsCount: Math.max(0, (prev.commentsCount || 1) - 1),
+        }
         : null
     );
     toast.success("Comment deleted");
@@ -292,9 +292,9 @@ const PostPage = () => {
       setPost((prev) =>
         prev
           ? {
-              ...prev,
-              commentsCount: (prev.commentsCount || 0) + 1,
-            }
+            ...prev,
+            commentsCount: (prev.commentsCount || 0) + 1,
+          }
           : null
       );
       toast.error(err.message || "Failed to delete comment");
@@ -453,16 +453,14 @@ const PostPage = () => {
                   variant="ghost"
                   size="sm"
                   onClick={toggleLike}
-                  className={`gap-1.5 text-xs transition-colors ${
-                    post.liked
+                  className={`gap-1.5 text-xs transition-colors ${post.liked
                       ? "text-red-500 hover:text-red-600"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   <Heart
-                    className={`h-4 w-4 transition-transform active:scale-125 ${
-                      post.liked ? "fill-current text-red-500" : ""
-                    }`}
+                    className={`h-4 w-4 transition-transform active:scale-125 ${post.liked ? "fill-current text-red-500" : ""
+                      }`}
                   />
                   <span>{formatCount(post.likes)}</span>
                 </Button>
@@ -478,17 +476,15 @@ const PostPage = () => {
                   variant="ghost"
                   size="sm"
                   onClick={toggleSave}
-                  className={`text-xs px-2.5 transition-colors ${
-                    post.saved
+                  className={`text-xs px-2.5 transition-colors ${post.saved
                       ? "text-accent hover:text-accent"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                   title={post.saved ? "Unsave post" : "Save post"}
                 >
                   <Bookmark
-                    className={`h-4 w-4 ${
-                      post.saved ? "fill-current" : ""
-                    }`}
+                    className={`h-4 w-4 ${post.saved ? "fill-current" : ""
+                      }`}
                   />
                 </Button>
 
@@ -580,7 +576,7 @@ const PostPage = () => {
                   (currentUser.handle &&
                     comment.authorHandle &&
                     currentUser.handle.replace(/^@/, "").toLowerCase() ===
-                      comment.authorHandle.replace(/^@/, "").toLowerCase()) ||
+                    comment.authorHandle.replace(/^@/, "").toLowerCase()) ||
                   (currentUser.name &&
                     comment.author &&
                     currentUser.name === comment.author));
