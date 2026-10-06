@@ -21,4 +21,6 @@ public class SendMessageRequest {
     private String messageType = "TEXT";
 
     private String mediaUrl;
+
+    private java.util.List<java.util.UUID> mentionedUserIds;
 }

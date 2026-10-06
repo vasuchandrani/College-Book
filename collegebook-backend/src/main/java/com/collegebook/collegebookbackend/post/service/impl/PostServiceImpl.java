@@ -29,6 +29,7 @@ import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
 import com.collegebook.collegebookbackend.storage.dto.MediaDto;
 import com.collegebook.collegebookbackend.storage.dto.MediaKeyDto;
 import com.collegebook.collegebookbackend.storage.service.MediaService;
+import com.collegebook.collegebookbackend.event.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -66,7 +67,7 @@ public class PostServiceImpl implements PostService {
     private final PostMediaRepository postMediaRepository;
     private final MediaService mediaService;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
-    private final com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
+    private final EventPublisher eventPublisher;
 
     @Lazy
     @Autowired
@@ -331,19 +332,25 @@ public class PostServiceImpl implements PostService {
         }
 
         // Notify all college students about the new post
-        String message = savedPost.getAuthorName() + " posted a post to campus about: ";
-        if (hasContent) {
-            message += request.getContent().trim().substring(0, Math.min(20, request.getContent().trim().length())) + "...";
-        } else {
-            message += "an attached media file";
+        eventPublisher.publish(CollegePostCreatedEvent.builder()
+                .postId(savedPost.getId())
+                .collegeId(savedPost.getCollege().getId())
+                .actorId(author.getId())
+                .build());
+
+        // Notify mentioned users
+        if (request.getMentionedUserIds() != null && !request.getMentionedUserIds().isEmpty()) {
+            for (UUID mentionedUserId : request.getMentionedUserIds()) {
+                if (!mentionedUserId.equals(userId)) {
+                    eventPublisher.publish(com.collegebook.collegebookbackend.event.MentionEvent.builder()
+                            .mentionedUserId(mentionedUserId)
+                            .context("POST")
+                            .targetId(savedPost.getId())
+                            .actorId(userId)
+                            .build());
+                }
+            }
         }
-        notificationService.notifyCollegeStudents(
-                savedPost.getCollege(),
-                message,
-                "NEW_POST",
-                savedPost.getId().toString(),
-                author.getId()
-        );
 
         return mapToDto(savedPost, userId);
     }
@@ -370,14 +377,11 @@ public class PostServiceImpl implements PostService {
         if (Boolean.TRUE.equals(result.get("liked"))) {
             Post post = postRepository.findById(postId).orElse(null);
             if (post != null && !post.getAuthor().getId().equals(userId)) {
-                Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
-                String likerName = profileOpt.map(Profile::getFullName).orElse("Someone");
-                notificationService.createNotification(
-                        post.getAuthor(),
-                        "POST_LIKE",
-                        "New Like",
-                        likerName + " liked your post"
-                );
+                eventPublisher.publish(PostLikedEvent.builder()
+                        .postId(postId)
+                        .postAuthorId(post.getAuthor().getId())
+                        .actorId(userId)
+                        .build());
             }
         }
         return result;
@@ -393,7 +397,7 @@ public class PostServiceImpl implements PostService {
     @Cacheable(value = "post_comments", key = "#postId.toString() + ':' + #page + ':' + #size")
     public PageResponse<CommentResponseDto> getComments(UUID postId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Comment> commentsPage = commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(postId, pageable);
+        Page<Comment> commentsPage = commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtDesc(postId, pageable);
 
         List<CommentResponseDto> content = commentsPage.getContent().stream()
                 .map(this::mapCommentToDto)
@@ -404,7 +408,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "post_comments", allEntries = true)
+    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
     public CommentResponseDto addComment(UUID userId, UUID postId, CreateCommentRequest request) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));
@@ -432,14 +436,26 @@ public class PostServiceImpl implements PostService {
             if (commentPreview.length() > 20) {
                 commentPreview = commentPreview.substring(0, 20) + "...";
             }
-            Optional<Profile> profileOpt = profileRepository.findByUserId(userId);
-            String commenterName = profileOpt.map(Profile::getFullName).orElse(author.getEmail());
-            notificationService.createNotification(
-                    post.getAuthor(),
-                    "NEW_COMMENT",
-                    "New Comment",
-                    commenterName + " commented on your post: " + commentPreview
-            );
+            eventPublisher.publish(PostCommentedEvent.builder()
+                    .postId(postId)
+                    .postAuthorId(post.getAuthor().getId())
+                    .actorId(userId)
+                    .commentPreview(commentPreview)
+                    .build());
+        }
+
+        if (request.getMentionedUserIds() != null && !request.getMentionedUserIds().isEmpty()) {
+            for (UUID mentionedUserId : request.getMentionedUserIds()) {
+                // Don't mention the author themselves if they self-mention
+                if (!mentionedUserId.equals(userId)) {
+                    eventPublisher.publish(com.collegebook.collegebookbackend.event.MentionEvent.builder()
+                            .mentionedUserId(mentionedUserId)
+                            .context("POST_COMMENT")
+                            .targetId(postId)
+                            .actorId(userId)
+                            .build());
+                }
+            }
         }
 
         return mapCommentToDto(saved);
@@ -447,7 +463,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "post_comments", allEntries = true)
+    @CacheEvict(value = {"post_comments", "feed", "explore"}, allEntries = true)
     public void deleteComment(UUID userId, UUID postId, UUID commentId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Post not found"));

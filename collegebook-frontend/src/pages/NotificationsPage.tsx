@@ -1,31 +1,53 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Loader2, BellRing, ArrowLeft } from "lucide-react";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getNotifications, markNotificationRead } from "@/lib/api";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { formatSmartDate } from "@/lib/dateUtils";
+import { PaginationSentinel } from "@/components/common/PaginationSentinel";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const push = usePushNotifications();
   const [isLoadingPush, setIsLoadingPush] = useState(false);
+  
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    getNotifications()
+    getNotifications(0, 20)
       .then((res) => {
-        setNotifications(res?.items || []);
+        setNotifications(res?.items || res?.content || []);
+        setHasMore(Boolean(res?.hasNext));
+        setPage(res?.page !== undefined ? res.page : 0);
       })
       .catch(() => {
-        setNotifications([]); // Fallback safely if the API fails or is empty
+        setNotifications([]);
       })
       .finally(() => {
         setIsLoading(false);
       });
   }, []);
+
+  const loadMoreNotifications = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await getNotifications(nextPage, 20);
+      setNotifications((prev) => [...prev, ...(res?.items || res?.content || [])]);
+      setHasMore(Boolean(res?.hasNext));
+      setPage(res?.page !== undefined ? res.page : nextPage);
+    } catch (error) {
+      console.error("Failed to load more notifications", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [page, hasMore, loadingMore]);
 
   const handleSubscribe = async () => {
     setIsLoadingPush(true);
@@ -90,7 +112,7 @@ export default function NotificationsPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/40">
+          <div className="divide-y divide-border/40 pb-4">
             {notifications.map((n) => (
               <div
                 key={n.id}
@@ -113,6 +135,13 @@ export default function NotificationsPage() {
                 </div>
               </div>
             ))}
+            
+            {notifications.length > 0 && hasMore && (
+              <PaginationSentinel 
+                onIntersect={loadMoreNotifications} 
+                loading={loadingMore} 
+              />
+            )}
           </div>
         )}
       </Card>

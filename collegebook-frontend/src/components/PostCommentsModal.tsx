@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Send, Lock, Trash2, MessageSquare, MoreHorizontal, Flag } from "lucide-react";
+import { Send, Lock, Trash2, MessageSquare, MoreHorizontal, Flag, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,10 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [body, setBody] = useState("");
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const currentUser = JSON.parse(
     localStorage.getItem("cb_user") || '{"name":"You","initials":"YO"}'
@@ -53,11 +57,14 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
     let alive = true;
     setLoading(true);
     setComments([]);
+    setPage(0);
 
-    getComments(post.id)
+    getComments(post.id, 0, 15)
       .then((data) => {
         if (alive) {
           setComments(data?.comments || []);
+          setHasMore(Boolean(data?.hasNext));
+          if (data?.page !== undefined) setPage(data.page);
         }
       })
       .catch((err) => {
@@ -71,6 +78,23 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
       alive = false;
     };
   }, [isOpen, post]);
+
+  const loadMoreComments = async () => {
+    if (loadingMore || !hasMore || !post) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await getComments(post.id, nextPage, 15);
+      const newComments = data?.comments || [];
+      setComments((prev) => [...prev, ...newComments]);
+      setHasMore(Boolean(data?.hasNext));
+      if (data?.page !== undefined) setPage(data.page);
+    } catch (err) {
+      console.error("Failed to load more comments:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -338,6 +362,25 @@ export const PostCommentsModal: React.FC<PostCommentsModalProps> = ({
               );
             })
           )}
+          
+          {comments.length > 0 && hasMore && (
+            <div className="flex justify-center pt-2 pb-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadMoreComments}
+                disabled={loadingMore}
+                className="text-xs text-muted-foreground hover:text-foreground h-7 rounded-full"
+              >
+                {loadingMore ? (
+                  <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> Loading...</>
+                ) : (
+                  "Load more comments"
+                )}
+              </Button>
+            </div>
+          )}
+          
           <div ref={commentsEndRef} />
         </div>
 

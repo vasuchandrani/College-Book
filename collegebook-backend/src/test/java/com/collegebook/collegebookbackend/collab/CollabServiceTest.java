@@ -64,7 +64,7 @@ public class CollabServiceTest {
     @Mock
     private ProfileRepository profileRepository;
     @Mock
-    private com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
+    private com.collegebook.collegebookbackend.event.EventPublisher eventPublisher;
     @Mock
     private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
     @Mock
@@ -84,7 +84,7 @@ public class CollabServiceTest {
                 teamDiscussionRepository,
                 userRepository,
                 profileRepository,
-                notificationService,
+                eventPublisher,
                 socialInteractionService,
                 teamChatReadRepository,
                 chatMessageRepository

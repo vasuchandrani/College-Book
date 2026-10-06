@@ -63,6 +63,8 @@ public class ChatServiceTest {
     @Mock
     private ProfileRepository profileRepository;
     @Mock
+    private com.collegebook.collegebookbackend.event.EventPublisher eventPublisher;
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
     @Mock
     private StringRedisTemplate redisTemplate;
@@ -88,7 +90,8 @@ public class ChatServiceTest {
                 teamMemberRepository,
                 userRepository,
                 profileRepository,
-                objectMapper
+                objectMapper,
+                eventPublisher
         );
         ReflectionTestUtils.setField(chatService, "messagingTemplate", messagingTemplate);
         ReflectionTestUtils.setField(chatService, "redisTemplate", redisTemplate);

@@ -67,7 +67,7 @@ public class PostServiceTest {
     @Mock
     private com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
     @Mock
-    private com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
+    private com.collegebook.collegebookbackend.event.EventPublisher eventPublisher;
 
     private PostServiceImpl postService;
 
@@ -84,7 +84,7 @@ public class PostServiceTest {
                 postMediaRepository,
                 mediaService,
                 socialInteractionService,
-                notificationService
+                eventPublisher
         );
     }
 
@@ -336,7 +336,7 @@ public class PostServiceTest {
         profile.setInitials("RG");
         when(profileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
 
-        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("@ronakgondaliya great idea!");
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = com.collegebook.collegebookbackend.post.dto.CreateCommentRequest.builder().body("@ronakgondaliya great idea!").build();
         com.collegebook.collegebookbackend.post.dto.CommentResponseDto resp = postService.addComment(userId, postId, req);
 
         assertNotNull(resp);
@@ -357,7 +357,7 @@ public class PostServiceTest {
 
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
 
-        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("Test comment");
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = com.collegebook.collegebookbackend.post.dto.CreateCommentRequest.builder().body("Test comment").build();
         AppException ex = assertThrows(AppException.class, () -> postService.addComment(userId, postId, req));
         assertEquals(ErrorCode.COMMENTS_DISABLED, ex.getErrorCode());
     }
@@ -474,7 +474,7 @@ public class PostServiceTest {
 
         when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
-        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = new com.collegebook.collegebookbackend.post.dto.CreateCommentRequest("Hello");
+        com.collegebook.collegebookbackend.post.dto.CreateCommentRequest req = com.collegebook.collegebookbackend.post.dto.CreateCommentRequest.builder().body("Hello").build();
         AppException ex = assertThrows(AppException.class, () -> postService.addComment(userId, postId, req));
         assertEquals(ErrorCode.NOT_FOUND, ex.getErrorCode());
     }
@@ -500,7 +500,7 @@ public class PostServiceTest {
         org.springframework.data.domain.Page<com.collegebook.collegebookbackend.post.entity.Comment> page =
                 new org.springframework.data.domain.PageImpl<>(List.of(activeComment));
 
-        when(commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(any(), any())).thenReturn(page);
+        when(commentRepository.findByPostIdAndDeletedAtIsNullOrderByCreatedAtDesc(any(), any())).thenReturn(page);
 
         com.collegebook.collegebookbackend.common.PageResponse<com.collegebook.collegebookbackend.post.dto.CommentResponseDto> res =
                 postService.getComments(postId, 0, 10);

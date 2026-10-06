@@ -16,4 +16,6 @@ public class CreateCommentRequest {
     @NotBlank(message = "Comment body cannot be blank")
     @Size(max = 1000, message = "Comment cannot exceed 1000 characters")
     private String body;
+
+    private java.util.List<java.util.UUID> mentionedUserIds;
 }

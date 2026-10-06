@@ -34,6 +34,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final com.collegebook.collegebookbackend.auth.repository.UserRepository userRepository;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     @Value("${webpush.vapid.public-key}")
     private String vapidPublicKey;
@@ -63,6 +64,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<NotificationDto> getMyNotifications(UUID userId, int page, int size) {
+        // Clear the unread badge automatically when they open notifications
+        redisTemplate.delete("cb:notif:unread:" + userId);
+        
         Pageable pageable = PageRequest.of(page, size);
         Page<Notification> notifPage = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
 
@@ -101,7 +105,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public long getUnreadCount(UUID userId) {
-        return notificationRepository.countByUserIdAndIsReadFalse(userId);
+        String countStr = redisTemplate.opsForValue().get("cb:notif:unread:" + userId);
+        return countStr != null ? Long.parseLong(countStr) : 0L;
     }
 
     @Override

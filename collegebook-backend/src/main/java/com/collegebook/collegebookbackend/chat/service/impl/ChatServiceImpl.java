@@ -55,6 +55,7 @@ public class ChatServiceImpl implements ChatService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
+    private final com.collegebook.collegebookbackend.event.EventPublisher eventPublisher;
 
     @Autowired(required = false)
     private com.collegebook.collegebookbackend.storage.service.MediaService mediaService;
@@ -217,6 +218,28 @@ public class ChatServiceImpl implements ChatService {
                 messagingTemplate.convertAndSend("/topic/room." + teamId, dto);
             } catch (Exception e) {
                 log.warn("Failed to broadcast message to /topic/room.{}: {}", teamId, e.getMessage());
+            }
+        }
+
+        // 3. Trigger Notification Events
+        eventPublisher.publish(com.collegebook.collegebookbackend.event.RoomChatMessageEvent.builder()
+                .roomId(teamId)
+                .roomName(team.getTitle())
+                .messagePreview(rawContent.length() > 30 ? rawContent.substring(0, 30) + "..." : rawContent)
+                .actorId(senderId)
+                .build());
+
+        if (request.getMentionedUserIds() != null && !request.getMentionedUserIds().isEmpty()) {
+            for (UUID mentionedUserId : request.getMentionedUserIds()) {
+                // Ensure they are actually in the team before notifying
+                if (teamMemberRepository.existsByIdTeamIdAndIdUserId(teamId, mentionedUserId) || (team.getOwner() != null && team.getOwner().getId().equals(mentionedUserId))) {
+                    eventPublisher.publish(com.collegebook.collegebookbackend.event.MentionEvent.builder()
+                            .mentionedUserId(mentionedUserId)
+                            .context("ROOM_CHAT")
+                            .targetId(teamId)
+                            .actorId(senderId)
+                            .build());
+                }
             }
         }
 

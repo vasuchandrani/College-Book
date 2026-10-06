@@ -30,6 +30,7 @@ import com.collegebook.collegebookbackend.common.ErrorCode;
 import com.collegebook.collegebookbackend.common.PageResponse;
 import com.collegebook.collegebookbackend.profile.entity.Profile;
 import com.collegebook.collegebookbackend.profile.repository.ProfileRepository;
+import com.collegebook.collegebookbackend.event.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -63,7 +64,7 @@ public class CollabServiceImpl implements CollabService {
     private final TeamDiscussionRepository teamDiscussionRepository;
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
-    private final com.collegebook.collegebookbackend.notification.service.NotificationService notificationService;
+    private final EventPublisher eventPublisher;
     private final com.collegebook.collegebookbackend.social.SocialInteractionService socialInteractionService;
     private final com.collegebook.collegebookbackend.collab.repository.TeamChatReadRepository teamChatReadRepository;
     private final com.collegebook.collegebookbackend.chat.repository.ChatMessageRepository chatMessageRepository;
@@ -366,19 +367,11 @@ public class CollabServiceImpl implements CollabService {
             savedTeam = teamRepository.save(savedTeam);
         }
 
-        // Notify college students about new team recruitment
-        String projectName = savedTeam.getTitle();
-        if (projectName.length() > 20) {
-            projectName = projectName.substring(0, 20) + "...";
-        }
-        String message = savedTeam.getOwnerName() + " posted a team project '" + projectName + "' to collab hub";
-        notificationService.notifyCollegeStudents(
-                savedTeam.getCollege(),
-                message,
-                "NEW_TEAM",
-                savedTeam.getId().toString(),
-                owner.getId()
-        );
+        eventPublisher.publish(CollegeCollabCreatedEvent.builder()
+                .collabId(savedTeam.getId())
+                .collegeId(savedTeam.getCollege().getId())
+                .actorId(owner.getId())
+                .build());
 
         return mapToTeamDto(savedTeam, userId);
     }
@@ -470,20 +463,13 @@ public class CollabServiceImpl implements CollabService {
         JoinRequest saved = joinRequestRepository.save(req);
 
         // Create notification for team owner
-        try {
-            if (notificationService != null && team.getOwner() != null && !team.getOwner().getId().equals(userId)) {
-                String applicantName = profileRepository.findByUserId(userId)
-                        .map(Profile::getFullName)
-                        .orElse(applicant.getEmail());
-                notificationService.createNotification(
-                        team.getOwner(),
-                        "JOIN_REQUEST",
-                        "New Join Request",
-                        applicantName + " requested to join \"" + team.getTitle() + "\" as " + (request.getRole() != null ? request.getRole() : "Member")
-                );
-            }
-        } catch (Exception e) {
-            // Non-critical notification logging
+        if (team.getOwner() != null && !team.getOwner().getId().equals(userId)) {
+            eventPublisher.publish(JoinRequestEvent.builder()
+                    .collabId(team.getId())
+                    .collabTitle(team.getTitle())
+                    .ownerId(team.getOwner().getId())
+                    .actorId(userId)
+                    .build());
         }
 
         return mapToJoinRequestDto(saved);
@@ -519,17 +505,14 @@ public class CollabServiceImpl implements CollabService {
             teamMemberRepository.save(newMember);
 
             // Create notification for applicant
-            try {
-                if (notificationService != null && joinReq.getApplicant() != null) {
-                    notificationService.createNotification(
-                            joinReq.getApplicant(),
-                            "REQUEST_ACCEPTED",
-                            "Join Request Accepted!",
-                            "Your request to join \"" + team.getTitle() + "\" was accepted. You are now a team member!"
-                    );
-                }
-            } catch (Exception e) {
-                // Non-critical notification logging
+            if (joinReq.getApplicant() != null) {
+                eventPublisher.publish(JoinRequestRespondedEvent.builder()
+                        .collabId(team.getId())
+                        .collabTitle(team.getTitle())
+                        .requesterId(joinReq.getApplicant().getId())
+                        .actorId(ownerId)
+                        .status("ACCEPTED")
+                        .build());
             }
         } else if (isUndoPending) {
             if (joinReq.getStatus() == JoinRequestStatus.ACCEPTED) {
@@ -544,17 +527,14 @@ public class CollabServiceImpl implements CollabService {
             joinReq.setStatus(JoinRequestStatus.REJECTED);
 
             // Create notification for applicant
-            try {
-                if (notificationService != null && joinReq.getApplicant() != null) {
-                    notificationService.createNotification(
-                            joinReq.getApplicant(),
-                            "REQUEST_REJECTED",
-                            "Join Request Update",
-                            "Your request to join \"" + team.getTitle() + "\" was not accepted."
-                    );
-                }
-            } catch (Exception e) {
-                // Non-critical notification logging
+            if (joinReq.getApplicant() != null) {
+                eventPublisher.publish(JoinRequestRespondedEvent.builder()
+                        .collabId(team.getId())
+                        .collabTitle(team.getTitle())
+                        .requesterId(joinReq.getApplicant().getId())
+                        .actorId(ownerId)
+                        .status("REJECTED")
+                        .build());
             }
         }
 

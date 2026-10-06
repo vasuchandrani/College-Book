@@ -32,11 +32,14 @@ public class NotificationServiceTest {
     @Mock
     private com.collegebook.collegebookbackend.auth.repository.UserRepository userRepository;
 
+    @Mock
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
     private NotificationServiceImpl notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationServiceImpl(notificationRepository, pushSubscriptionRepository, userRepository);
+        notificationService = new NotificationServiceImpl(notificationRepository, pushSubscriptionRepository, userRepository, redisTemplate);
     }
 
     @Test

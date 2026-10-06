@@ -37,6 +37,8 @@ public class CreatePostRequest {
     @Builder.Default
     private Boolean commentsEnabled = true;
 
+    private List<java.util.UUID> mentionedUserIds;
+
     public CreatePostRequest(String content, List<String> images, List<String> tags) {
         this.content = content;
         this.images = images;

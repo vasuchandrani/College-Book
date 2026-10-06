@@ -87,7 +87,7 @@ public class AdServiceTest {
 
         when(adRepository.findById(adId)).thenReturn(Optional.of(ad));
 
-        CreateCommentRequest req = new CreateCommentRequest("Great ad!");
+        CreateCommentRequest req = CreateCommentRequest.builder().body("Great ad!").build();
         AppException ex = assertThrows(AppException.class, () -> adService.addComment(userId, adId, req));
 
         assertEquals(ErrorCode.COMMENTS_DISABLED, ex.getErrorCode());
