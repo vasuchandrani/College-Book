@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import com.collegebook.collegebookbackend.notification.service.NotificationBatchService;
+import com.collegebook.collegebookbackend.notification.service.NotificationService;
 
 import java.time.Duration;
 import java.util.List;
@@ -31,6 +32,7 @@ public class NotificationStreamConsumer {
     private final ObjectMapper objectMapper;
     private final NotificationHandlerRegistry registry;
     private final NotificationBatchService notificationBatchService;
+    private final NotificationService notificationService;
 
     private static final String STREAM_KEY = "cb:events:notifications";
     private static final String GROUP_NAME = "notification-workers";
@@ -102,7 +104,11 @@ public class NotificationStreamConsumer {
             log.info("Processed event {} and pushed unread counts to {} users", eventType, recipients.size());
 
             // 3. Trigger Batch Insert to PostgreSQL
-            notificationBatchService.batchInsertNotifications(recipients, eventType, handler.format(event));
+            com.collegebook.collegebookbackend.notification.handler.NotificationPayload formattedPayload = handler.format(event);
+            notificationBatchService.batchInsertNotifications(recipients, eventType, formattedPayload);
+
+            // 4. Send Web Push Async
+            notificationService.sendPushNotificationsAsync(recipients, eventType, formattedPayload.getTitle(), formattedPayload.getMessage());
 
         } catch (Exception e) {
             log.error("Failed to process event record: {}", record.getId(), e);

@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface PushSubscriptionRepository extends JpaRepository<PushSubscription, String> {
     List<PushSubscription> findByUserId(UUID userId);
+    List<PushSubscription> findByUserIdIn(List<UUID> userIds);
 }

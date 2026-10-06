@@ -13,4 +13,5 @@ public interface NotificationService {
     void subscribeToPushNotifications(UUID userId, com.collegebook.collegebookbackend.notification.dto.PushSubscriptionDto dto);
     void unsubscribeFromPushNotifications(UUID userId, String endpoint);
     void notifyCollegeStudents(com.collegebook.collegebookbackend.college.entity.College college, String message, String type, String relatedId, UUID excludeUserId);
+    void sendPushNotificationsAsync(java.util.List<UUID> userIds, String type, String title, String message);
 }

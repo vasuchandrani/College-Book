@@ -42,9 +42,9 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
     @GetMapping("/unread-count")
-    public ResponseEntity<Long> getUnreadCount(@CurrentUser UserPrincipal currentUser) {
-        if (currentUser == null) return ResponseEntity.ok(0L);
-        return ResponseEntity.ok(notificationService.getUnreadCount(currentUser.getId()));
+    public ResponseEntity<java.util.Map<String, Long>> getUnreadCount(@CurrentUser UserPrincipal currentUser) {
+        if (currentUser == null) return ResponseEntity.ok(java.util.Map.of("unreadCount", 0L));
+        return ResponseEntity.ok(java.util.Map.of("unreadCount", notificationService.getUnreadCount(currentUser.getId())));
     }
 
     @PostMapping("/subscribe")

@@ -27,7 +27,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
@@ -141,6 +144,30 @@ public class NotificationServiceImpl implements NotificationService {
                     // Log error, potentially remove expired subscriptions
                     System.err.println("Push failed for " + user.getEmail() + ": " + e.getMessage());
                 }
+            }
+        }
+    }
+    
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    public void sendPushNotificationsAsync(List<UUID> userIds, String type, String title, String message) {
+        if (pushService == null) return;
+        
+        List<PushSubscription> subs = pushSubscriptionRepository.findByUserIdIn(userIds);
+        for (PushSubscription sub : subs) {
+            try {
+                nl.martijndwars.webpush.Subscription webSub = new nl.martijndwars.webpush.Subscription(
+                        sub.getEndpoint(),
+                        new nl.martijndwars.webpush.Subscription.Keys(sub.getP256dh(), sub.getAuth())
+                );
+                String payload = String.format("{\"title\":\"%s\", \"body\":\"%s\", \"type\":\"%s\"}", 
+                        title.replace("\"", "\\\""), 
+                        message.replace("\"", "\\\""), 
+                        type);
+                nl.martijndwars.webpush.Notification pushNotif = new nl.martijndwars.webpush.Notification(webSub, payload);
+                pushService.send(pushNotif);
+            } catch (Exception e) {
+                log.error("Push failed for endpoint {}: {}", sub.getEndpoint(), e.getMessage());
             }
         }
     }

@@ -336,6 +336,7 @@ public class PostServiceImpl implements PostService {
                 .postId(savedPost.getId())
                 .collegeId(savedPost.getCollege().getId())
                 .actorId(author.getId())
+                .actorName(profile.getFullName() != null ? profile.getFullName() : author.getEmail())
                 .build());
 
         // Notify mentioned users
@@ -347,6 +348,7 @@ public class PostServiceImpl implements PostService {
                             .context("POST")
                             .targetId(savedPost.getId())
                             .actorId(userId)
+                            .actorName(profile.getFullName() != null ? profile.getFullName() : author.getEmail())
                             .build());
                 }
             }
@@ -377,10 +379,13 @@ public class PostServiceImpl implements PostService {
         if (Boolean.TRUE.equals(result.get("liked"))) {
             Post post = postRepository.findById(postId).orElse(null);
             if (post != null && !post.getAuthor().getId().equals(userId)) {
+                Profile profile = profileRepository.findByUserId(userId).orElse(null);
+                String actorName = profile != null && profile.getFullName() != null ? profile.getFullName() : "Someone";
                 eventPublisher.publish(PostLikedEvent.builder()
                         .postId(postId)
                         .postAuthorId(post.getAuthor().getId())
                         .actorId(userId)
+                        .actorName(actorName)
                         .build());
             }
         }
@@ -436,15 +441,20 @@ public class PostServiceImpl implements PostService {
             if (commentPreview.length() > 20) {
                 commentPreview = commentPreview.substring(0, 20) + "...";
             }
+            Profile profile = profileRepository.findByUserId(userId).orElse(null);
+            String actorName = profile != null && profile.getFullName() != null ? profile.getFullName() : author.getEmail();
             eventPublisher.publish(PostCommentedEvent.builder()
                     .postId(postId)
                     .postAuthorId(post.getAuthor().getId())
                     .actorId(userId)
+                    .actorName(actorName)
                     .commentPreview(commentPreview)
                     .build());
         }
 
         if (request.getMentionedUserIds() != null && !request.getMentionedUserIds().isEmpty()) {
+            Profile profile = profileRepository.findByUserId(userId).orElse(null);
+            String actorName = profile != null && profile.getFullName() != null ? profile.getFullName() : author.getEmail();
             for (UUID mentionedUserId : request.getMentionedUserIds()) {
                 // Don't mention the author themselves if they self-mention
                 if (!mentionedUserId.equals(userId)) {
@@ -453,6 +463,7 @@ public class PostServiceImpl implements PostService {
                             .context("POST_COMMENT")
                             .targetId(postId)
                             .actorId(userId)
+                            .actorName(actorName)
                             .build());
                 }
             }
